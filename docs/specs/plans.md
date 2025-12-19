@@ -33,7 +33,23 @@
     - [x] Install Core Libraries: `reactflow`, `framer-motion`, `lucide-react`, `axios`, `zustand`
 
 ## REQ-1 Project Management
-- [ ] **REQ-1-1** Project Creation API & UI
+- [x] **REQ-1-1** Project Creation API & UI
+    - [x] **Backend: Models & Schema**
+        - [x] Define `Project` SQL Model (`backend/app/models/project.py`) with fields: `id`, `name`, `description`, `created_at`
+        - [x] Generate Alembic Migration for `projects` table
+        - [x] Define Pydantic Schemas (`ProjectCreate`, `ProjectResponse`) (`backend/app/schemas/project.py`)
+    - [x] **Backend: API Implementation**
+        - [x] Implement CRUD Logic (`backend/app/services/project_service.py`)
+        - [x] Create API Router (`backend/app/api/v1/projects.py`) for `POST /` and `GET /`
+        - [x] Register Router in `main.py`
+    - [x] **Frontend: State & API**
+        - [x] Setup Axios Client Instance (`src/lib/api.ts`)
+        - [x] Define Project Types (`src/types/project.ts`)
+        - [x] Create Project Store using Zustand (`src/store/projectStore.ts`)
+    - [x] **Frontend: UI Components**
+        - [x] Create Project Creation Dialog (shadcn/ui `Dialog`, `Form`)
+        - [x] Create Project List Page (shadcn/ui `Card` or `Table`)
+        - [x] Integrate API with UI
 - [ ] **REQ-1-2** Scan Target Registration API & UI
 - [ ] **REQ-1-3** LLM Settings Management
 
