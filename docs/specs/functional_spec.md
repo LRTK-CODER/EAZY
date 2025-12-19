@@ -7,7 +7,7 @@
 
 ## **2\. 시스템 환경 (Environment)**
 
-* **Backend:** Python 3.12.10 (FastAPI), PostgreSQL (JSONB 활용), Redis (Task Queue)  
+* **Backend:** Python 3.12.10 (FastAPI), PostgreSQL (JSONB 활용), Redis (Task Queue), **uv** (Package Manager)  
 * **Frontend:** React, Vite, shadcn/ui, React Bit, React Flow (시각화)  
 * **AI Engine:** OpenAI API (GPT-4o), Google Gemini API, Anthropic Claude API  
 * **Core Modules:** Playwright (Crawling), Mitmproxy (Proxy/Passive Scan), HTTPX (Request)
