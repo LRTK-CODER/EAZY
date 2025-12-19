@@ -19,4 +19,16 @@ class ProjectService:
     def get_project(self, db: Session, project_id: int) -> Project | None:
         return db.query(Project).filter(Project.id == project_id).first()
 
+    def update_project(self, db: Session, db_project: Project, project_in: ProjectCreate) -> Project:
+        db_project.name = project_in.name
+        db_project.description = project_in.description
+        db.commit()
+        db.refresh(db_project)
+        return db_project
+
+    def delete_project(self, db: Session, db_project: Project) -> Project:
+        db.delete(db_project)
+        db.commit()
+        return db_project
+
 project_service = ProjectService()
