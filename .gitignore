@@ -32,3 +32,6 @@ yarn-error.log*
 Thumbs.db
 .gemini/
 .agent/
+docker-compose.yml
+db_data/
+redis_data/

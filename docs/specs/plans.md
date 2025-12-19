@@ -11,21 +11,26 @@
     - [x] Add dependencies: `uv add fastapi uvicorn pydantic-settings`
     - [x] Create `backend/app/main.py` (Hello World)
     - [x] Configure Environment Variables (`.env`, `config.py`)
-- [ ] **Backend: Database & Redis**
-    - [ ] Install Drivers & ORM: `uv add sqlalchemy psycopg2-binary alembic redis`
-    - [ ] Setup Database Engine (`backend/app/core/db.py`)
-    - [ ] Setup Declarative Base (`backend/app/models/base.py`)
-    - [ ] Configure Session Local (`backend/app/core/db.py`)
-    - [ ] Initialize Alembic: `uv run alembic init backend/alembic`
-    - [ ] Configure `alembic.ini` and `env.py` for async/sync
-    - [ ] Setup Redis Client (`backend/app/core/redis.py`)
-- [ ] **Backend: Logging & Middleware**
-    - [ ] Install `structlog` or configure standard `logging` to JSON
-    - [ ] Create Logging Config (`backend/app/core/logging.py`)
-    - [ ] Implement Request/Response Logging Middleware
-    - [ ] Setup CORS Middleware (`backend/app/core/middleware.py`)
-    - [ ] Create Global Exception Handler (`backend/app/core/exceptions.py`)
-- [ ] Setup Frontend Environment (React, Vite, shadcn/ui, React Flow)
+- [x] **Backend: Database & Redis**
+    - [x] Install Drivers & ORM: `uv add sqlalchemy psycopg2-binary alembic redis`
+    - [x] Setup Database Engine (`backend/app/core/db.py`)
+    - [x] Setup Declarative Base (`backend/app/models/base.py`)
+    - [x] Configure Session Local (`backend/app/core/db.py`)
+    - [x] Initialize Alembic: `uv run alembic init backend/alembic`
+    - [x] Configure `alembic.ini` and `env.py` for async/sync
+    - [x] Setup Redis Client (`backend/app/core/redis.py`)
+- [x] **Backend: Logging & Middleware**
+    - [x] Install `structlog` or configure standard `logging` to JSON
+    - [x] Create Logging Config (`backend/app/core/logging.py`)
+    - [x] Implement Request/Response Logging Middleware
+    - [x] Setup CORS Middleware (`backend/app/core/middleware.py`)
+    - [x] Create Global Exception Handler (`backend/app/core/exceptions.py`)
+- [x] **Frontend: Environment Setup**
+    - [x] Initialize Vite Project (React + TypeScript): `npm create vite@latest frontend`
+    - [x] Install dependencies: `npm install`
+    - [x] Setup TailwindCSS & PostCSS
+    - [x] Initialize shadcn/ui: `npx shadcn@latest init`
+    - [x] Install Core Libraries: `reactflow`, `framer-motion`, `lucide-react`, `axios`, `zustand`
 
 ## REQ-1 Project Management
 - [ ] **REQ-1-1** Project Creation API & UI
