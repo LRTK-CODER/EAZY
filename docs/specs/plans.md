@@ -137,7 +137,61 @@
 
 
 ## REQ-2 Attack Surface Discovery
+- [x] **REQ-2-1** Pattern-Based Active Crawling
+    - [x] **REQ-2-1-1** Backend: Playwright Integration
+        - [x] **Environment**: Setup Playwright in Docker/Backend
+        - [x] **Service**: Implement `CrawlerService`: Visit URL, Render JS, Extract Links
+        - [x] **Logic**: Parse HTML/DOM for Inputs, Forms, Buttons
+    - [x] **REQ-2-1-2** Backend: Semantic Endpoint Parsing
+        - [x] **Logic**: Extract Method, URL, Headers from Requests
+        - [x] **Logic**: Deduplicate Endpoints by Param Type (e.g. `id=1` -> `id:int`)
+        - [x] **Output**: Structure data in JSON format (Method, URL, Params[Type])
+- [ ] **REQ-2-2** User-Driven Passive Crawling
+    - [ ] **REQ-2-2-1** Backend: Proxy Server
+        - [ ] **Library**: Integrate `mitmproxy` library
+        - [ ] **Logic**: Implement Request/Response Interception
+        - [ ] **Feature**: WebSocket Stream for Real-time Packet View
+    - [ ] **REQ-2-2-2** Frontend: Passive Scan Mode
+        - [ ] **UI**: "Start Passive Scan" Toggle/Button
+        - [ ] **UI**: Display Live Request Feed
+- [ ] **REQ-2-3** Logic Flow & Dependency Analysis
+    - [ ] **REQ-2-3-1** Backend: Flow Logic
+        - [ ] **Model**: Define `FlowGraph` Data Structure (Nodes/Edges)
+        - [ ] **Logic**: Analyze Dependencies (e.g. Session Tokens, Order IDs)
+    - [ ] **REQ-2-3-2** Frontend: Visual Map
+        - [ ] **Library**: Integrate `React Flow`
+        - [ ] **UI**: Visualize Pages/Endpoints as Nodes
 - [ ] **REQ-2-4** Parameter Specification Parsing
+    - [ ] **REQ-2-4-1** Backend: Models & Schema
+        - [ ] **Model**: Define `Endpoint` SQL Model (`id`, `target_id`, `method`, `path`, `description`)
+        - [ ] **Model**: Define `Parameter` SQL Model (`id`, `endpoint_id`, `name`, `location`, `data_type`, `constraints`)
+        - [ ] **Migration**: Generate Alembic Migration
+        - [ ] **Schema**: Define Pydantic Schemas (`EndpointBase`, `ParameterBase`)
+    - [ ] **REQ-2-4-2** Backend: Parsing Service
+        - [ ] **Abstraction**: Create `SpecParser` Abstract Base Class
+        - [ ] **Implementation**: Implement `OpenAPIParser` (Support JSON/YAML)
+        - [ ] **Logic**: Extract Paths, Methods, Query/Path/Header/Body Parameters
+        - [ ] **Logic**: Parse JSON Schemas for Body Parameters
+    - [ ] **REQ-2-4-3** Backend: Type Inference Logic
+        - [ ] **Logic**: Infer types from JSON/Query values (Int, String, Boolean, UUID)
+        - [ ] **Logic**: Detect constraints (Required/Optional)
+- [ ] **REQ-2-5** LLM-Based Function Intent Inference
+    - [ ] **REQ-2-5-1** Backend: AI Service
+        - [ ] **Prompting**: Construct Prompt with URL/Params/Context
+        - [ ] **Integration**: Call LLM (GPT/Claude) to summarize "Intent" (e.g. "Values Password Reset")
+    - [ ] **REQ-2-5-2** Backend: Storage
+        - [ ] **Model**: Update `Endpoint` model with `intent` field
+        - [ ] **Storage**: Store AI explanation
+        - [ ] Implement `OpenAPIParser` (Support JSON/YAML)
+        - [ ] Logic: Extract Paths, Methods, Query/Path/Header/Body Parameters
+        - [ ] Logic: Parse JSON Schemas for Body Parameters
+    - [ ] **Backend: API Implementation**
+        - [ ] API `POST /api/v1/targets/{id}/upload-spec`: Upload & Parse Spec File
+        - [ ] API `GET /api/v1/targets/{id}/endpoints`: List parsed endpoints
+    - [ ] **Frontend: Spec Management**
+        - [ ] Add "API Spec" Tab to `TargetDetail` Page
+        - [ ] UI: File Upload Area (Drag & Drop)
+        - [ ] UI: Endpoints List Table (Method Badge, Path, Param Count)
 - [ ] **REQ-2-5** LLM-based Function Intent Inference
 
 ## REQ-3 AI Vulnerability Analysis
