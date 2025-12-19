@@ -10,3 +10,4 @@ class Project(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     targets = relationship("Target", back_populates="project", cascade="all, delete-orphan")
+    llm_config = relationship("LLMConfig", back_populates="project", uselist=False, cascade="all, delete-orphan")

@@ -78,7 +78,39 @@
         - [x] Integrate API with UI
         - [x] Add Delete Button to Target Card (`src/pages/ProjectDetail.tsx`)
         - [x] Create/Update Edit Target Dialog
-- [ ] **REQ-1-3** LLM Settings Management
+- [x] **REQ-1-3** LLM Settings Management (Refactor: Centralized Keys)
+    - [x] **REQ-1-3-1** Global API Key Management
+        - [x] **Backend**:
+            - [x] Define `ApiKey` SQL Model (`id`, `name`, `provider`, `key` (encrypted), `api_base`)
+            - [x] Generate Migration (create `api_keys`, modify `llm_configs`)
+            - [x] Create `ApiKeyService` (CRUD with Encryption)
+            - [x] Create Router `/api/v1/api-keys`
+        - [x] **Frontend**:
+            - [x] Create `ApiKeyStore`
+            - [x] Create "Global Settings > API Keys" Page/Dialog
+            - [x] UI: List Keys, Add New Key (Name, Provider, Key)
+    - [x] **REQ-1-3-2** Project Integration (Refactor)
+        - [x] **Backend**:
+            - [x] Update `LLMConfig` model to link to `ApiKey` (`api_key_id`) instead of storing `api_key`
+            - [x] Update `upsert_llm_config` logic
+        - [x] **Frontend**:
+            - [x] Update `EditLLMDialog`: Replace API Key input with **Key Selection Dropdown**
+            - [x] Logic: Select Key -> Auto-fill Provider -> User enters Model
+- [ ] **REQ-1-4** Layout, Dashboard & Global Settings
+    - [ ] **Backend: API Key Categorization**
+        - [ ] Update `ApiKey` Model: Add `category` field (e.g., "LLM", "MCP")
+        - [ ] Generate Migration
+        - [ ] Update `ApiKey` API to support category
+    - [ ] **Frontend: Layout & Navigation**
+        - [ ] Create `AppLayout` Component (Sidebar + Content Area)
+        - [ ] Implement Navigation Menu (Dashboard, Projects, Settings)
+    - [ ] **Frontend: Dashboard**
+        - [ ] Create `Dashboard` Page (`/dashboard`)
+        - [ ] Show Summary Stats (Total Projects, Targets)
+    - [ ] **Frontend: Global API Key Management**
+        - [ ] Create `ApiKeysPage` (`/settings/api-keys`)
+        - [ ] Implement Table with Category Filter
+        - [ ] reuse/enhance `ManageApiKeysDialog` logic for Create/Edit
 
 ## REQ-2 Attack Surface Discovery
 - [ ] **REQ-2-4** Parameter Specification Parsing

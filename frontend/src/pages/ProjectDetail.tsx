@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useProjectStore } from "@/store/projectStore";
 import { CreateTargetDialog } from "@/components/target/CreateTargetDialog";
 import { EditTargetDialog } from "@/components/target/EditTargetDialog";
+import { EditLLMDialog } from "@/components/project/EditLLMDialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Trash2 } from "lucide-react";
@@ -41,9 +42,12 @@ export default function ProjectDetail() {
             </Button>
 
             {project && (
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold">{project.name}</h1>
-                    <p className="text-gray-500">{project.description}</p>
+                <div className="mb-8 flex justify-between items-start">
+                    <div>
+                        <h1 className="text-3xl font-bold">{project.name}</h1>
+                        <p className="text-gray-500">{project.description}</p>
+                    </div>
+                    <EditLLMDialog projectId={projectId} />
                 </div>
             )}
 
