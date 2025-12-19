@@ -50,13 +50,37 @@
         - [x] Create Project Creation Dialog (shadcn/ui `Dialog`, `Form`)
         - [x] Create Project List Page (shadcn/ui `Card` or `Table`)
         - [x] Integrate API with UI
-- [ ] **REQ-1-2** Scan Target Registration API & UI
+    - [x] **Backend: Project Update/Delete**
+        - [x] Implement `update_project`, `delete_project` in Service
+        - [x] Add `PUT /projects/{id}`, `DELETE /projects/{id}` endpoints
+    - [x] **Frontend: Project Update/Delete**
+        - [x] Add `deleteProject`, `updateProject` actions to Store
+        - [x] Add Edit Dialog & Delete Confirmation to Project List UI
+ - [x] **REQ-1-2** Scan Target Registration API & UI
+    - [x] **Backend: Models & Schema**
+        - [x] Define `Target` SQL Model (`backend/app/models/target.py`) with fields: `id`, `project_id`, `name`, `url`, `created_at`
+        - [x] Update `Project` model to include `targets` relationship
+        - [x] Generate Alembic Migration for `targets` table
+        - [x] Define Pydantic Schemas (`TargetCreate`, `TargetResponse`) (`backend/app/schemas/target.py`)
+    - [x] **Backend: API Implementation**
+        - [x] Implement Target Service Logic (`backend/app/services/target_service.py`)
+        - [x] Create/Update API Router to support `POST /projects/{id}/targets` and `GET /projects/{id}/targets`
+        - [x] Implement Target Update/Delete Logic in Service
+        - [x] Add `DELETE /targets/{id}` and `PUT /targets/{id}` endpoints
+    - [x] **Frontend: Routing & Logic**
+        - [x] Install `react-router-dom` and setup `BrowserRouter`
+        - [x] Define Target Types (`src/types/target.ts`)
+        - [x] Update Store to handle selected project and its targets
+        - [x] Add `deleteTarget` and `updateTarget` actions to Store
+    - [x] **Frontend: UI Implementation**
+        - [x] Create Target Creation Dialog (`src/components/target/CreateTargetDialog.tsx`)
+        - [x] Create Project Detail Page (`src/pages/ProjectDetail.tsx`)
+        - [x] Integrate API with UI
+        - [x] Add Delete Button to Target Card (`src/pages/ProjectDetail.tsx`)
+        - [x] Create/Update Edit Target Dialog
 - [ ] **REQ-1-3** LLM Settings Management
 
 ## REQ-2 Attack Surface Discovery
-- [ ] **REQ-2-1** Pattern-based Active Crawling (Playwright)
-- [ ] **REQ-2-2** User-driven Passive Crawling (Mitmproxy)
-- [ ] **REQ-2-3** Logic Flow Analysis Module
 - [ ] **REQ-2-4** Parameter Specification Parsing
 - [ ] **REQ-2-5** LLM-based Function Intent Inference
 
