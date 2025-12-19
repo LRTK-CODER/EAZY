@@ -23,6 +23,7 @@ interface ProjectStore {
     upsertLLMConfig: (projectId: number, data: LLMConfigCreateRequest) => Promise<void>;
     fetchApiKeys: () => Promise<void>;
     createApiKey: (data: ApiKeyCreateRequest) => Promise<void>;
+    updateApiKey: (id: number, data: ApiKeyCreateRequest) => Promise<void>;
     deleteApiKey: (id: number) => Promise<void>;
 }
 
@@ -174,6 +175,19 @@ export const useProjectStore = create<ProjectStore>((set) => ({
             set({ isLoading: false });
         } catch (error) {
             set({ isLoading: false, error: "Failed to create API key" });
+            console.error(error);
+            throw error;
+        }
+    },
+
+    updateApiKey: async (id: number, data: ApiKeyCreateRequest) => {
+        set({ isLoading: true, error: null });
+        try {
+            await api.put<ApiKey>(`/api-keys/${id}`, data);
+            await useProjectStore.getState().fetchApiKeys();
+            set({ isLoading: false });
+        } catch (error) {
+            set({ isLoading: false, error: "Failed to update API key" });
             console.error(error);
             throw error;
         }

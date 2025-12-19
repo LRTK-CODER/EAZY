@@ -15,12 +15,18 @@ class ApiKeyService:
         return self.fernet.decrypt(text.encode()).decode()
 
     def create_api_key(self, db: Session, key_in: ApiKeyCreate) -> ApiKey:
+        # Check for duplicates
+        existing_key = db.query(ApiKey).filter(ApiKey.name == key_in.name).first()
+        if existing_key:
+            raise ValueError(f"API Key with name '{key_in.name}' already exists.")
+
         encrypted_key = self._encrypt(key_in.key)
         db_key = ApiKey(
             name=key_in.name,
             provider=key_in.provider,
             key=encrypted_key,
-            api_base=key_in.api_base
+            api_base=key_in.api_base,
+            category=key_in.category
         )
         db.add(db_key)
         db.commit()
@@ -33,6 +39,23 @@ class ApiKeyService:
     def get_api_key(self, db: Session, key_id: int) -> ApiKey | None:
         return db.query(ApiKey).filter(ApiKey.id == key_id).first()
     
+    def update_api_key(self, db: Session, key_id: int, key_in: ApiKeyUpdate) -> ApiKey | None:
+        db_key = self.get_api_key(db, key_id)
+        if not db_key:
+            return None
+        
+        update_data = key_in.dict(exclude_unset=True)
+        if "key" in update_data and update_data["key"]:
+             update_data["key"] = self._encrypt(update_data["key"])
+        
+        for field, value in update_data.items():
+            setattr(db_key, field, value)
+            
+        db.add(db_key)
+        db.commit()
+        db.refresh(db_key)
+        return db_key
+
     def delete_api_key(self, db: Session, key_id: int) -> bool:
         db_key = self.get_api_key(db, key_id)
         if not db_key:

@@ -2,13 +2,23 @@ export interface ApiKey {
     id: number;
     name: string;
     provider: string; // "openai", "anthropic"
+    category: string;
     api_base?: string;
     created_at: string;
+}
+
+export interface ApiKeyUpdate {
+    name?: string;
+    provider?: string;
+    key?: string;
+    api_base?: string;
+    category?: string;
 }
 
 export interface ApiKeyCreateRequest {
     name: string;
     provider: string;
+    category?: string;
     key: string;
     api_base?: string;
 }

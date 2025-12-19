@@ -8,6 +8,7 @@ class ApiKey(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)  # User-friendly alias
     provider = Column(String, nullable=False)  # e.g., "openai", "anthropic"
+    category = Column(String, default="LLM", nullable=False) # e.g., "LLM", "MCP"
     key = Column(String, nullable=False)  # Encrypted API Key
     api_base = Column(String, nullable=True)   # Optional custom base URL
     

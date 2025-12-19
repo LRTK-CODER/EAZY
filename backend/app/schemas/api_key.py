@@ -5,6 +5,7 @@ from datetime import datetime
 class ApiKeyBase(BaseModel):
     name: str
     provider: str
+    category: Optional[str] = "LLM"
     api_base: Optional[str] = None
 
 class ApiKeyCreate(ApiKeyBase):
@@ -13,6 +14,7 @@ class ApiKeyCreate(ApiKeyBase):
 class ApiKeyUpdate(BaseModel):
     name: Optional[str] = None
     provider: Optional[str] = None
+    category: Optional[str] = None
     key: Optional[str] = None
     api_base: Optional[str] = None
 

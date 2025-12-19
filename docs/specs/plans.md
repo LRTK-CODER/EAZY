@@ -96,21 +96,45 @@
         - [x] **Frontend**:
             - [x] Update `EditLLMDialog`: Replace API Key input with **Key Selection Dropdown**
             - [x] Logic: Select Key -> Auto-fill Provider -> User enters Model
-- [ ] **REQ-1-4** Layout, Dashboard & Global Settings
-    - [ ] **Backend: API Key Categorization**
-        - [ ] Update `ApiKey` Model: Add `category` field (e.g., "LLM", "MCP")
-        - [ ] Generate Migration
-        - [ ] Update `ApiKey` API to support category
-    - [ ] **Frontend: Layout & Navigation**
-        - [ ] Create `AppLayout` Component (Sidebar + Content Area)
-        - [ ] Implement Navigation Menu (Dashboard, Projects, Settings)
-    - [ ] **Frontend: Dashboard**
-        - [ ] Create `Dashboard` Page (`/dashboard`)
-        - [ ] Show Summary Stats (Total Projects, Targets)
-    - [ ] **Frontend: Global API Key Management**
-        - [ ] Create `ApiKeysPage` (`/settings/api-keys`)
-        - [ ] Implement Table with Category Filter
-        - [ ] reuse/enhance `ManageApiKeysDialog` logic for Create/Edit
+- [x] **REQ-1-4** Layout, Dashboard & Global Settings
+    - [x] **REQ-1-4-1** Backend: API Key Categorization
+        - [x] Update `ApiKey` Model: Add `category` field (e.g., "LLM", "MCP")
+        - [x] Generate Migration
+        - [x] Update `ApiKey` API to support category
+        - [x] **New**: Update `ApiKey` Update API (if needed for Edit)
+    - [x] **REQ-1-4-2** Frontend: Layout & Navigation
+        - [x] Create `AppLayout` Component (Sidebar + Content Area)
+        - [x] Implement Navigation Menu (Dashboard, Projects, Settings)
+    - [x] **REQ-1-4-3** Frontend: Dashboard
+        - [x] Create `Dashboard` Page (`/dashboard`)
+        - [x] Show Summary Stats (Total Projects, Targets)
+        - [x] Group Widgets: "Project", "API Key", "LAG Data"
+        - [x] Add API Key Stats: Total, LLM Count, MCP Count
+        - [x] Add "LAG Data" Placeholder Widget
+    - [x] **REQ-1-4-4** Global API Key Management (Refactor)
+        - [x] **Tabs UI**: Separate "LLM" and "MCP" tabs
+        - [x] **Tables**:
+            - [x] LLM Table Columns: Name, Provider (with Colored Badge), Created At, Actions
+            - [x] MCP Table Columns: Name, Endpoint (`api_base`), Created At, Actions
+            - [x] Fixed Column Widths (Ratio)
+        - [x] **Bulk Actions**:
+            - [x] Checkbox Selection
+            - [x] Bulk Delete Button
+        - [x] **CRUD Operations**:
+            - [x] Create Dialog (Dynamic Fields, Stacked Layout, Password Toggle)
+            - [x] Edit/View Details Popup
+            - [x] Delete (Single & Bulk)
+        - [x] **UI/UX & Logic Enhancements**:
+            - [x] Provider-specific Badge Colors (Green/Orange/Blue)
+            - [x] Empty State Design for Tabs
+            - [x] Backend & Frontend Name Uniqueness Validation
+            - [x] Dialog Context Awareness (Auto-select Category based on Tab)
+            - [x] **New**: Stacked Layout & White Background Inputs
+            - [x] **New**: Helper Text for Complex Fields
+    - [x] **REQ-1-4-5** Frontend: Theme & Styling
+        - [x] Update Tailwind Config with "Cloud Dancer" Palette
+        - [x] Apply Global Background Color
+
 
 ## REQ-2 Attack Surface Discovery
 - [ ] **REQ-2-4** Parameter Specification Parsing
