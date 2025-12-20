@@ -7,10 +7,23 @@ from app.api.v1.projects import router as projects_router
 from app.api.v1.llm_configs import router as llm_configs_router
 from app.api.v1.api_keys import router as api_keys_router
 
+from contextlib import asynccontextmanager
+import asyncio
+from app.api.v1.proxy import router as proxy_router
+from app.services.proxy_service import proxy_service
+
 # Initialize Logging
 setup_logging()
 
-app = FastAPI(title=settings.PROJECT_NAME)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    proxy_service.set_main_loop(asyncio.get_running_loop())
+    yield
+    # Shutdown
+    proxy_service.stop()
+
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
 # Setup Middleware (CORS, Request Logging)
 setup_middleware(app)
@@ -22,6 +35,7 @@ setup_exception_handlers(app)
 app.include_router(projects_router, prefix="/api/v1/projects", tags=["projects"])
 app.include_router(llm_configs_router, prefix="/api/v1/projects", tags=["llm-configs"])
 app.include_router(api_keys_router, prefix="/api/v1/api-keys", tags=["api-keys"])
+app.include_router(proxy_router, prefix="/api/v1/proxy", tags=["proxy"])
 
 @app.get("/")
 def read_root():

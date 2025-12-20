@@ -155,11 +155,11 @@
         - [x] **Config**: Externalize Semantic Type Inference Rules (Keywords, Regex)
         - [x] **Config**: Externalize Crawler Settings (User-Agent, Timeout)
         - [x] **Refactor**: Update `CrawlerService` & `SemanticParser` to use Config
-- [ ] **REQ-2-2** User-Driven Passive Crawling
-    - [ ] **REQ-2-2-1** Backend: Proxy Server
-        - [ ] **Library**: Integrate `mitmproxy` library
-        - [ ] **Logic**: Implement Request/Response Interception
-        - [ ] **Feature**: WebSocket Stream for Real-time Packet View
+    - [ ] **REQ-2-2** User-Driven Passive Crawling
+        - [x] **REQ-2-2-1** Backend: Proxy Server
+            - [x] **Library**: Integrate `mitmproxy` library
+            - [x] **Logic**: Implement Request/Response Interception
+            - [x] **Feature**: WebSocket Stream for Real-time Packet View
     - [ ] **REQ-2-2-2** Frontend: Passive Scan Mode
         - [ ] **UI**: "Start Passive Scan" Toggle/Button
         - [ ] **UI**: Display Live Request Feed
