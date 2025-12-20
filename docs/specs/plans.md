@@ -155,19 +155,37 @@
         - [x] **Config**: Externalize Semantic Type Inference Rules (Keywords, Regex)
         - [x] **Config**: Externalize Crawler Settings (User-Agent, Timeout)
         - [x] **Refactor**: Update `CrawlerService` & `SemanticParser` to use Config
-    - [ ] **REQ-2-2** User-Driven Passive Crawling
-        - [x] **REQ-2-2-1** Backend: Proxy Server
-            - [x] **Library**: Integrate `mitmproxy` library
-            - [x] **Logic**: Implement Request/Response Interception
-            - [x] **Feature**: WebSocket Stream for Real-time Packet View
-    - [ ] **REQ-2-2-2** Frontend: Passive Scan Mode
-        - [ ] **UI**: "Start Passive Scan" Toggle/Button
-        - [ ] **UI**: Display Live Request Feed
-- [ ] **REQ-2-3** Logic Flow & Dependency Analysis
-    - [ ] **REQ-2-3-1** Backend: Flow Logic
+- [ ] **REQ-2-2** User-Driven Passive Crawling
+    - [x] **REQ-2-2-1** Backend: Proxy Server
+        - [x] **Library**: Integrate `mitmproxy` library
+        - [x] **Logic**: Implement Request/Response Interception
+        - [x] **Feature**: WebSocket Stream for Real-time Packet View
+    - [x] **REQ-2-2-2** Frontend: Passive Scan Mode (Legacy/Refactor)
+        - [x] **UI**: "Start Passive Scan" Toggle/Button (Completed but moving to Target Detail)
+        - [x] **UI**: Display Live Request Feed (Completed but moving to Target Detail)
+
+- [ ] **REQ-2-3** Target Scanning UI & Orchestration
+    - [x] **REQ-2-3-1** Frontend: Target Detail Page Overhaul
+        - [x] **UI**: Layout with Tabs (Dashboard, Active Scan, Passive Scan, API Spec, Settings)
+        - [x] **UI**: Target Summary Dashboard (Scan Status, Vuln Count)
+    - [ ] **REQ-2-3-2** Frontend: Active Scan UI
+        - [ ] **UI**: "Start Active Crawl" Button
+        - [ ] **UI**: Real-time Progress Indicator (Pages Visited / Queue)
+        - [ ] **UI**: Crawled Endpoints Table (Method, URL, Params)
+    - [ ] **REQ-2-3-3** Frontend: Passive Scan UI (Refinement)
+        - [ ] **Refactor**: Move PassiveScanControl & PacketFeed to Target Detail Tab
+        - [ ] **UI**: "Launch Proxy Browser" Button
+        - [ ] **Logic**: Auto-connect WebSocket for specific Target
+    - [ ] **REQ-2-3-4** Backend: Proxy Browser Launcher
+        - [ ] **API**: `POST /api/v1/proxy/browser/launch` (Launch Playwright Headful)
+        - [ ] **Logic**: Configure Browser with Proxy Settings (localhost:8081)
+        - [ ] **Logic**: Manage Browser Instance Lifecycle
+
+- [ ] **REQ-2-4** Logic Flow & Dependency Analysis (Renumbered)
+    - [ ] **REQ-2-4-1** Backend: Flow Logic
         - [ ] **Model**: Define `FlowGraph` Data Structure (Nodes/Edges)
         - [ ] **Logic**: Analyze Dependencies (e.g. Session Tokens, Order IDs)
-    - [ ] **REQ-2-3-2** Frontend: Visual Map
+    - [ ] **REQ-2-4-2** Frontend: Visual Map
         - [ ] **Library**: Integrate `React Flow`
         - [ ] **UI**: Visualize Pages/Endpoints as Nodes
 - [ ] **REQ-2-4** Parameter Specification Parsing

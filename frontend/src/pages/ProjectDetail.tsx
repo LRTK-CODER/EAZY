@@ -1,12 +1,13 @@
+
 import { useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useProjectStore } from "@/store/projectStore";
 import { CreateTargetDialog } from "@/components/target/CreateTargetDialog";
 import { EditTargetDialog } from "@/components/target/EditTargetDialog";
 import { EditLLMDialog } from "@/components/project/EditLLMDialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, ArrowRight } from "lucide-react";
 
 export default function ProjectDetail() {
     const { id } = useParams<{ id: string }>();
@@ -58,11 +59,18 @@ export default function ProjectDetail() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {targets.map((target) => (
-                    <Card key={target.id} className="flex flex-col justify-between">
+                    <Card key={target.id} className="flex flex-col justify-between hover:border-blue-500 transition-colors cursor-default">
                         <div>
                             <CardHeader>
-                                <CardTitle>{target.name}</CardTitle>
-                                <CardDescription>{target.url}</CardDescription>
+                                <div className="flex justify-between items-start">
+                                    <div className="space-y-1">
+                                        <CardTitle>{target.name}</CardTitle>
+                                        <CardDescription>{target.url}</CardDescription>
+                                    </div>
+                                    <Button variant="ghost" size="icon" onClick={() => navigate(`/projects/${projectId}/targets/${target.id}`)}>
+                                        <ArrowRight className="h-4 w-4 text-gray-400" />
+                                    </Button>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <p className="text-xs text-gray-400">
@@ -70,11 +78,17 @@ export default function ProjectDetail() {
                                 </p>
                             </CardContent>
                         </div>
-                        <CardFooter className="flex justify-end gap-2">
+                        <CardFooter className="flex justify-end gap-2 bg-gray-50/50 p-4">
+                            <Link to={`/projects/${projectId}/targets/${target.id}`} className="flex-1">
+                                <Button variant="outline" size="sm" className="w-full">
+                                    View Details
+                                </Button>
+                            </Link>
                             <EditTargetDialog target={target} />
                             <Button
                                 variant="destructive"
                                 size="icon"
+                                className="h-9 w-9"
                                 onClick={() => handleDeleteTarget(target.id)}
                             >
                                 <Trash2 className="h-4 w-4" />
