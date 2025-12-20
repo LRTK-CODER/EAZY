@@ -11,6 +11,8 @@ from contextlib import asynccontextmanager
 import asyncio
 from app.api.v1.proxy import router as proxy_router
 from app.services.proxy_service import proxy_service
+# Import models to register them with SQLAlchemy
+from app.models.scan import ScanJob, Endpoint, Parameter # noqa: F401
 
 # Initialize Logging
 setup_logging()
@@ -36,6 +38,9 @@ app.include_router(projects_router, prefix="/api/v1/projects", tags=["projects"]
 app.include_router(llm_configs_router, prefix="/api/v1/projects", tags=["llm-configs"])
 app.include_router(api_keys_router, prefix="/api/v1/api-keys", tags=["api-keys"])
 app.include_router(proxy_router, prefix="/api/v1/proxy", tags=["proxy"])
+
+from app.api.v1.crawler import router as crawler_router
+app.include_router(crawler_router, prefix="/api/v1/crawler", tags=["crawler"])
 
 @app.get("/")
 def read_root():

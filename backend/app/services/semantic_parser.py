@@ -56,37 +56,38 @@ class SemanticParser:
                 var_name = segment[2:-1] # extract docId
                 inferred_type = self.infer_type_from_name(var_name)
                 
-                param_name = var_name
+                # param_name = var_name
                 normalized_segments.append(f"{{{inferred_type}}}")
-                parameters.append({
-                    "name": param_name,
-                    "type": inferred_type,
-                    "location": "path",
-                    "value": segment # Keep original as value
-                })
+                # User requested NOT to treat path segments as parameters
+                # parameters.append({
+                #     "name": param_name,
+                #     "type": inferred_type,
+                #     "location": "path",
+                #     "value": segment # Keep original as value
+                # })
             
             # Case Z: Pre-normalized Type (e.g. {int})
             elif segment.startswith('{') and segment.endswith('}'):
-                type_name = segment[1:-1]
-                param_name = f"path_param_{i}"
+                # type_name = segment[1:-1]
+                # param_name = f"path_param_{i}"
                 normalized_segments.append(segment)
-                parameters.append({
-                    "name": param_name,
-                    "type": type_name,
-                    "location": "path",
-                    "value": segment
-                })
+                # parameters.append({
+                #     "name": param_name,
+                #     "type": type_name,
+                #     "location": "path",
+                #     "value": segment
+                # })
                 
             # Case B: Heuristic Value (e.g. 123, uuid)
             elif seg_type in ['int', 'uuid'] and segment: 
-                param_name = f"path_param_{i}"
+                # param_name = f"path_param_{i}"
                 normalized_segments.append(f"{{{seg_type}}}")
-                parameters.append({
-                    "name": param_name,
-                    "type": seg_type,
-                    "location": "path",
-                    "value": segment
-                })
+                # parameters.append({
+                #     "name": param_name,
+                #     "type": seg_type,
+                #     "location": "path",
+                #     "value": segment
+                # })
             else:
                 normalized_segments.append(segment)
                 

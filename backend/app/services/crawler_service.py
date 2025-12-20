@@ -19,7 +19,8 @@ class CrawlerService:
         self.config = crawler_config
         self.blacklist = self.config.blacklist
 
-    async def crawl(self, start_url: str, max_depth: int = 2, max_pages: int = 50) -> Dict[str, Any]:
+    async def crawl(self, start_url: str, max_depth: int = 2, max_pages: int = 50, 
+                   progress_callback=None, result_callback=None) -> Dict[str, Any]:
         """
         Recursively crawls a target URL using BFS with safety restrictions.
         """
@@ -44,6 +45,12 @@ class CrawlerService:
                 base_domain = urllib.parse.urlparse(start_url).netloc
 
                 while queue and len(visited) < max_pages:
+                    # Check cancellation or stop signal if possible (Not implemented deep yet, but loop checks)
+                    
+                    # Update Progress BEFORE popping to show "pending work" includes current job
+                    if progress_callback:
+                        await progress_callback(len(visited), len(queue))
+
                     job = queue.pop(0)
                     current_url = job["url"]
                     depth = job["depth"]
@@ -56,15 +63,28 @@ class CrawlerService:
                         
                     visited.add(current_url)
                     
+                    # Update Progress (Visited count changed)
+                    # if progress_callback:
+                    #    await progress_callback(len(visited), len(queue))
+                    
                     # Visit Page
                     page_result = await self._process_page(context, current_url)
                     results.append(page_result)
+                    
+                    # Send endpoints if found
+                    if result_callback and page_result.get('endpoints'):
+                        for ep in page_result['endpoints']:
+                            await result_callback(ep)
                     
                     # Enqueue Children
                     if depth < max_depth:
                         for link in page_result.get('links', []):
                             if self._is_allowed_scope(link, base_domain) and link not in visited:
                                 queue.append({"url": link, "depth": depth + 1})
+                        
+                        # Update Progress immediately after finding new links
+                        if progress_callback:
+                            await progress_callback(len(visited), len(queue))
                                 
                 return {
                     "root_url": start_url,
@@ -146,6 +166,7 @@ class CrawlerService:
             # 1. Process Network Requests (Dynamic)
             for req in captured_requests:
                 parsed = self.parser.parse_request(req['method'], req['url'], req['headers'], req['body'])
+                parsed['source'] = 'network'
                 if parsed['spec_hash'] not in seen_hashes:
                     seen_hashes.add(parsed['spec_hash'])
                     endpoints.append(parsed)
@@ -215,6 +236,7 @@ class CrawlerService:
                              
                              full_url = f"{urllib.parse.urlparse(url).scheme}://{urllib.parse.urlparse(url).netloc}{normalized_path}"
                              parsed = self.parser.parse_request("GET", full_url, {}, "")
+                             parsed['source'] = 'js_inference'
                              if parsed['spec_hash'] not in seen_hashes:
                                 seen_hashes.add(parsed['spec_hash'])
                                 endpoints.append(parsed)
@@ -228,7 +250,44 @@ class CrawlerService:
                 if len(path) > 1 and not path.startswith('//') and not path.startswith('/ '):
                     full_url = f"{urllib.parse.urlparse(url).scheme}://{urllib.parse.urlparse(url).netloc}{path}"
                     parsed = self.parser.parse_request("GET", full_url, {}, "")
+                    parsed['source'] = 'static_analysis'
                     if parsed['spec_hash'] not in seen_hashes:
+                        seen_hashes.add(parsed['spec_hash'])
+                        endpoints.append(parsed)
+
+            # 4. Process Forms (HTML Forms)
+            for form in dom_data.get('forms', []):
+                # Construct form endpoint
+                target_url = urllib.parse.urljoin(url, form['action'])
+                # Inputs to params
+                body = None
+                if form['method'].upper() == 'POST':
+                    # Rough representation for parser, JSON not strictly correct but works for scraping
+                    body = "{" + ",".join([f'"{inp["name"]}": "value"' for inp in form['inputs']]) + "}"
+                
+                # For GET, add to URL? 
+                # Let's just use parser logic with a dummy body or header to trigger param inference
+                # Or create custom parsed dict
+                
+                # Use parser for consistency
+                parsed = self.parser.parse_request(form['method'].upper(), target_url, {}, body)
+                
+                # Manually fix up types based on input type if simple
+                for inp in form['inputs']:
+                   # Find param and update type if input type is specific
+                   pass # Let inference handle for now or refine later
+                
+                parsed['source'] = 'html_form'
+                if parsed['spec_hash'] not in seen_hashes:
+                    seen_hashes.add(parsed['spec_hash'])
+                    endpoints.append(parsed)
+
+            # 5. Process Links with Params (HTML Anchors)
+            for link in dom_data.get('links', []):
+                parsed = self.parser.parse_request("GET", link, {}, "")
+                if parsed['parameters']: # Only consider links with params as interesting endpoints for scan?
+                     parsed['source'] = 'html_anchor'
+                     if parsed['spec_hash'] not in seen_hashes:
                         seen_hashes.add(parsed['spec_hash'])
                         endpoints.append(parsed)
 

@@ -12,6 +12,9 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PassiveScanControl } from "@/components/proxy/PassiveScanControl";
 import { PacketFeed } from "@/components/proxy/PacketFeed";
+import { ActiveScanControl } from "@/components/crawler/ActiveScanControl";
+import { CrawledEndpoints } from "@/components/crawler/CrawledEndpoints";
+import { ScanHistoryList } from "@/components/crawler/ScanHistoryList";
 import { Badge } from "@/components/ui/badge";
 
 export default function TargetDetail() {
@@ -84,9 +87,12 @@ export default function TargetDetail() {
                 </TabsContent>
 
                 <TabsContent value="active">
-                    <div className="p-10 border-2 border-dashed rounded-lg text-center text-gray-400">
-                        <h3 className="text-lg font-semibold mb-2">Active Crawler</h3>
-                        <p>Active crawling controls and results will be implemented here (REQ-2-3-2).</p>
+                    <div className="space-y-6">
+                        <ActiveScanControl targetId={tid} />
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <CrawledEndpoints />
+                            <ScanHistoryList targetId={tid} />
+                        </div>
                     </div>
                 </TabsContent>
 

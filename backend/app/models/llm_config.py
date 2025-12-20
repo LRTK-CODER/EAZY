@@ -8,7 +8,7 @@ class LLMConfig(Base):
     __tablename__ = "llm_configs"
 
     id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("project.id", ondelete="CASCADE"), unique=True, nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), unique=True, nullable=False)
     api_key_id = Column(Integer, ForeignKey("api_keys.id", ondelete="SET NULL"), nullable=True)
 
     model_name = Column(String, nullable=False)  # e.g., "gpt-4o"

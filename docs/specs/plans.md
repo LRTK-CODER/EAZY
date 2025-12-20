@@ -168,10 +168,13 @@
     - [x] **REQ-2-3-1** Frontend: Target Detail Page Overhaul
         - [x] **UI**: Layout with Tabs (Dashboard, Active Scan, Passive Scan, API Spec, Settings)
         - [x] **UI**: Target Summary Dashboard (Scan Status, Vuln Count)
-    - [ ] **REQ-2-3-2** Frontend: Active Scan UI
-        - [ ] **UI**: "Start Active Crawl" Button
-        - [ ] **UI**: Real-time Progress Indicator (Pages Visited / Queue)
-        - [ ] **UI**: Crawled Endpoints Table (Method, URL, Params)
+    - [x] **REQ-2-3-2** Frontend: Active Scan UI
+        - [x] **UI**: "Start Active Crawl" Button
+        - [x] **UI**: Real-time Progress Indicator (Pages Visited / Queue)
+        - [x] **UI**: Crawled Endpoints Table (Method, URL, Params)
+        - [x] **UI**: Load & Display Past Scan History (from DB)
+        - [x] **Fix**: Scan History Compatibility & Persistence (Many-to-Many Schema)
+        - [x] **Fix**: Real-time Queue Count & Timestamp Logic
     - [ ] **REQ-2-3-3** Frontend: Passive Scan UI (Refinement)
         - [ ] **Refactor**: Move PassiveScanControl & PacketFeed to Target Detail Tab
         - [ ] **UI**: "Launch Proxy Browser" Button
