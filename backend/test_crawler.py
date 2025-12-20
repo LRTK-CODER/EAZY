@@ -9,29 +9,24 @@ from app.services.crawler_service import CrawlerService
 
 async def main():
     crawler = CrawlerService()
-    url = "http://host3.dreamhack.games:17560/"
+    url = "http://host8.dreamhack.games:17113/"
     print(f"Crawling {url}...")
     try:
         result = await crawler.crawl(url)
-        print("Crawl Success!")
-        print(f"Title: {result['title']}")
-        print(f"Status: {result['status']}")
-        print(f"Content Length: {result['content_length']}")
-        print(f"Links Found: {len(result['links'])}")
-        for link in result['links']:
-            print(f" - {link}")
-        print(f"Forms Found: {len(result['forms'])}")
-        if result['forms']:
-            print(f"First Form: {result['forms'][0]}")
-        print(f"Standalone Inputs: {len(result['inputs'])}")
+        print(f"Crawl Finished! Total Pages: {result['pages_crawled']}")
         
-        print("\n--- Semantic Endpoints ---")
-        print(f"Endpoints Found: {len(result['endpoints'])}")
-        for i, ep in enumerate(result['endpoints']):
-            print(f"[{i+1}] {ep['method']} {ep['url']}")
-            if ep['parameters']:
-                print(f"    Params: {[f'{p['name']}({p['type']})' for p in ep['parameters']]}")
-        print("--------------------------")
+        for i, page_res in enumerate(result['results']):
+            print(f"\n[Page {i+1}] {page_res['url']}")
+            print(f"  Title: {page_res.get('title', 'N/A')}")
+            print(f"  Status: {page_res.get('status', 'Error')}")
+            print(f"  Links: {len(page_res.get('links', []))}")
+            
+            endpoints = page_res.get('endpoints', [])
+            if endpoints:
+                print(f"  Endpoints: {len(endpoints)}")
+                for ep in endpoints:
+                    print(f"    - {ep['method']} {ep['url']}")
+        
     except Exception as e:
         print(f"Crawl Failed: {e}")
 

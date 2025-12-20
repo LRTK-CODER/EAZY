@@ -36,7 +36,48 @@ class SemanticParser:
                 "location": "query"
             })
 
-        # 2. Parse Body Parameters (JSON only for now)
+        # 2a. Parse Path Parameters (Heuristic)
+        # /doc/1 -> /doc/{int}
+        # /user/550e8400-e29b-41d4-a716-446655440000 -> /user/{uuid}
+        
+        path_segments = parsed_url.path.strip('/').split('/')
+        normalized_segments = []
+        
+        for i, segment in enumerate(path_segments):
+            seg_type = self._infer_type(segment)
+            
+            # Case A: Template Variable (e.g. ${docId})
+            if segment.startswith('${') and segment.endswith('}'):
+                var_name = segment[2:-1] # extract docId
+                inferred_type = self.infer_type_from_name(var_name)
+                
+                param_name = var_name
+                normalized_segments.append(f"{{{inferred_type}}}")
+                parameters.append({
+                    "name": param_name,
+                    "type": inferred_type,
+                    "location": "path",
+                    "value": segment # Keep original as value
+                })
+                
+            # Case B: Heuristic Value (e.g. 123, uuid)
+            elif seg_type in ['int', 'uuid'] and segment: 
+                param_name = f"path_param_{i}"
+                normalized_segments.append(f"{{{seg_type}}}")
+                parameters.append({
+                    "name": param_name,
+                    "type": seg_type,
+                    "location": "path",
+                    "value": segment
+                })
+            else:
+                normalized_segments.append(segment)
+                
+        # Reconstruct normalized path
+        normalized_path = "/" + "/".join(normalized_segments)
+        base_url = f"{parsed_url.scheme}://{parsed_url.netloc}{normalized_path}"
+
+        # 2b. Parse Body Parameters (JSON only for now)
         if body and method in ["POST", "PUT", "PATCH"]:
             try:
                 # Naive check if body is JSON
@@ -78,6 +119,24 @@ class SemanticParser:
             "parameters": parameters,
             "spec_hash": spec_hash
         }
+
+    def infer_type_from_name(self, param_name: str) -> str:
+        """
+        Infers parameter type based on common naming conventions.
+        Used when concrete value is not available (e.g. static analysis).
+        """
+        param_name = param_name.lower()
+        if any(x in param_name for x in ['count', 'limit', 'offset', 'page', 'idx', 'num']):
+            return 'int'
+        if 'uuid' in param_name or 'guid' in param_name:
+            return 'uuid'
+        if 'email' in param_name:
+            return 'email'
+        if 'is_' in param_name or param_name.startswith('has_'):
+            return 'bool'
+        if 'date' in param_name or 'time' in param_name:
+            return 'date'
+        return 'string'
 
     def _infer_type(self, value: Any) -> str:
         """

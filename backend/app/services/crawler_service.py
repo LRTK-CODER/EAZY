@@ -2,6 +2,8 @@ from app.services.semantic_parser import SemanticParser
 from typing import Dict, Any, List
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 import structlog
+import urllib.parse
+import re
 
 logger = structlog.get_logger()
 
@@ -13,10 +15,15 @@ class CrawlerService:
 
     def __init__(self):
         self.parser = SemanticParser()
+        # Safety: Default Blacklist Patterns
+        self.blacklist = [
+            r"/logout", r"/signout", r"/remove", r"/delete", 
+            r"/buy", r"/checkout", r"/pay", r"/cart"
+        ]
 
-    async def crawl(self, url: str) -> Dict[str, Any]:
+    async def crawl(self, start_url: str, max_depth: int = 2, max_pages: int = 50) -> Dict[str, Any]:
         """
-        Visits a URL, renders JavaScript, and extracts page data.
+        Recursively crawls a target URL using BFS with safety restrictions.
         """
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
@@ -27,107 +34,228 @@ class CrawlerService:
                     user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ... EAZY-Crawler"
                 )
                 
-                # Intercept logic
-                captured_requests = []
+                # BFS Queue: (url, depth)
+                queue = []
+                queue.append({"url": start_url, "depth": 0})
                 
-                async def handle_request(request):
-                    try:
-                        # Filter out resources to reduce noise
-                        if request.resource_type in ["image", "stylesheet", "font", "media"]:
-                            return
-                            
-                        # Capture relevant details
-                        captured_requests.append({
-                            "method": request.method,
-                            "url": request.url,
-                            "headers": request.headers,
-                            "body": request.post_data
-                        })
-                    except Exception:
-                        pass # Ignore failing captures
+                visited = set()
+                results = []
+                
+                # Domain Scope Locking
+                base_domain = urllib.parse.urlparse(start_url).netloc
 
-                page = await context.new_page()
-                page.on("request", handle_request)
-                
-                logger.info("crawler.visiting", url=url)
-                
-                # Navigate
-                response = await page.goto(url, wait_until="networkidle", timeout=30000)
-                
-                if not response:
-                    raise Exception("No response received from target")
-                
-                status_code = response.status
-                title = await page.title()
-                content = await page.content()
-                
-                # Advanced DOM Parsing... (Existing Code)
-                dom_data = await page.evaluate("""
-                    () => {
-                        const forms = Array.from(document.forms).map(form => {
-                            const inputs = Array.from(form.elements).filter(el => el.name).map(el => ({
-                                name: el.name,
-                                type: el.type || 'text',
-                                value: el.value || ''
-                            }));
-                            return {
-                                action: form.action || window.location.href,
-                                method: form.method || 'GET',
-                                inputs: inputs
-                            };
-                        });
-
-                        const uniqueLinks = Array.from(new Set(
-                            Array.from(document.querySelectorAll('a'))
-                                .map(a => a.href)
-                                .filter(href => href && !href.startsWith('javascript:') && !href.startsWith('mailto:'))
-                        ));
-
-                        // Collect standalone inputs (not in forms, common in SPAs)
-                        const inputs = Array.from(document.querySelectorAll('input, textarea, select'))
-                            .filter(el => !el.form && el.name)
-                            .map(el => ({
-                                name: el.name,
-                                type: el.type || 'text',
-                                value: el.value || ''
-                            }));
-
-                        return { forms, links: uniqueLinks, inputs };
-                    }
-                """)
-
-                # Process Captured Requests with Semantic Parser
-                endpoints = []
-                seen_hashes = set()
-                
-                for req in captured_requests:
-                    parsed = self.parser.parse_request(
-                        method=req['method'],
-                        url=req['url'],
-                        headers=req['headers'],
-                        body=req['body']
-                    )
+                while queue and len(visited) < max_pages:
+                    job = queue.pop(0)
+                    current_url = job["url"]
+                    depth = job["depth"]
                     
+                    if current_url in visited: continue
+                    
+                    if self._is_blacklisted(current_url):
+                        logger.warning("crawler.skip_blacklist", url=current_url)
+                        continue
+                        
+                    visited.add(current_url)
+                    
+                    # Visit Page
+                    page_result = await self._process_page(context, current_url)
+                    results.append(page_result)
+                    
+                    # Enqueue Children
+                    if depth < max_depth:
+                        for link in page_result.get('links', []):
+                            if self._is_allowed_scope(link, base_domain) and link not in visited:
+                                queue.append({"url": link, "depth": depth + 1})
+                                
+                return {
+                    "root_url": start_url,
+                    "pages_crawled": len(results),
+                    "results": results
+                }
+
+            except Exception as e:
+                logger.error("crawler.error", start_url=start_url, error=str(e))
+                raise e
+            finally:
+                await browser.close()
+
+    async def _process_page(self, context: BrowserContext, url: str) -> Dict[str, Any]:
+        """
+        Internal method to visit and parse a single page.
+        """
+        page = await context.new_page()
+        captured_requests = []
+        
+        async def handle_request(request):
+            try:
+                if request.resource_type in ["image", "stylesheet", "font", "media"]: return
+                captured_requests.append({
+                    "method": request.method,
+                    "url": request.url,
+                    "headers": request.headers,
+                    "body": request.post_data
+                })
+            except: pass
+
+        page.on("request", handle_request)
+        
+        try:
+            logger.info("crawler.visiting", url=url)
+            response = await page.goto(url, wait_until="networkidle", timeout=15000)
+            
+            # Rendering Buffer: Wait for client-side rendering (e.g. mapping API data to DOM)
+            await page.wait_for_timeout(2000)
+            
+            if not response: return {"url": url, "error": "No response"}
+            
+            # DOM Parsing (Enhanced to capture Event Handlers)
+            dom_data = await page.evaluate("""
+                () => {
+                    const forms = Array.from(document.forms).map(form => {
+                        const inputs = Array.from(form.elements).filter(el => el.name).map(el => ({
+                            name: el.name, type: el.type || 'text', value: el.value || ''
+                        }));
+                        return { action: form.action || window.location.href, method: form.method || 'GET', inputs: inputs };
+                    });
+                    const uniqueLinks = Array.from(new Set(
+                        Array.from(document.querySelectorAll('a'))
+                            .map(a => a.href)
+                            .filter(href => href && !href.startsWith('javascript:') && !href.startsWith('mailto:'))
+                    ));
+                    const inputs = Array.from(document.querySelectorAll('input, textarea, select'))
+                        .filter(el => !el.form && el.name)
+                        .map(el => ({ name: el.name, type: el.type || 'text', value: el.value || '' }));
+                    
+                    // Usage-Based Inference: Extract function calls from event handlers
+                    const eventHandlers = [];
+                    document.querySelectorAll('*').forEach(el => {
+                        Array.from(el.attributes).forEach(attr => {
+                            if (attr.name.startsWith('on')) { 
+                                eventHandlers.push(attr.value);
+                            }
+                        });
+                    });
+
+                    return { forms, links: uniqueLinks, inputs, eventHandlers };
+                }
+            """)
+            
+            # Semantic Parsing & Source Analysis
+            endpoints = []
+            seen_hashes = set()
+            
+            # 1. Process Network Requests (Dynamic)
+            for req in captured_requests:
+                parsed = self.parser.parse_request(req['method'], req['url'], req['headers'], req['body'])
+                if parsed['spec_hash'] not in seen_hashes:
+                    seen_hashes.add(parsed['spec_hash'])
+                    endpoints.append(parsed)
+            
+            # 2. Advanced Usage-Based Inference
+            # Step A: Parse Function Calls from DOM Events
+            function_usage_map = {} 
+            handlers = dom_data.get('eventHandlers', [])
+            
+            for handler in handlers:
+                matches = re.findall(r"(\w+)\s*\(([^)]+)\)", handler)
+                for func_name, args_str in matches:
+                    arg = args_str.split(',')[0].strip()
+                    
+                    # Infer type from the Argument Value
+                    inferred_type = 'string'
+                    if arg.isdigit(): inferred_type = 'int'
+                    elif re.match(r"^['\"].*['\"]$", arg): inferred_type = 'string' # Quoted string
+                    elif arg == 'true' or arg == 'false': inferred_type = 'bool'
+                    
+                    if func_name not in function_usage_map:
+                        function_usage_map[func_name] = inferred_type
+            
+            # Step B: Get Function Source via Playwright (Reliable)
+            if function_usage_map:
+                # Prepare a script to get source for all found functions
+                funcs_to_check = list(function_usage_map.keys())
+                # Create a safe JS snippet
+                js_check = f"""
+                    () => {{
+                        const results = {{}};
+                        const targetFuncs = {str(funcs_to_check)};
+                        targetFuncs.forEach(name => {{
+                            try {{
+                                if (typeof window[name] === 'function') {{
+                                    results[name] = window[name].toString();
+                                }}
+                            }} catch(e) {{}}
+                        }});
+                        return results;
+                    }}
+                """
+                function_sources = await page.evaluate(js_check)
+                
+                # Step C: Analyze Function Source
+                for func_name, source in function_sources.items():
+                    usage_type = function_usage_map[func_name]
+                    
+                    # Regex to find parameter name: function openDocument(id) {
+                    # or openDocument(id) { 
+                    param_match = re.search(r"function\s+\w+\s*\(([^)]+)\)|^\w+\s*\(([^)]+)\)", source)
+                    if not param_match: continue
+                    
+                    # Group 1 or 2
+                    params_str = param_match.group(1) or param_match.group(2)
+                    if not params_str: continue
+                    
+                    param_name = params_str.split(',')[0].strip()
+                    
+                    # Look for URL patterns using this parameter in the source
+                    template_matches = re.findall(r"['\"`](\/[a-zA-Z0-9_\-\/{}$]+)['\"`]", source)
+                    for path in template_matches:
+                        if f"${{{param_name}}}" in path:
+                             # Found correlation!
+                             final_type = usage_type
+                             normalized_path = path.replace(f"${{{param_name}}}", f"{{{final_type}}}")
+                             
+                             full_url = f"{urllib.parse.urlparse(url).scheme}://{urllib.parse.urlparse(url).netloc}{normalized_path}"
+                             parsed = self.parser.parse_request("GET", full_url, {}, "")
+                             if parsed['spec_hash'] not in seen_hashes:
+                                seen_hashes.add(parsed['spec_hash'])
+                                endpoints.append(parsed)
+
+            # 3. Fallback: Generic Static Analysis (Regex)
+            # Find patterns like: fetch('/api/...') or url = '/doc/...' or `/doc/${id}`
+            content = await page.content()
+            potential_paths = set(re.findall(r"['\"`](/[a-zA-Z0-9_\-\/{}$]+)['\"`]", content))
+            
+            for path in potential_paths:
+                if len(path) > 1 and not path.startswith('//') and not path.startswith('/ '):
+                    full_url = f"{urllib.parse.urlparse(url).scheme}://{urllib.parse.urlparse(url).netloc}{path}"
+                    parsed = self.parser.parse_request("GET", full_url, {}, "")
                     if parsed['spec_hash'] not in seen_hashes:
                         seen_hashes.add(parsed['spec_hash'])
                         endpoints.append(parsed)
 
-                logger.info("crawler.success", url=url, title=title, 
-                            endpoints_count=len(endpoints))
+            return {
+                "url": url,
+                "title": await page.title(),
+                "status": response.status,
+                "links": dom_data['links'],
+                "forms": dom_data['forms'],
+                "endpoints": endpoints
+            }
 
-                return {
-                    "url": url,
-                    "status": status_code,
-                    "title": title,
-                    "content_length": len(content),
-                    "links": dom_data['links'],
-                    "forms": dom_data['forms'],
-                    "inputs": dom_data['inputs'],
-                    "endpoints": endpoints  # New Semantic Endpoints
-                }
+            
+        except Exception as e:
+            logger.error("crawler.page_failed", url=url, error=str(e))
+            return {"url": url, "error": str(e), "links": []}
+        finally:
+            await page.close()
 
-            except Exception as e:
-                logger.error("crawler.failed", url=url, error=str(e))
-                raise e
-            finally:
-                await browser.close()
+    def _is_allowed_scope(self, url: str, base_domain: str) -> bool:
+        try:
+            return urllib.parse.urlparse(url).netloc == base_domain
+        except: return False
+
+    def _is_blacklisted(self, url: str) -> bool:
+        for pattern in self.blacklist:
+            if re.search(pattern, url, re.IGNORECASE):
+                return True
+        return False

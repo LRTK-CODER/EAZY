@@ -146,6 +146,10 @@
         - [x] **Logic**: Extract Method, URL, Headers from Requests
         - [x] **Logic**: Deduplicate Endpoints by Param Type (e.g. `id=1` -> `id:int`)
         - [x] **Output**: Structure data in JSON format (Method, URL, Params[Type])
+    - [x] **REQ-2-1-3** Backend: Recursive Crawling Logic
+        - [x] **Logic**: BFS Queue & Visited State
+        - [x] **Safety**: Depth Limit, Scope Lock, Path Blacklist
+        - [x] **Verification**: Test against external target (Recursive & Path Params)
 - [ ] **REQ-2-2** User-Driven Passive Crawling
     - [ ] **REQ-2-2-1** Backend: Proxy Server
         - [ ] **Library**: Integrate `mitmproxy` library
