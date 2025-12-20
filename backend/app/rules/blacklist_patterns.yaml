@@ -1,0 +1,9 @@
+blacklist_patterns:
+  - "/logout"
+  - "/signout"
+  - "/remove"
+  - "/delete"
+  - "/buy"
+  - "/checkout"
+  - "/pay"
+  - "/cart"

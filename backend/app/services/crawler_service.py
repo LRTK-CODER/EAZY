@@ -14,12 +14,10 @@ class CrawlerService:
     """
 
     def __init__(self):
+        from app.core.crawler_config import crawler_config
         self.parser = SemanticParser()
-        # Safety: Default Blacklist Patterns
-        self.blacklist = [
-            r"/logout", r"/signout", r"/remove", r"/delete", 
-            r"/buy", r"/checkout", r"/pay", r"/cart"
-        ]
+        self.config = crawler_config
+        self.blacklist = self.config.blacklist
 
     async def crawl(self, start_url: str, max_depth: int = 2, max_pages: int = 50) -> Dict[str, Any]:
         """
@@ -29,9 +27,10 @@ class CrawlerService:
             browser = await p.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
             
             try:
+                settings = self.config.settings
                 context = await browser.new_context(
                     viewport={'width': 1280, 'height': 720},
-                    user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ... EAZY-Crawler"
+                    user_agent=settings.get("user_agent", "EAZY-Crawler")
                 )
                 
                 # BFS Queue: (url, depth)
@@ -233,6 +232,10 @@ class CrawlerService:
                         seen_hashes.add(parsed['spec_hash'])
                         endpoints.append(parsed)
 
+            # Deduplication: Prefer specific types over generic 'string'
+            # e.g. /doc/{int} > /doc/{string}
+            endpoints = self._deduplicate_endpoints(endpoints)
+
             return {
                 "url": url,
                 "title": await page.title(),
@@ -248,6 +251,60 @@ class CrawlerService:
             return {"url": url, "error": str(e), "links": []}
         finally:
             await page.close()
+
+    def _deduplicate_endpoints(self, endpoints: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Refines the list of endpoints by removing generic variants if a specific one exists.
+        e.g. If both /doc/{int} and /doc/{string} exist, keep /doc/{int}.
+        """
+        # Group by "Method + Abstract Path"
+        # Abstract Path: Replace {int}, {string}, {uuid} -> {param}
+        grouped = {}
+        
+        for ep in endpoints:
+            # Create abstract signature
+            abstract_path = ep['url'] # It already has {type} in it from SemanticParser
+            for t in ['int', 'string', 'uuid', 'bool', 'float', 'email']:
+                abstract_path = abstract_path.replace(f"{{{t}}}", "{param}")
+            
+            signature = f"{ep['method']}|{abstract_path}"
+            if signature not in grouped:
+                grouped[signature] = []
+            grouped[signature].append(ep)
+            
+        final_list = []
+        
+        # Priority: uuid > int > bool > float > email > string
+        type_priority = {'uuid': 5, 'int': 4, 'bool': 3, 'float': 2, 'email': 2, 'string': 1, 'json': 1}
+
+        for sig, variants in grouped.items():
+            if len(variants) == 1:
+                final_list.append(variants[0])
+                continue
+            
+            # Select best variant
+            # We score each variant based on its parameters' types
+            best_variant = None
+            max_score = -1
+            
+            for var in variants:
+                score = 0
+                for param in var['parameters']:
+                    ptype = param['type']
+                    score += type_priority.get(ptype, 1)
+                
+                if score > max_score:
+                    max_score = score
+                    best_variant = var
+                elif score == max_score:
+                    # Tie-breaker? Just keep current or first.
+                    # Maybe prefer the one that is NOT string if possible?
+                    pass
+            
+            if best_variant:
+                final_list.append(best_variant)
+                
+        return final_list
 
     def _is_allowed_scope(self, url: str, base_domain: str) -> bool:
         try:

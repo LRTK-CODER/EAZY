@@ -13,6 +13,11 @@ class SemanticParser:
     Focuses on identifying parameter types and deduplicating endpoints based on structure rather than values.
     """
 
+    def __init__(self):
+        from app.core.crawler_config import crawler_config
+        self.rules = crawler_config.inference_rules
+
+
     def parse_request(self, method: str, url: str, headers: Dict[str, str], body: Optional[str] = None) -> Dict[str, Any]:
         """
         Analyzes a single request to produce a normalized endpoint definition.
@@ -58,6 +63,18 @@ class SemanticParser:
                     "type": inferred_type,
                     "location": "path",
                     "value": segment # Keep original as value
+                })
+            
+            # Case Z: Pre-normalized Type (e.g. {int})
+            elif segment.startswith('{') and segment.endswith('}'):
+                type_name = segment[1:-1]
+                param_name = f"path_param_{i}"
+                normalized_segments.append(segment)
+                parameters.append({
+                    "name": param_name,
+                    "type": type_name,
+                    "location": "path",
+                    "value": segment
                 })
                 
             # Case B: Heuristic Value (e.g. 123, uuid)
@@ -122,21 +139,17 @@ class SemanticParser:
 
     def infer_type_from_name(self, param_name: str) -> str:
         """
-        Infers parameter type based on common naming conventions.
-        Used when concrete value is not available (e.g. static analysis).
+        Infers parameter type based on common naming conventions from config.
         """
         param_name = param_name.lower()
-        if any(x in param_name for x in ['count', 'limit', 'offset', 'page', 'idx', 'num']):
-            return 'int'
-        if 'uuid' in param_name or 'guid' in param_name:
-            return 'uuid'
-        if 'email' in param_name:
-            return 'email'
-        if 'is_' in param_name or param_name.startswith('has_'):
-            return 'bool'
-        if 'date' in param_name or 'time' in param_name:
-            return 'date'
+        keyword_rules = self.rules.get('keywords', {})
+        
+        for type_name, keywords in keyword_rules.items():
+            if any(k in param_name for k in keywords):
+                return type_name
+                
         return 'string'
+
 
     def _infer_type(self, value: Any) -> str:
         """
@@ -172,12 +185,11 @@ class SemanticParser:
         except ValueError:
             pass
             
-        # UUID Regex
-        if re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', str_val, re.IGNORECASE):
-            return "uuid"
-            
-        # Email Regex (Simple)
-        if re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', str_val):
-            return "email"
+        # Regex Rules from Config
+        regex_rules = self.rules.get('regex', {})
+        for type_name, pattern in regex_rules.items():
+            if re.match(pattern, str_val, re.IGNORECASE):
+                return type_name
 
         return "string"
+

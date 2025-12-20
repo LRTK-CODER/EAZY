@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     def REDIS_URL(self) -> str:
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/0"
 
+    # Crawler Settings
+    CRAWLER_USER_AGENT: str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36 EAZY-Crawler"
+    CRAWLER_TIMEOUT_MS: int = 15000
+    CRAWLER_RENDER_WAIT_MS: int = 2000
+
     # Security
     # Default key for dev only. In prod, this must be set via env var.
     # Generated using: Fernet.generate_key().decode()

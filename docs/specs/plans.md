@@ -150,6 +150,11 @@
         - [x] **Logic**: BFS Queue & Visited State
         - [x] **Safety**: Depth Limit, Scope Lock, Path Blacklist
         - [x] **Verification**: Test against external target (Recursive & Path Params)
+    - [x] **REQ-2-1-4** Refactor: Configurable Crawling Patterns
+        - [x] **Config**: Externalize Blacklist Regex Patterns (`crawler_rules.yaml` or Config)
+        - [x] **Config**: Externalize Semantic Type Inference Rules (Keywords, Regex)
+        - [x] **Config**: Externalize Crawler Settings (User-Agent, Timeout)
+        - [x] **Refactor**: Update `CrawlerService` & `SemanticParser` to use Config
 - [ ] **REQ-2-2** User-Driven Passive Crawling
     - [ ] **REQ-2-2-1** Backend: Proxy Server
         - [ ] **Library**: Integrate `mitmproxy` library
