@@ -244,3 +244,251 @@
 ## UI/UX Implementation
 - [ ] Apply shadcn/ui Dark Theme
 - [ ] Implement Dynamic Interactions (Framer Motion/React Bit)
+
+---
+
+# 구현 계획 (Implementation Plan)
+
+## 프로젝트 설정 (Project Setup)
+- [x] Git 리포지토리 초기화 (완료됨)
+- [x] `README.md` 및 `task.md` 생성
+- [x] **Backend: 환경 설정**
+    - [x] `uv` 설치 (미설치 시)
+    - [x] `uv init`으로 프로젝트 초기화
+    - [x] Python 버전 고정: `uv python pin 3.12`
+    - [x] `backend/app` 디렉토리 구조 생성
+    - [x] 의존성 추가: `uv add fastapi uvicorn pydantic-settings`
+    - [x] `backend/app/main.py` 생성 (Hello World)
+    - [x] 환경 변수 설정 (`.env`, `config.py`)
+- [x] **Backend: 데이터베이스 & Redis**
+    - [x] 드라이버 & ORM 설치: `uv add sqlalchemy psycopg2-binary alembic redis`
+    - [x] 데이터베이스 엔진 설정 (`backend/app/core/db.py`)
+    - [x] Declarative Base 설정 (`backend/app/models/base.py`)
+    - [x] Session Local 설정 (`backend/app/core/db.py`)
+    - [x] Alembic 초기화: `uv run alembic init backend/alembic`
+    - [x] `alembic.ini` 및 `env.py` 설정 (async/sync)
+    - [x] Redis 클라이언트 설정 (`backend/app/core/redis.py`)
+- [x] **Backend: 로깅 & 미들웨어**
+    - [x] `structlog` 설치 또는 표준 `logging` JSON 설정
+    - [x] 로깅 설정 생성 (`backend/app/core/logging.py`)
+    - [x] 요청/응답 로깅 미들웨어 구현
+    - [x] CORS 미들웨어 설정 (`backend/app/core/middleware.py`)
+    - [x] 전역 예외 처리기 생성 (`backend/app/core/exceptions.py`)
+- [x] **Frontend: 환경 설정**
+    - [x] Vite 프로젝트 초기화 (React + TypeScript): `npm create vite@latest frontend`
+    - [x] 의존성 설치: `npm install`
+    - [x] TailwindCSS & PostCSS 설정
+    - [x] shadcn/ui 초기화: `npx shadcn@latest init`
+    - [x] 핵심 라이브러리 설치: `reactflow`, `framer-motion`, `lucide-react`, `axios`, `zustand`
+
+## REQ-1 프로젝트 관리 (Project Management)
+- [x] **REQ-1-1** 프로젝트 생성 API & UI
+    - [x] **Backend: 모델 & 스키마**
+        - [x] `Project` SQL 모델 정의 (`backend/app/models/project.py`): `id`, `name`, `description`, `created_at`
+        - [x] `projects` 테이블에 대한 Alembic 마이그레이션 생성
+        - [x] Pydantic 스키마 정의 (`ProjectCreate`, `ProjectResponse`) (`backend/app/schemas/project.py`)
+    - [x] **Backend: API 구현**
+        - [x] CRUD 로직 구현 (`backend/app/services/project_service.py`)
+        - [x] API 라우터 생성 (`backend/app/api/v1/projects.py`): `POST /`, `GET /`
+        - [x] `main.py`에 라우터 등록
+    - [x] **Frontend: 상태 & API**
+        - [x] Axios 클라이언트 인스턴스 설정 (`src/lib/api.ts`)
+        - [x] 프로젝트 타입 정의 (`src/types/project.ts`)
+        - [x] Zustand를 사용한 프로젝트 스토어 생성 (`src/store/projectStore.ts`)
+    - [x] **Frontend: UI 컴포넌트**
+        - [x] 프로젝트 생성 다이얼로그 생성 (shadcn/ui `Dialog`, `Form`)
+        - [x] 프로젝트 목록 페이지 생성 (shadcn/ui `Card` 또는 `Table`)
+        - [x] API와 UI 통합
+    - [x] **Backend: 프로젝트 수정/삭제**
+        - [x] 서비스 내 `update_project`, `delete_project` 구현
+        - [x] `PUT /projects/{id}`, `DELETE /projects/{id}` 엔드포인트 추가
+    - [x] **Frontend: 프로젝트 수정/삭제**
+        - [x] 스토어에 `deleteProject`, `updateProject` 액션 추가
+        - [x] 프로젝트 목록 UI에 수정 다이얼로그 & 삭제 확인 추가
+ - [x] **REQ-1-2** 스캔 대상 등록 API & UI
+    - [x] **Backend: 모델 & 스키마**
+        - [x] `Target` SQL 모델 정의 (`backend/app/models/target.py`): `id`, `project_id`, `name`, `url`, `created_at`
+        - [x] `Project` 모델에 `targets` 관계 추가
+        - [x] `targets` 테이블에 대한 Alembic 마이그레이션 생성
+        - [x] Pydantic 스키마 정의 (`TargetCreate`, `TargetResponse`) (`backend/app/schemas/target.py`)
+    - [x] **Backend: API 구현**
+        - [x] 타겟 서비스 로직 구현 (`backend/app/services/target_service.py`)
+        - [x] `POST /projects/{id}/targets`, `GET /projects/{id}/targets` 지원 API 라우터 생성/수정
+        - [x] 서비스 내 타겟 수정/삭제 로직 구현
+        - [x] `DELETE /targets/{id}`, `PUT /targets/{id}` 엔드포인트 추가
+    - [x] **Frontend: 라우팅 & 로직**
+        - [x] `react-router-dom` 설치 및 `BrowserRouter` 설정
+        - [x] 타겟 타입 정의 (`src/types/target.ts`)
+        - [x] 선택된 프로젝트와 타겟을 처리하도록 스토어 업데이트
+        - [x] 스토어에 `deleteTarget`, `updateTarget` 액션 추가
+    - [x] **Frontend: UI 구현**
+        - [x] 타겟 생성 다이얼로그 생성 (`src/components/target/CreateTargetDialog.tsx`)
+        - [x] 프로젝트 상세 페이지 생성 (`src/pages/ProjectDetail.tsx`)
+        - [x] API와 UI 통합
+        - [x] 타겟 카드에 삭제 버튼 추가 (`src/pages/ProjectDetail.tsx`)
+        - [x] 타겟 수정 다이얼로그 생성/수정
+- [x] **REQ-1-3** LLM 설정 관리 (리팩토링: 키 중앙화)
+    - [x] **REQ-1-3-1** 전역 API 키 관리
+        - [x] **Backend**:
+            - [x] `ApiKey` SQL 모델 정의 (`id`, `name`, `provider`, `key` (암호화), `api_base`)
+            - [x] 마이그레이션 생성 (`api_keys` 생성, `llm_configs` 수정)
+            - [x] `ApiKeyService` 생성 (암호화 포함 CRUD)
+            - [x] 라우터 `/api/v1/api-keys` 생성
+        - [x] **Frontend**:
+            - [x] `ApiKeyStore` 생성
+            - [x] "Global Settings > API Keys" 페이지/다이얼로그 생성
+            - [x] UI: 키 목록, 새 키 추가 (이름, 제공자, 키)
+    - [x] **REQ-1-3-2** 프로젝트 통합 (리팩토링)
+        - [x] **Backend**:
+            - [x] `LLMConfig` 모델 수정: `api_key` 저장 대신 `ApiKey` 연결 (`api_key_id`)
+            - [x] `upsert_llm_config` 로직 수정
+        - [x] **Frontend**:
+            - [x] `EditLLMDialog` 수정: API 키 입력을 **키 선택 드롭다운**으로 교체
+            - [x] 로직: 키 선택 -> 제공자 자동 채움 -> 사용자 모델 입력
+- [x] **REQ-1-4** 레이아웃, 대시보드 & 전역 설정
+    - [x] **REQ-1-4-1** Backend: API 키 카테고리화
+        - [x] `ApiKey` 모델 수정: `category` 필드 추가 (예: "LLM", "MCP")
+        - [x] 마이그레이션 생성
+        - [x] 카테고리 지원하도록 `ApiKey` API 수정
+        - [x] **New**: `ApiKey` 수정 API 업데이트 (편집 시 필요)
+    - [x] **REQ-1-4-2** Frontend: 레이아웃 & 내비게이션
+        - [x] `AppLayout` 컴포넌트 생성 (사이드바 + 콘텐츠 영역)
+        - [x] 내비게이션 메뉴 구현 (대시보드, 프로젝트, 설정)
+    - [x] **REQ-1-4-3** Frontend: 대시보드
+        - [x] `Dashboard` 페이지 생성 (`/dashboard`)
+        - [x] 요약 통계 표시 (총 프로젝트, 타겟)
+        - [x] 위젯 그룹화: "Project", "API Key", "LAG Data"
+        - [x] API 키 통계 추가: 전체, LLM 수, MCP 수
+        - [x] "LAG Data" 플레이스홀더 위젯 추가
+    - [x] **REQ-1-4-4** 전역 API 키 관리 (Refactor)
+        - [x] **Tabs UI**: "LLM"과 "MCP" 탭 분리
+        - [x] **테이블**:
+            - [x] LLM 테이블 컬럼: 이름, 제공자 (컬러 배지), 생성일, 작업
+            - [x] MCP 테이블 컬럼: 이름, 엔드포인트 (`api_base`), 생성일, 작업
+            - [x] 컬럼 너비 고정 (비율)
+        - [x] **일괄 작업**:
+            - [x] 체크박스 선택
+            - [x] 일괄 삭제 버튼
+        - [x] **CRUD 작업**:
+            - [x] 다이얼로그 생성 (동적 필드, 스택형 레이아웃, 암호 토글)
+            - [x] 상세 보기 팝업 수정/보기
+            - [x] 삭제 (단일 & 일괄)
+        - [x] **UI/UX & 로직 개선**:
+            - [x] 제공자별 배지 색상 (초록/주황/파랑)
+            - [x] 탭에 대한 빈 상태 디자인
+            - [x] 백엔드 & 프론트엔드 이름 중복성 검증
+            - [x] 다이얼로그 컨텍스트 인식 (탭 기반 카테고리 자동 선택)
+            - [x] **New**: 스택형 레이아웃 & 흰색 배경 입력창
+            - [x] **New**: 복잡한 필드에 대한 도움말 텍스트
+    - [x] **REQ-1-4-5** Frontend: 테마 & 스타일링
+        - [x] Tailwind 설정에 "Cloud Dancer" 팔레트 업데이트
+        - [x] 전역 배경색 적용
+
+## REQ-2 공격 표면 발견 (Attack Surface Discovery)
+- [x] **REQ-2-1** 패턴 기반 능동 크롤링 (Active Crawling)
+    - [x] **REQ-2-1-1** Backend: Playwright 통합
+        - [x] **환경**: Docker/Backend에 Playwright 설정
+        - [x] **서비스**: `CrawlerService` 구현: URL 방문, JS 렌더링, 링크 추출
+        - [x] **로직**: HTML/DOM 파싱하여 입력, 폼, 버튼 추출
+    - [x] **REQ-2-1-2** Backend: 시맨틱 엔드포인트 파싱
+        - [x] **로직**: 요청에서 메서드, URL, 헤더 추출
+        - [x] **로직**: 파라미터 타입별 엔드포인트 중복 제거 (예: `id=1` -> `id:int`)
+        - [x] **출력**: JSON 형식 데이터 구조화 (메서드, URL, 파라미터[타입])
+    - [x] **REQ-2-1-3** Backend: 재귀적 크롤링 로직
+        - [x] **로직**: BFS 큐 & 방문 상태 관리
+        - [x] **안전**: 깊이 제한, 범위 잠금(Scope Lock), 경로 블랙리스트
+        - [x] **검증**: 외부 타겟 테스트 (재귀 & 경로 파라미터)
+    - [x] **REQ-2-1-4** 리팩토링: 설정 가능한 크롤링 패턴
+        - [x] **설정**: 블랙리스트 정규식 외부화 (`crawler_rules.yaml` 또는 Config)
+        - [x] **설정**: 시맨틱 타입 추론 규칙 외부화 (키워드, 정규식)
+        - [x] **설정**: 크롤러 설정 외부화 (User-Agent, 타임아웃)
+        - [x] **리팩토링**: `CrawlerService` & `SemanticParser`가 설정을 사용하도록 수정
+- [ ] **REQ-2-2** 사용자 주도 수동 크롤링 (Passive Crawling)
+    - [x] **REQ-2-2-1** Backend: 프록시 서버
+        - [x] **라이브러리**: `mitmproxy` 라이브러리 통합
+        - [x] **로직**: 요청/응답 가로채기 구현
+        - [x] **기능**: 실시간 패킷 보기를 위한 WebSocket 스트림
+    - [x] **REQ-2-2-2** Frontend: 패시브 스캔 모드 (레거시/리팩토링)
+        - [x] **UI**: "Start Passive Scan" 토글/버튼 (완료, 타겟 상세로 이동됨)
+        - [x] **UI**: 실시간 요청 피드 표시 (완료, 타겟 상세로 이동됨)
+
+- [ ] **REQ-2-3** 타겟 스캔 UI & 오케스트레이션
+    - [x] **REQ-2-3-1** Frontend: 타겟 상세 페이지 개편
+        - [x] **UI**: 탭 레이아웃 (대시보드, 능동 스캔, 패시브 스캔, API 스펙, 설정)
+        - [x] **UI**: 타겟 요약 대시보드 (스캔 상태, 취약점 수)
+    - [x] **REQ-2-3-2** Frontend: 능동 스캔 UI
+        - [x] **UI**: "Start Active Crawl" 버튼
+        - [x] **UI**: 실시간 진행 표시기 (방문한 페이지 / 큐)
+        - [x] **UI**: 크롤링된 엔드포인트 테이블 (메서드, URL, 파라미터)
+        - [x] **UI**: 과거 스캔 기록 로드 & 표시 (DB 연동)
+        - [x] **Fix**: 스캔 기록 호환성 & 지속성 (다대다 스키마)
+        - [x] **Fix**: 실시간 큐 카운트 & 타임스탬프 로직
+    - [x] **REQ-2-3-3** Frontend: 패시브 스캔 UI (개선)
+        - [x] **Refactor**: PassiveScanControl & PacketFeed를 타겟 상세 탭으로 이동
+        - [x] **UI**: "Launch Proxy Browser" 버튼
+        - [x] **Logic**: 특정 타겟에 대한 WebSocket 자동 연결
+    - [x] **REQ-2-3-4** Backend: 프록시 브라우저 런처
+        - [x] **API**: `POST /api/v1/proxy/browser/launch` (Playwright Headful 실행)
+        - [x] **Logic**: 프록시 설정(localhost:8081)으로 브라우저 구성
+        - [x] **Logic**: 브라우저 인스턴스 수명 주기 관리
+
+- [ ] **REQ-2-4** 파라미터 명세 파싱 (Parameter Specification Parsing)
+    - [ ] **REQ-2-4-1** Backend: 모델 & 스키마
+        - [ ] **Model**: `Endpoint` SQL 모델 정의 (`id`, `target_id`, `method`, `path`, `description`)
+        - [ ] **Model**: `Parameter` SQL 모델 정의 (`id`, `endpoint_id`, `name`, `location`, `data_type`, `constraints`)
+        - [ ] **Migration**: Alembic 마이그레이션 생성
+        - [ ] **Schema**: Pydantic 스키마 정의 (`EndpointBase`, `ParameterBase`)
+    - [ ] **REQ-2-4-2** Backend: 파싱 서비스
+        - [ ] **Abstraction**: `SpecParser` 추상 기본 클래스 생성
+        - [ ] **Implementation**: `OpenAPIParser` 구현 (JSON/YAML 지원)
+        - [ ] **Logic**: 경로, 메서드, 쿼리/경로/헤더/바디 파라미터 추출
+        - [ ] **Logic**: 바디 파라미터에 대한 JSON 스키마 파싱
+    - [ ] **REQ-2-4-3** Backend: 타입 추론 로직
+        - [ ] **Logic**: JSON/쿼리 값에서 타입 추론 (Int, String, Boolean, UUID)
+        - [ ] **Logic**: 제약 조건 감지 (필수/선택)
+
+- [ ] **REQ-2-5** 로직 흐름 & 의존성 분석 (Logic Flow & Dependency Analysis)
+    - [ ] **REQ-2-5-1** Backend: 흐름 로직
+        - [ ] **Model**: `FlowGraph` 데이터 구조 정의 (노드/엣지)
+        - [ ] **Logic**: 의존성 분석 (예: 세션 토큰, 주문 ID)
+    - [ ] **REQ-2-5-2** Frontend: 시각적 맵
+        - [ ] **Library**: `React Flow` 통합
+        - [ ] **UI**: 페이지/엔드포인트를 노드로 시각화
+
+- [ ] **REQ-2-6** LLM 기반 기능 의도 추론 (LLM-Based Function Intent Inference)
+    - [ ] **REQ-2-6-1** Backend: AI 서비스
+        - [ ] **Prompting**: URL/파라미터/컨텍스트로 프롬프트 구성
+        - [ ] **Integration**: LLM(GPT/Claude) 호출하여 "의도" 요약 (예: "비밀번호 재설정 확인")
+    - [ ] **REQ-2-6-2** Backend: 저장소
+        - [ ] **Model**: `Endpoint` 모델에 `intent` 필드 업데이트
+        - [ ] **Storage**: AI 설명 저장
+    - [ ] **REQ-2-6-3** Backend: API 구현
+        - [ ] API `POST /api/v1/targets/{id}/upload-spec`: 스펙 파일 업로드 & 파싱
+        - [ ] API `GET /api/v1/targets/{id}/endpoints`: 파싱된 엔드포인트 목록
+    - [ ] **REQ-2-6-4** Frontend: 스펙 관리
+        - [ ] `TargetDetail` 페이지에 "API Spec" 탭 추가
+        - [ ] UI: 파일 업로드 영역 (Drag & Drop)
+        - [x] UI: 엔드포인트 목록 테이블 (메서드 배지, 경로, 파라미터 수) (오타 아님, 계획상 목록에 있었음)
+
+## REQ-3 AI 취약점 분석 (AI Vulnerability Analysis)
+- [ ] **REQ-3-1** LLM을 위한 컨텍스트 생성
+- [ ] **REQ-3-2** 비즈니스 로직 취약점 분석
+- [ ] **REQ-3-3** 연쇄 공격 벡터(Chained Attack Vector) 생성
+
+## REQ-4 공격 실행 (Attack Execution)
+- [ ] **REQ-4-1** 지능형 공격 스케줄링
+- [ ] **REQ-4-2** 시나리오 기반 공격 검증 (상태 기반 퍼징)
+- [ ] **REQ-4-3** 오탐(False Positive) 필터링
+
+## REQ-5 시각화 & 보고 (Visualization & Reporting)
+- [ ] **REQ-5-1** 비즈니스 로직 시각화 (React Flow)
+- [ ] **REQ-5-2** 스캔 결과 로깅 & CVSS 계산
+- [ ] **REQ-5-3** 상세 보고서 생성
+- [ ] **REQ-5-4** 공격 데이터 큐레이션
+- [ ] **REQ-5-5** RAG 지식 베이스 구축
+- [ ] **REQ-5-6** 진화형 학습 파이프라인
+
+## UI/UX 구현 (UI/UX Implementation)
+- [ ] shadcn/ui 다크 테마 적용
+- [ ] 동적 상호작용 구현 (Framer Motion/React Bit)
+
