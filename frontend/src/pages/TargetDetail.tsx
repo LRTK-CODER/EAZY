@@ -98,7 +98,8 @@ export default function TargetDetail() {
 
                 <TabsContent value="passive">
                     <div className="space-y-6">
-                        <PassiveScanControl />
+                        <PassiveScanControl targetId={tid} targetUrl={target?.url} />
+
                         <PacketFeed />
                     </div>
                 </TabsContent>

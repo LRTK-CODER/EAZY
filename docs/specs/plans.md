@@ -175,14 +175,14 @@
         - [x] **UI**: Load & Display Past Scan History (from DB)
         - [x] **Fix**: Scan History Compatibility & Persistence (Many-to-Many Schema)
         - [x] **Fix**: Real-time Queue Count & Timestamp Logic
-    - [ ] **REQ-2-3-3** Frontend: Passive Scan UI (Refinement)
-        - [ ] **Refactor**: Move PassiveScanControl & PacketFeed to Target Detail Tab
-        - [ ] **UI**: "Launch Proxy Browser" Button
-        - [ ] **Logic**: Auto-connect WebSocket for specific Target
-    - [ ] **REQ-2-3-4** Backend: Proxy Browser Launcher
-        - [ ] **API**: `POST /api/v1/proxy/browser/launch` (Launch Playwright Headful)
-        - [ ] **Logic**: Configure Browser with Proxy Settings (localhost:8081)
-        - [ ] **Logic**: Manage Browser Instance Lifecycle
+    - [x] **REQ-2-3-3** Frontend: Passive Scan UI (Refinement)
+        - [x] **Refactor**: Move PassiveScanControl & PacketFeed to Target Detail Tab
+        - [x] **UI**: "Launch Proxy Browser" Button
+        - [x] **Logic**: Auto-connect WebSocket for specific Target
+    - [x] **REQ-2-3-4** Backend: Proxy Browser Launcher
+        - [x] **API**: `POST /api/v1/proxy/browser/launch` (Launch Playwright Headful)
+        - [x] **Logic**: Configure Browser with Proxy Settings (localhost:8081)
+        - [x] **Logic**: Manage Browser Instance Lifecycle
 
 - [ ] **REQ-2-4** Logic Flow & Dependency Analysis (Renumbered)
     - [ ] **REQ-2-4-1** Backend: Flow Logic

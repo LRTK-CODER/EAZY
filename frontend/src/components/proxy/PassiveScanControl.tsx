@@ -3,11 +3,17 @@ import { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play, Square, Wifi, WifiOff } from "lucide-react";
+import { Play, Square, Wifi, WifiOff, MonitorPlay } from "lucide-react";
 import { api } from "@/lib/api";
 import { useProxyStore } from "@/store/proxyStore";
 
-export function PassiveScanControl() {
+interface PassiveScanControlProps {
+    targetId?: number;
+    targetUrl?: string;
+}
+
+export function PassiveScanControl({ targetUrl }: PassiveScanControlProps) {
+
     const { isProxyRunning, isConnected, setProxyRunning, connect, disconnect } = useProxyStore();
 
     const handleStart = async () => {
@@ -31,14 +37,31 @@ export function PassiveScanControl() {
         }
     };
 
-    // Cleanup on unmount
+    // Cleanup on unmount handled by components
     useEffect(() => {
-        // Optional: Don't disconnect on unmount if we want background connection?
-        // For now, let's keep it manual.
         return () => {
             // disconnect(); 
         }
-    }, []);
+    }, [disconnect]);
+
+    const handleLaunchBrowser = async () => {
+        if (!targetUrl) return;
+        try {
+            // Ensure proxy is started
+            if (!isProxyRunning) {
+                await api.post('/proxy/start');
+                setProxyRunning(true);
+                connect('ws://localhost:8000/api/v1/proxy/ws/proxy');
+                // Give it a moment? No, async nature should be fine.
+            }
+
+            await api.post('/proxy/browser/launch', { url: targetUrl });
+        } catch (error) {
+            console.error('Failed to launch browser', error);
+            alert("Failed to launch browser: " + error);
+        }
+    };
+
 
     return (
         <Card className="mb-6 border-l-4 border-l-blue-500 shadow-sm">
@@ -72,6 +95,13 @@ export function PassiveScanControl() {
                                 <Square className="h-4 w-4" /> Stop Proxy
                             </Button>
                         )}
+
+                        {targetUrl && (
+                            <Button onClick={handleLaunchBrowser} size="sm" variant="outline" className="gap-2 ml-2">
+                                <MonitorPlay className="h-4 w-4" /> Launch Proxy Browser
+                            </Button>
+                        )}
+
                     </div>
                 </div>
             </CardHeader>

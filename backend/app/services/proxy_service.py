@@ -6,8 +6,11 @@ from mitmproxy import http
 from mitmproxy.tools.dump import DumpMaster
 from mitmproxy.options import Options
 import structlog
+import subprocess
 from app.services.semantic_parser import SemanticParser
 from app.core.connection_manager import manager
+from playwright.async_api import async_playwright
+
 
 logger = structlog.get_logger()
 
@@ -86,6 +89,9 @@ class ProxyService:
     _thread: Optional[threading.Thread] = None
     _loop: Optional[asyncio.AbstractEventLoop] = None
     _main_loop: Optional[asyncio.AbstractEventLoop] = None
+    _browser_instance = None
+    _playwright_instance = None
+
 
     def __new__(cls):
         if cls._instance is None:
@@ -131,14 +137,173 @@ class ProxyService:
         self._thread = threading.Thread(target=run_proxy, daemon=True)
         self._thread.start()
 
+        # Wait for port to be listening (non-blocking wait would be better, but this is a sync method called from async)
+        # We should verify the port is open before returning
+        import socket
+        import time
+        
+        start_time = time.time()
+        while time.time() - start_time < 5:
+            try:
+                with socket.create_connection(("localhost", port), timeout=0.1):
+                    logger.info("proxy.port_ready", port=port)
+                    break
+            except (OSError, ConnectionRefusedError):
+                time.sleep(0.1)
+        else:
+            logger.warning("proxy.port_timeout", port=port)
+            # Proceed anyway, maybe it's just slow or firewall
+              
+        logger.info("proxy.started")
+
     def stop(self):
+        """
+        Stops the proxy master and thread.
+        """
         if self._master:
             self._master.shutdown()
             self._master = None
-        if self._thread:
-            self._thread.join(timeout=2)
-            self._thread = None
-        logger.info("proxy.stopped")
+            
+        if self._loop:
+            # Loop is running in thread. Shutdown master should stop it?
+            # master.shutdown() stops the run loop.
+            pass
+
+        if self._thread and self._thread.is_alive():
+            # self._thread.join() # We shouldn't block main thread too long
+            pass
+            
+        logger.info("proxy.shutdown_requested")
+
+    async def stop_with_browser(self):
+        """
+        Async stop method to handle browser cleanup.
+        """
+        self.stop()
+        await self.stop_browser()
+
+    def _on_browser_disconnected(self, browser):
+        logger.info("proxy.browser.disconnected_event")
+        self._browser_instance = None
+        self._playwright_instance = None
+
+    def _kill_browser_processes(self):
+        """
+        Kills any Chrome/Chromium processes running with the specific proxy argument.
+        Uses psutil for robust, cross-platform process management without shell limits.
+        """
+        try:
+            import psutil
+            killed_count = 0
+            
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    # Access cmdline safely
+                    cmdline = proc.info['cmdline']
+                    if not cmdline:
+                        continue
+                        
+                    # Check for our specific proxy signature
+                    if any('localhost:8081' in arg for arg in cmdline):
+                        logger.info("proxy.force_kill_psutil", pid=proc.pid, name=proc.info['name'])
+                        proc.kill()
+                        killed_count += 1
+                        
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
+            
+            # Reset internal state if we killed anything (or always, just to be safe)
+            if killed_count > 0:
+                self._browser_instance = None
+                self._playwright_instance = None
+                    
+        except ImportError:
+            logger.error("proxy.cleanup_error", error="psutil not installed")
+        except Exception as e:
+            logger.warning("proxy.cleanup_error", error=str(e))
+
+    async def launch_browser(self, target_url: str, proxy_port: int = 8081):
+
+        """
+        Launches a headful browser configured to use the proxy.
+        """
+        if self._browser_instance:
+            if not self._browser_instance.is_connected():
+                self._browser_instance = None
+            else:
+                logger.info("proxy.browser.already_running")
+                return
+
+        # Ensure proxy is running before launching browser
+        # This prevents "net::ERR_PROXY_CONNECTION_FAILED" which causes immediate browser closure
+        if not (self._thread and self._thread.is_alive()):
+            logger.info("proxy.auto_starting_for_browser")
+            self.start(proxy_port)
+            # Give it a tiny bit to spin up? 
+            # start() returns after thread.start(), but thread needs to init loop.
+            # Ideally we check connectivity, but a small sleep is safer than nothing.
+            await asyncio.sleep(1) 
+
+
+        try:
+            logger.info("proxy.browser.launching", url=target_url)
+            self._playwright_instance = await async_playwright().start()
+            
+            # Launch Chromium with Proxy
+            # args ignore-certificate-errors is crucial for mitmproxy self-signed certs
+            self._browser_instance = await self._playwright_instance.chromium.launch(
+                headless=False, 
+                proxy={"server": f"http://localhost:{proxy_port}"},
+                args=["--ignore-certificate-errors", "--no-sandbox"]
+            )
+            
+            # Attach Disconnect Listener
+            # Note: We need a wrapper because on("disconnected") passes the browser instance
+            self._browser_instance.on("disconnected", lambda b: self._on_browser_disconnected(b))
+            
+            context = await self._browser_instance.new_context(ignore_https_errors=True)
+            page = await context.new_page()
+            
+            # Go to target
+            logger.info("proxy.browser.navigating", url=target_url)
+            try:
+                # We use a shorter timeout for initial navigation so we don't block API too long,
+                # but long enough to load. If it fails, we keep browser open.
+                await page.goto(target_url, timeout=30000)
+                logger.info("proxy.browser.started")
+            except Exception as nav_e:
+                # Navigation failed (timeout, dns, etc)
+                # We DO NOT stop the browser here. The user wants to retry or debug manually.
+                logger.warning("proxy.browser.navigation_failed", error=str(nav_e))
+            
+        except Exception as e:
+            logger.error("proxy.browser.failed", error=str(e))
+            # Only stop if it's a critical launch failure (e.g. couldn't start process)
+            if not self._browser_instance:
+                 await self.stop_browser()
+            raise e
+
+    async def stop_browser(self):
+        # 1. Try Graceful Close
+        if self._browser_instance:
+            try:
+                await self._browser_instance.close()
+            except Exception as e:
+                logger.warning("proxy.browser.close_failed", error=str(e))
+            finally:
+                self._browser_instance = None
+        
+        if self._playwright_instance:
+            try:
+                await self._playwright_instance.stop()
+            except Exception as e:
+                logger.warning("proxy.playwright.stop_failed", error=str(e))
+            finally:
+                self._playwright_instance = None
+        
+        # 2. Force Kill any remnants (Zombie check)
+        self._kill_browser_processes()
+
 
 # Addon method update to use main_loop
 def response(self, flow: http.HTTPFlow):
@@ -146,10 +311,10 @@ def response(self, flow: http.HTTPFlow):
         url = flow.request.pretty_url
         method = flow.request.method
         # ... Extraction logic ...
-        req_headers = dict(flow.request.headers)
+        req_headers = {k.lower(): v for k, v in flow.request.headers.items()}
         req_body = flow.request.content.decode('utf-8', 'ignore') if flow.request.content else None
         status_code = flow.response.status_code
-        res_headers = dict(flow.response.headers)
+        res_headers = {k.lower(): v for k, v in flow.response.headers.items()}
 
         parsed = self.parser.parse_request(method, url, req_headers, req_body)
         
@@ -170,3 +335,4 @@ def response(self, flow: http.HTTPFlow):
 
 ProxyAddon.response = response 
 proxy_service = ProxyService()
+
