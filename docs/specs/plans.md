@@ -184,13 +184,6 @@
         - [x] **Logic**: Configure Browser with Proxy Settings (localhost:8081)
         - [x] **Logic**: Manage Browser Instance Lifecycle
 
-- [ ] **REQ-2-4** Logic Flow & Dependency Analysis (Renumbered)
-    - [ ] **REQ-2-4-1** Backend: Flow Logic
-        - [ ] **Model**: Define `FlowGraph` Data Structure (Nodes/Edges)
-        - [ ] **Logic**: Analyze Dependencies (e.g. Session Tokens, Order IDs)
-    - [ ] **REQ-2-4-2** Frontend: Visual Map
-        - [ ] **Library**: Integrate `React Flow`
-        - [ ] **UI**: Visualize Pages/Endpoints as Nodes
 - [ ] **REQ-2-4** Parameter Specification Parsing
     - [ ] **REQ-2-4-1** Backend: Models & Schema
         - [ ] **Model**: Define `Endpoint` SQL Model (`id`, `target_id`, `method`, `path`, `description`)
@@ -205,24 +198,30 @@
     - [ ] **REQ-2-4-3** Backend: Type Inference Logic
         - [ ] **Logic**: Infer types from JSON/Query values (Int, String, Boolean, UUID)
         - [ ] **Logic**: Detect constraints (Required/Optional)
-- [ ] **REQ-2-5** LLM-Based Function Intent Inference
-    - [ ] **REQ-2-5-1** Backend: AI Service
+
+- [ ] **REQ-2-5** Logic Flow & Dependency Analysis
+    - [ ] **REQ-2-5-1** Backend: Flow Logic
+        - [ ] **Model**: Define `FlowGraph` Data Structure (Nodes/Edges)
+        - [ ] **Logic**: Analyze Dependencies (e.g. Session Tokens, Order IDs)
+    - [ ] **REQ-2-5-2** Frontend: Visual Map
+        - [ ] **Library**: Integrate `React Flow`
+        - [ ] **UI**: Visualize Pages/Endpoints as Nodes
+
+- [ ] **REQ-2-6** LLM-Based Function Intent Inference
+    - [ ] **REQ-2-6-1** Backend: AI Service
         - [ ] **Prompting**: Construct Prompt with URL/Params/Context
         - [ ] **Integration**: Call LLM (GPT/Claude) to summarize "Intent" (e.g. "Values Password Reset")
-    - [ ] **REQ-2-5-2** Backend: Storage
+    - [ ] **REQ-2-6-2** Backend: Storage
         - [ ] **Model**: Update `Endpoint` model with `intent` field
         - [ ] **Storage**: Store AI explanation
-        - [ ] Implement `OpenAPIParser` (Support JSON/YAML)
-        - [ ] Logic: Extract Paths, Methods, Query/Path/Header/Body Parameters
-        - [ ] Logic: Parse JSON Schemas for Body Parameters
-    - [ ] **Backend: API Implementation**
+    - [ ] **REQ-2-6-3** Backend: API Implementation
         - [ ] API `POST /api/v1/targets/{id}/upload-spec`: Upload & Parse Spec File
         - [ ] API `GET /api/v1/targets/{id}/endpoints`: List parsed endpoints
-    - [ ] **Frontend: Spec Management**
+    - [ ] **REQ-2-6-4** Frontend: Spec Management
         - [ ] Add "API Spec" Tab to `TargetDetail` Page
         - [ ] UI: File Upload Area (Drag & Drop)
         - [ ] UI: Endpoints List Table (Method Badge, Path, Param Count)
-- [ ] **REQ-2-5** LLM-based Function Intent Inference
+
 
 ## REQ-3 AI Vulnerability Analysis
 - [ ] **REQ-3-1** Context Generation for LLM
