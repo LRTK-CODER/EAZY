@@ -39,7 +39,7 @@ export const useProxyStore = create<ProxyState>((set, get) => ({
     setProxyRunning: (isRunning) => set({ isProxyRunning: isRunning }),
 
     addPacket: (packet) => set((state) => ({
-        packets: [packet, ...state.packets].slice(0, 100) // Keep last 100
+        packets: [packet, ...state.packets]
     })),
 
     clearPackets: () => set({ packets: [] }),

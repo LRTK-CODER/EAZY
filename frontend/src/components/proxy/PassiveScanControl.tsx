@@ -20,7 +20,8 @@ export function PassiveScanControl({ targetUrl }: PassiveScanControlProps) {
         try {
             await api.post('/proxy/start');
             setProxyRunning(true);
-            connect('ws://localhost:8000/api/v1/proxy/ws/proxy');
+            // TODO: Extract token to config or env
+            connect('ws://localhost:8000/api/v1/proxy/ws/proxy?token=development-token');
         } catch (error) {
             console.error('Failed to start proxy', error);
             // Ideally show toast
@@ -51,7 +52,7 @@ export function PassiveScanControl({ targetUrl }: PassiveScanControlProps) {
             if (!isProxyRunning) {
                 await api.post('/proxy/start');
                 setProxyRunning(true);
-                connect('ws://localhost:8000/api/v1/proxy/ws/proxy');
+                connect('ws://localhost:8000/api/v1/proxy/ws/proxy?token=development-token');
                 // Give it a moment? No, async nature should be fine.
             }
 

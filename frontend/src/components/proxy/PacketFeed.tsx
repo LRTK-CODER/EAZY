@@ -1,6 +1,7 @@
 
-
+import { useRef } from "react";
 import { useProxyStore } from "@/store/proxyStore";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
     Table,
     TableBody,
@@ -10,11 +11,10 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Activity } from "lucide-react";
 
 
-const SafeTableRow = ({ packet }: { packet: any }) => {
+const SafeTableRow = ({ packet, style }: { packet: any, style?: React.CSSProperties }) => {
     try {
         if (!packet) return null;
 
@@ -50,7 +50,7 @@ const SafeTableRow = ({ packet }: { packet: any }) => {
         })();
 
         return (
-            <TableRow className="cursor-pointer hover:bg-gray-50/50">
+            <TableRow className="cursor-pointer hover:bg-gray-50/50" style={style}>
                 <TableCell>
                     <Badge variant="outline" className={`${getMethodColor(packet.method)} border-0`}>
                         {packet.method || '???'}
@@ -73,7 +73,7 @@ const SafeTableRow = ({ packet }: { packet: any }) => {
     } catch (error) {
         console.error("Render Error Row:", error, packet);
         return (
-            <TableRow>
+            <TableRow style={style}>
                 <TableCell colSpan={5} className="text-red-500">Render Error</TableCell>
             </TableRow>
         )
@@ -82,6 +82,14 @@ const SafeTableRow = ({ packet }: { packet: any }) => {
 
 export function PacketFeed() {
     const { packets } = useProxyStore();
+    const parentRef = useRef<HTMLDivElement>(null);
+
+    const rowVirtualizer = useVirtualizer({
+        count: packets.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => 53, // Approximate row height
+        overscan: 10,
+    });
 
     return (
         <div className="rounded-md border bg-white shadow-sm overflow-hidden h-[600px] flex flex-col">
@@ -92,9 +100,12 @@ export function PacketFeed() {
                 <span className="text-xs text-muted-foreground">{packets.length} Events captured</span>
             </div>
 
-            <ScrollArea className="flex-1">
+            <div
+                ref={parentRef}
+                className="flex-1 overflow-auto w-full relative"
+            >
                 <Table>
-                    <TableHeader className="bg-gray-50 sticky top-0">
+                    <TableHeader className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                         <TableRow>
                             <TableHead className="w-[100px]">Method</TableHead>
                             <TableHead className="w-[80px]">Status</TableHead>
@@ -111,13 +122,29 @@ export function PacketFeed() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            packets.map((packet, index) => (
-                                <SafeTableRow key={index} packet={packet} />
-                            ))
+                            <>
+                                {rowVirtualizer.getVirtualItems().length > 0 && (
+                                    <tr style={{ height: rowVirtualizer.getVirtualItems()[0].start }}>
+                                        <td colSpan={5} />
+                                    </tr>
+                                )}
+                                {rowVirtualizer.getVirtualItems().map((virtualRow) => (
+                                    <SafeTableRow
+                                        key={virtualRow.key}
+                                        packet={packets[virtualRow.index]}
+                                    // We let standard table layout handle width, just virtualization handles which ones render
+                                    />
+                                ))}
+                                {rowVirtualizer.getVirtualItems().length > 0 && (
+                                    <tr style={{ height: rowVirtualizer.getTotalSize() - rowVirtualizer.getVirtualItems()[rowVirtualizer.getVirtualItems().length - 1].end }}>
+                                        <td colSpan={5} />
+                                    </tr>
+                                )}
+                            </>
                         )}
                     </TableBody>
                 </Table>
-            </ScrollArea>
+            </div>
         </div>
     );
 }

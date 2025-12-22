@@ -245,6 +245,18 @@
 - [ ] Apply shadcn/ui Dark Theme
 - [ ] Implement Dynamic Interactions (Framer Motion/React Bit)
 
+## Technical Debt & Improvements
+- [x] **REQ-Improve-1** Code Quality: ProxyService Refactoring
+    - [x] Remove Monkey Patching from `ProxyService`
+    - [x] Implement proper Class-based Middleware/Addon structure
+    - [x] Ensure thread-safety for event loop integration
+- [x] **REQ-Improve-2** Scalability: Frontend Packet Feed
+    - [x] Implement Virtualization (TanStack Virtual or similar) for Packet Feed
+    - [x] Remove hardcoded 100 packet limit (Pagination or infinite scroll)
+- [x] **REQ-Improve-3** Security: WebSocket Authentication
+    - [x] Implement Token-based Authentication for `/ws/proxy`
+    - [x] Validate tokens in `ConnectionManager`
+
 ---
 
 # 구현 계획 (Implementation Plan)

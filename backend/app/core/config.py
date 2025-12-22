@@ -29,7 +29,10 @@ class Settings(BaseSettings):
     # Security
     # Default key for dev only. In prod, this must be set via env var.
     # Generated using: Fernet.generate_key().decode()
-    ENCRYPTION_KEY: str = "J1qK1_M4dD-V9_Z5g4B5k5_L6rT7_X8n9_M0pQ1rS2t=" 
+    ENCRYPTION_KEY: str = "J1qK1_M4dD-V9_Z5g4B5k5_L6rT7_X8n9_M0pQ1rS2t="
+    
+    # WebSocket Auth
+    WS_TOKEN: str = "development-token" 
 
     class Config:
         env_file = ".env"

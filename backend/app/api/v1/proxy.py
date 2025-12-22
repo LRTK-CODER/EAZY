@@ -1,7 +1,8 @@
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, status
 from app.core.connection_manager import manager
 from app.services.proxy_service import proxy_service
+from app.core.config import settings
 import structlog
 from pydantic import BaseModel
 
@@ -9,7 +10,11 @@ router = APIRouter()
 logger = structlog.get_logger()
 
 @router.websocket("/ws/proxy")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
+    if token != settings.WS_TOKEN:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
     await manager.connect(websocket)
     try:
         while True:
