@@ -1,6 +1,0 @@
-inference_rules:
-  # Name-based keywords removed as per user request to improve accuracy.
-  # Value-based regex patterns only.
-  regex:
-    uuid: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-    email: '^[\w\.-]+@[\w\.-]+\.\w+$'
