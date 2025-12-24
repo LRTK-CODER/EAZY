@@ -65,6 +65,7 @@ Users will be able to register their assets and automatically identify attack su
 - playwright
 - redis
 - pydantic-settings
+- **uv** (Package Manager)
 
 ---
 
@@ -88,59 +89,59 @@ Use `pytest` and `httpx` for testing.
 ### Phase 1: Backend Core & Infrastructure
 **Goal**: Initialize FastAPI project, DB connection, and core configurations.
 **Estimated Time**: 4 hours
-**Status**: ⏳ Pending
+**Status**: ✅ Completed
 
 #### Tasks
 **🔴 RED: Write Failing Tests First**
-- [ ] **Test 1.1**: Test App Health Check
+- [x] **Test 1.1**: Test App Health Check
   - File: `backend/tests/api/test_health.py`
   - Content: Request `GET /health` and expect 200 OK.
   - Expected: Fail (Endpoint not exists).
 
 **🟢 GREEN: Implement to Make Tests Pass**
-- [ ] **Task 1.2**: Initialize Project Structure
+- [x] **Task 1.2**: Initialize Project Structure
   - `backend/app/main.py`, `backend/app/core/config.py`
   - Implement `/health` endpoint.
-- [ ] **Task 1.3**: Configure Database (SQLModel + AsyncEngine)
+- [x] **Task 1.3**: Configure Database (SQLModel + AsyncEngine)
   - `backend/app/core/db.py`
-- [ ] **Task 1.4**: Configure Dependencies
-  - `pyproject.toml` (Poetry or Pip)
+- [x] **Task 1.4**: Configure Dependencies
+  - `pyproject.toml` (UV / PEP 621)
 
 #### Quality Gate ✋
-- [ ] Project installs and runs (`uvicorn app.main:app`).
-- [ ] `pytest` passes.
-- [ ] DB connection verified.
+- [x] Project installs and runs (`uv run uvicorn app.main:app`).
+- [x] `pytest` passes.
+- [x] DB connection verified.
 
 ---
 
 ### Phase 2: Project Management API
 **Goal**: CRUD APIs for Projects and Targets.
 **Estimated Time**: 6 hours
-**Status**: ⏳ Pending
+**Status**: ✅ Completed
 
 #### Tasks
 **🔴 RED: Write Failing Tests First**
-- [ ] **Test 2.1**: Project CRUD Tests
+- [x] **Test 2.1**: Project CRUD Tests
   - File: `backend/tests/api/test_projects.py`
-  - Content: Create Project, Get List, Get Detail.
-- [ ] **Test 2.2**: Target CRUD Tests
+  - Content: Create, List, Get Single Project.
+- [x] **Test 2.2**: Target CRUD Tests
   - File: `backend/tests/api/test_targets.py`
-  - Content: Add Target to Project, Verify integrity.
+  - Content: Create Target under Project, List Targets.
 
 **🟢 GREEN: Implement to Make Tests Pass**
-- [ ] **Task 2.3**: Define Models (Project, Target)
-  - `backend/app/models/project.py`, `backend/app/models/target.py`
-- [ ] **Task 2.4**: Create Migrations (Alembic)
-  - `alembic revision --autogenerate`
-- [ ] **Task 2.5**: Implement Repositories/Services
-  - `backend/app/services/project_service.py`
-- [ ] **Task 2.6**: Implement API Routers
-  - `backend/app/api/v1/endpoints/project.py`
+- [x] **Task 2.3**: Define Models & Migrations
+  - `Project` & `Target` SQLModel classes.
+  - `alembic revision --autogenerate`.
+- [x] **Task 2.4**: Implement Services
+  - `ProjectService`, `TargetService` (CRUD logic).
+- [x] **Task 2.5**: API Endpoints
+  - `POST /projects/`, `GET /projects/`
+  - `POST /projects/{id}/targets/`, `GET /targets/`
 
 #### Quality Gate ✋
-- [ ] All CRUD tests pass.
-- [ ] Alembic migrations applied successfully.
-- [ ] API Docs (Swagger) visible and working.
+- [x] All Tests passed.
+- [x] API Swagger (`/docs`) verified. successfully.
+- [x] API Docs (Swagger) visible and working.
 
 ---
 

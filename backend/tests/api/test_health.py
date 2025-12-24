@@ -13,3 +13,9 @@ async def test_health_check():
     
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+@pytest.mark.asyncio
+async def test_swagger_ui(client):
+    """Test that Swagger UI is accessible."""
+    response = await client.get("/docs")
+    assert response.status_code == 200
