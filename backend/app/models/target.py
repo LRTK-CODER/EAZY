@@ -5,10 +5,18 @@ from sqlmodel import Field, SQLModel
 def utc_now():
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
+from enum import Enum
+
+class TargetScope(str, Enum):
+    DOMAIN = "DOMAIN"
+    SUBDOMAIN = "SUBDOMAIN"
+    URL_ONLY = "URL_ONLY"
+
 class TargetBase(SQLModel):
     name: str = Field(index=True, max_length=255)
     url: str = Field(max_length=2048)
     description: Optional[str] = Field(default=None)
+    scope: TargetScope = Field(default=TargetScope.DOMAIN)
 
 class Target(TargetBase, table=True):
     __tablename__ = "targets"

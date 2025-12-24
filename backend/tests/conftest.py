@@ -26,6 +26,24 @@ async def db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
         db_engine, class_=AsyncSession, expire_on_commit=False
     )
     async with async_session() as session:
+        # CLEANUP: Truncate all tables before test (Order matters due to FKs)
+        # Or use CASCADE.
+        # For simplicity in MVP, we explicitly delete from known tables.
+        # Be careful with dependencies.
+        
+        # We can't use TRUNCATE easily with FKs without CASCADE in Postgres.
+        # DELETE FROM is safer for small data.
+        
+        from sqlalchemy import text
+        # Disable FK checks temporarily or delete in order
+        # Leaf tables first
+        await session.exec(text("DELETE FROM asset_discoveries"))
+        await session.exec(text("DELETE FROM assets"))
+        await session.exec(text("DELETE FROM tasks"))
+        await session.exec(text("DELETE FROM targets"))
+        await session.exec(text("DELETE FROM projects"))
+        await session.commit()
+        
         yield session
 
 @pytest.fixture(scope="function")

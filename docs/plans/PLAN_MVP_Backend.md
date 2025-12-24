@@ -145,27 +145,40 @@ Use `pytest` and `httpx` for testing.
 
 ---
 
-### Phase 3: Attack Surface Engine (Crawler)
-**Goal**: Playwright-based crawler integration.
+### Phase 3: Attack Surface Discovery Engine (Crawler)
+**Goal**: Build the engine that crawls targets and discovers assets.
 **Estimated Time**: 8 hours
-**Status**: ⏳ Pending
+**Status**: ✅ Completed
 
 #### Tasks
 **🔴 RED: Write Failing Tests First**
-- [ ] **Test 3.1**: Crawler Engine Unit Test
-  - File: `backend/tests/engine/test_crawler.py`
-  - Content: Mock Playwright, verify `extract_links` and `extract_forms` logic.
+- [x] **Test 3.1**: Task Queue Logic
+  - `backend/tests/core/test_task_manager.py`
+  - Content: Enqueue task, Dequeue task, status updates.
+- [x] **Test 3.2**: Crawler Execution
+  - `backend/tests/services/test_crawler.py`
+  - Content: Mock Playwright, verify URL extraction.
+- [x] **Test 3.3**: Asset Service Deduplication
+  - `backend/tests/services/test_asset_service.py`
 
 **🟢 GREEN: Implement to Make Tests Pass**
-- [ ] **Task 3.2**: Implement Crawler Engine
-  - `backend/app/engine/crawler.py`
-  - Features: Page Loading, Link Extraction, Form parsing.
-- [ ] **Task 3.3**: Define Asset Models (UrlAsset, FormAsset)
-  - `backend/app/models/asset.py`
+- [x] **Task 3.3**: Task Model & Migrations
+  - `Task` model (id, project_id, type, status, result).
+  - Alembic migration.
+- [x] **Task 3.4**: Redis Queue Implementation
+  - `backend/app/core/queue.py`: `enqueue`, `dequeue`.
+- [x] **Task 3.5**: Crawler Service (Playwright)
+  - `backend/app/services/crawler_service.py`
+  - Headless browser navigation, link extraction.
+- [x] **Task 3.6**: Asset Processing Logic
+  - Save discovered URLs to `Assets` table.
+- [x] **Task 3.7**: Target Scope Update
+  - Added `scope` to Target model.
 
 #### Quality Gate ✋
-- [ ] Crawler can run on a test site (e.g., example.com) and extract data.
-- [ ] Unit tests for extraction logic pass.
+- [x] Task queuing works in Redis.
+- [x] Crawler can fetch a page and extract links.
+- [x] Discovered assets are saved to DB.
 
 ---
 
