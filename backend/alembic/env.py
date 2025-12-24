@@ -17,6 +17,7 @@ from app.models.target import Target  # noqa: F401
 from app.models.llm_config import LLMConfig  # noqa: F401
 from app.models.api_key import ApiKey  # noqa: F401
 from app.models.scan import ScanJob, Endpoint, Parameter # noqa: F401
+from app.models.traffic_log import TrafficLog # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

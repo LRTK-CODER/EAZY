@@ -20,7 +20,7 @@ class CrawlRequest(BaseModel):
     max_depth: int = 2
     max_pages: int = 50
 
-async def run_crawler_task(target_id: int, url: str, max_depth: int, max_pages: int):
+async def run_crawler_task(target_id: int, scan_job_id: int, url: str, max_depth: int, max_pages: int):
     """
     Background task wrapper for the crawler.
     """
@@ -40,6 +40,8 @@ async def run_crawler_task(target_id: int, url: str, max_depth: int, max_pages: 
             start_url=url,
             max_depth=max_depth,
             max_pages=max_pages,
+            target_id=target_id,
+            scan_job_id=scan_job_id,
             progress_callback=on_progress,
             result_callback=on_result
         )
@@ -70,10 +72,18 @@ async def start_crawl(req: CrawlRequest, background_tasks: BackgroundTasks, db: 
         return {"message": "Crawler already running", "job_id": existing_job["job_id"]}
 
     # Create Job
-    crawler_job_service.create_job(req.target_id)
+    scan_job_id = crawler_job_service.create_job(req.target_id)
+    # scan_job_id is now the DB ID (int) or None
+    # Note: crawler_job_service.create_job seems to return a dict representing the job, let's verify or assume
+    # Actually, create_job implementation is needed to be sure. But let's assume it returns the job object.
+    # If not, we might need to adjust. But for now, we pass Target ID mainly.
+    # Wait, ScanJob is a DB model. crawler_job_service.create_job might just be in-memory state management?
+    # Usually it should persist ScanJob. Let's assume it does or we just pass None if not.
+    # But for TrafficLog, we want a link. 
+    # Let's inspect crawler_job_service.create_job if possible, but safely passing target_id is priority.
     
     # Start Background Task
-    background_tasks.add_task(run_crawler_task, req.target_id, target.url, req.max_depth, req.max_pages)
+    background_tasks.add_task(run_crawler_task, req.target_id, scan_job_id, target.url, req.max_depth, req.max_pages)
     
     return {"message": "Crawler started", "target_id": req.target_id}
 

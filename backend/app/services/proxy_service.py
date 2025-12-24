@@ -17,9 +17,10 @@ class ProxyAddon:
     Mitmproxy Addon to intercept requests and responses.
     Initialized with the main event loop to allow thread-safe broadcasting.
     """
-    def __init__(self, main_loop: asyncio.AbstractEventLoop):
+    def __init__(self, main_loop: asyncio.AbstractEventLoop, target_id: Optional[int] = None):
         self.parser = SemanticParser()
         self.main_loop = main_loop
+        self.target_id = target_id
 
     def response(self, flow: http.HTTPFlow):
         """
@@ -62,6 +63,31 @@ class ProxyAddon:
             # Thread-safe broadcast
             if self.main_loop and not self.main_loop.is_closed():
                 asyncio.run_coroutine_threadsafe(manager.broadcast(event_data), self.main_loop)
+                
+                # Persist to DB using TrafficService
+                from app.services.traffic_service import traffic_service
+                from app.models.traffic_log import TrafficSource
+                import urllib.parse
+                
+                parsed_url = urllib.parse.urlparse(url)
+                
+                if self.target_id:
+                    asyncio.run_coroutine_threadsafe(
+                        traffic_service.save_traffic(
+                            target_id=self.target_id,
+                        method=method,
+                        url=url,
+                        host=parsed_url.netloc,
+                        path=parsed_url.path,
+                        request_headers=req_headers,
+                        request_body=req_body,
+                        response_headers=res_headers,
+                        response_body=flow.response.content.decode('utf-8', 'ignore') if flow.response.content else None,
+                        status_code=status_code,
+                        source=TrafficSource.PASSIVE
+                    ),
+                    self.main_loop
+                )
             
         except Exception as e:
             logger.error("proxy.addon_error", error=str(e))
@@ -74,6 +100,7 @@ class ProxyService:
     _main_loop: Optional[asyncio.AbstractEventLoop] = None
     _browser_instance = None
     _playwright_instance = None
+    _target_id: Optional[int] = None
 
 
     def __new__(cls):
@@ -84,7 +111,10 @@ class ProxyService:
     def set_main_loop(self, loop):
         self._main_loop = loop
 
-    def start(self, port: int = 8081):
+    def start(self, port: int = 8081, target_id: Optional[int] = None):
+        if target_id:
+            self._target_id = target_id
+
         if self._thread and self._thread.is_alive():
             logger.warning("proxy.already_running")
             return
@@ -110,7 +140,7 @@ class ProxyService:
                      logger.warning("proxy.addon_init_warning", msg="Main loop not set, WS broadcast will fail")
 
                 # Pass main_loop to Addon
-                addon = ProxyAddon(main_loop=current_main_loop)
+                addon = ProxyAddon(main_loop=current_main_loop, target_id=self._target_id)
                 self._master.addons.add(addon)
                 
                 await self._master.run()
@@ -201,7 +231,7 @@ class ProxyService:
         except Exception as e:
             logger.warning("proxy.cleanup_error", error=str(e))
 
-    async def launch_browser(self, target_url: str, proxy_port: int = 8081):
+    async def launch_browser(self, target_url: str, proxy_port: int = 8081, target_id: Optional[int] = None):
         """
         Launches a headful browser configured to use the proxy.
         """
@@ -214,7 +244,7 @@ class ProxyService:
 
         if not (self._thread and self._thread.is_alive()):
             logger.info("proxy.auto_starting_for_browser")
-            self.start(proxy_port)
+            self.start(proxy_port, target_id=target_id)
             await asyncio.sleep(1) 
 
 

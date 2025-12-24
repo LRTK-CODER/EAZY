@@ -12,13 +12,13 @@ interface PassiveScanControlProps {
     targetUrl?: string;
 }
 
-export function PassiveScanControl({ targetUrl }: PassiveScanControlProps) {
+export function PassiveScanControl({ targetUrl, targetId }: PassiveScanControlProps) {
 
     const { isProxyRunning, isConnected, setProxyRunning, connect, disconnect } = useProxyStore();
 
     const handleStart = async () => {
         try {
-            await api.post('/proxy/start');
+            await api.post(`/proxy/start${targetId ? `?target_id=${targetId}` : ''}`);
             setProxyRunning(true);
             // TODO: Extract token to config or env
             connect('ws://localhost:8000/api/v1/proxy/ws/proxy?token=development-token');
@@ -50,13 +50,13 @@ export function PassiveScanControl({ targetUrl }: PassiveScanControlProps) {
         try {
             // Ensure proxy is started
             if (!isProxyRunning) {
-                await api.post('/proxy/start');
+                await api.post(`/proxy/start${targetId ? `?target_id=${targetId}` : ''}`);
                 setProxyRunning(true);
                 connect('ws://localhost:8000/api/v1/proxy/ws/proxy?token=development-token');
                 // Give it a moment? No, async nature should be fine.
             }
 
-            await api.post('/proxy/browser/launch', { url: targetUrl });
+            await api.post('/proxy/browser/launch', { url: targetUrl, target_id: targetId });
         } catch (error) {
             console.error('Failed to launch browser', error);
             alert("Failed to launch browser: " + error);

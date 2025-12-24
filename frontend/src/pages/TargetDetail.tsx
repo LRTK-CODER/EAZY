@@ -12,6 +12,7 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PassiveScanControl } from "@/components/proxy/PassiveScanControl";
 import { PacketFeed } from "@/components/proxy/PacketFeed";
+import { TrafficViewer } from "@/components/traffic/TrafficViewer";
 import { ActiveScanControl } from "@/components/crawler/ActiveScanControl";
 import { CrawledEndpoints } from "@/components/crawler/CrawledEndpoints";
 import { ScanHistoryList } from "@/components/crawler/ScanHistoryList";
@@ -72,10 +73,11 @@ export default function TargetDetail() {
             )}
 
             <Tabs defaultValue="dashboard" className="w-full">
-                <TabsList className="mb-4 grid w-full grid-cols-4 lg:w-[600px]">
+                <TabsList className="mb-4 grid w-full grid-cols-5 lg:w-[800px]">
                     <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                     <TabsTrigger value="active">Active Scan</TabsTrigger>
                     <TabsTrigger value="passive">Passive Scan</TabsTrigger>
+                    <TabsTrigger value="traffic">Traffic & Analysis</TabsTrigger>
                     <TabsTrigger value="settings">Settings</TabsTrigger>
                 </TabsList>
 
@@ -96,11 +98,18 @@ export default function TargetDetail() {
                     </div>
                 </TabsContent>
 
-                <TabsContent value="passive">
+                <TabsContent value="passive" className="space-y-4">
                     <div className="space-y-6">
                         <PassiveScanControl targetId={tid} targetUrl={target?.url} />
-
                         <PacketFeed />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="traffic" className="space-y-4">
+                    <div className="space-y-2">
+                        <h3 className="text-sm font-semibold">Unified Traffic Analysis</h3>
+                        <p className="text-xs text-muted-foreground mb-2">View real-time traffic from both Passive Proxy and Active Crawler.</p>
+                        <TrafficViewer targetId={tid} />
                     </div>
                 </TabsContent>
 

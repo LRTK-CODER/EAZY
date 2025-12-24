@@ -256,6 +256,12 @@
 - [x] **REQ-Improve-3** Security: WebSocket Authentication
     - [x] Implement Token-based Authentication for `/ws/proxy`
     - [x] Validate tokens in `ConnectionManager`
+- [x] **REQ-Improve-4** Unified Traffic Persistence & Analysis
+    - [x] **Backend**: Create `TrafficLog` Model (Storage for Request/Response)
+    - [x] **Backend**: Integrate `ProxyService` with TrafficLog (Async Save)
+    - [x] **Backend**: Integrate `CrawlerService` with TrafficLog
+    - [x] **Backend**: API for Sitemap & Traffic Listing
+    - [x] **Frontend**: Burp-like Traffic Viewer (Tree + List + Details)
 
 ---
 

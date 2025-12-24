@@ -27,9 +27,10 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
         manager.disconnect(websocket)
 
 @router.post("/start")
-async def start_proxy():
+@router.post("/start")
+async def start_proxy(target_id: int = Query(None)):
     try:
-        proxy_service.start()
+        proxy_service.start(target_id=target_id)
         return {"status": "started", "port": 8081}
     except Exception as e:
         logger.error("proxy.start_failed", error=str(e))
@@ -46,11 +47,12 @@ async def stop_proxy():
 class BrowserLaunchRequest(BaseModel):
     url: str
     proxy_port: int = 8081
+    target_id: int = None
 
 @router.post("/browser/launch")
 async def launch_browser(req: BrowserLaunchRequest):
     try:
-        await proxy_service.launch_browser(req.url, req.proxy_port)
+        await proxy_service.launch_browser(req.url, req.proxy_port, req.target_id)
         return {"status": "launched", "url": req.url}
     except Exception as e:
         logger.error("proxy.browser.launch_failed", error=str(e))

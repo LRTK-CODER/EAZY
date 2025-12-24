@@ -15,7 +15,7 @@ class CrawlerJobService:
             cls._instance.jobs = {} # type: ignore
         return cls._instance
 
-    def create_job(self, target_id: int) -> str:
+    def create_job(self, target_id: int) -> Optional[int]:
         from app.core.db import SessionLocal
         from app.models.scan import ScanJob as ScanJobModel
         
@@ -53,7 +53,7 @@ class CrawlerJobService:
             "endpoints": [],
             "seen_hashes": set()
         }
-        return str(target_id) # key is target_id for now to enforce 1 job per target
+        return db_id
 
     def get_job(self, target_id: int) -> Optional[Dict[str, Any]]:
         job = self.jobs.get(str(target_id))

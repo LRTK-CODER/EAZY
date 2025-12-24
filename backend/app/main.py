@@ -42,6 +42,9 @@ app.include_router(proxy_router, prefix="/api/v1/proxy", tags=["proxy"])
 from app.api.v1.crawler import router as crawler_router
 app.include_router(crawler_router, prefix="/api/v1/crawler", tags=["crawler"])
 
+from app.api.v1.traffic import router as traffic_router
+app.include_router(traffic_router, prefix="/api/v1/traffic", tags=["traffic"])
+
 @app.get("/")
 def read_root():
     return {"Hello": "World", "Project": settings.PROJECT_NAME}

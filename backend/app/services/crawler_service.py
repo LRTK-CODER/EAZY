@@ -20,6 +20,7 @@ class CrawlerService:
         self.blacklist = self.config.blacklist
 
     async def crawl(self, start_url: str, max_depth: int = 2, max_pages: int = 50, 
+                   target_id: int = None, scan_job_id: int = None,
                    progress_callback=None, result_callback=None) -> Dict[str, Any]:
         """
         Recursively crawls a target URL using BFS with safety restrictions.
@@ -68,7 +69,7 @@ class CrawlerService:
                     #    await progress_callback(len(visited), len(queue))
                     
                     # Visit Page
-                    page_result = await self._process_page(context, current_url)
+                    page_result = await self._process_page(context, current_url, target_id=target_id, scan_job_id=scan_job_id)
                     results.append(page_result)
                     
                     # Send endpoints if found
@@ -98,7 +99,7 @@ class CrawlerService:
             finally:
                 await browser.close()
 
-    async def _process_page(self, context: BrowserContext, url: str) -> Dict[str, Any]:
+    async def _process_page(self, context: BrowserContext, url: str, target_id: int = None, scan_job_id: int = None) -> Dict[str, Any]:
         """
         Internal method to visit and parse a single page.
         """
@@ -108,15 +109,52 @@ class CrawlerService:
         async def handle_request(request):
             try:
                 if request.resource_type in ["image", "stylesheet", "font", "media"]: return
-                captured_requests.append({
-                    "method": request.method,
-                    "url": request.url,
-                    "headers": request.headers,
-                    "body": request.post_data
-                })
+                # We can store raw requests if we want, but response listener is better for full pair
+                pass
             except: pass
 
-        page.on("request", handle_request)
+        async def handle_response(response):
+            try:
+                 request = response.request
+                 if request.resource_type in ["image", "stylesheet", "font", "media"]: return
+                 
+                 # Prepare data for TrafficService
+                 from app.services.traffic_service import traffic_service
+                 from app.models.traffic_log import TrafficSource
+                 import urllib.parse
+                 
+                 parsed_url = urllib.parse.urlparse(request.url)
+                 
+                 # Get headers/body (be careful with body size or availability)
+                 # req_body = request.post_data # Already handled by TrafficService NUL clean
+                 
+                 res_body = ""
+                 try:
+                     res_body = await response.text()
+                 except: 
+                     pass
+
+                 if target_id:
+                     await traffic_service.save_traffic(
+                        target_id=target_id, 
+                        scan_job_id=scan_job_id,
+                        method=request.method,
+                        url=request.url,
+                        host=parsed_url.netloc,
+                        path=parsed_url.path,
+                        request_headers=request.headers,
+                        request_body=request.post_data,
+                        response_headers=response.headers,
+                        response_body=res_body,
+                        status_code=response.status,
+                        source=TrafficSource.ACTIVE
+                     )
+
+            except Exception as e:
+                # logger.warning("crawler.traffic_save_failed", error=str(e))
+                pass
+
+        page.on("response", handle_response)
         
         try:
             logger.info("crawler.visiting", url=url)
