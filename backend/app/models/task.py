@@ -29,3 +29,8 @@ class Task(TaskBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
+
+class TaskRead(TaskBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime

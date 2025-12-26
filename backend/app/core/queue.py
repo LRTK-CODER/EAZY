@@ -1,5 +1,6 @@
 import json
 import uuid
+from datetime import datetime
 from typing import Optional, Dict, Any
 from redis.asyncio import Redis
 from app.models.task import TaskType
@@ -9,16 +10,15 @@ class TaskManager:
         self.redis = redis
         self.queue_key = "eazy_task_queue"
 
-    async def enqueue_crawl_task(self, project_id: int, target_id: int) -> str:
+    async def enqueue_crawl_task(self, project_id: int, target_id: int, db_task_id: int) -> str:
         """
         Enqueue a crawl task into Redis.
         Returns the unique task ID (UUID) used for tracking in Redis.
-        Note: This ID is separate from the DB ID, but often they are linked. 
-        For MVP, we use UUID for the queue payload.
         """
         task_id = str(uuid.uuid4())
         payload = {
             "id": task_id,
+            "db_task_id": db_task_id,
             "type": TaskType.CRAWL.value,
             "project_id": project_id,
             "target_id": target_id,
@@ -38,5 +38,4 @@ class TaskManager:
             return json.loads(data)
         return None
     
-    # Needs datetime import for payload timestamp
-from datetime import datetime
+

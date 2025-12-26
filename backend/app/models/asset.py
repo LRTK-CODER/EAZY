@@ -48,3 +48,8 @@ class AssetDiscovery(SQLModel, table=True):
     asset_id: int = Field(foreign_key="assets.id", nullable=False)
     parent_asset_id: Optional[int] = Field(default=None, foreign_key="assets.id")
     discovered_at: datetime = Field(default_factory=utc_now)
+
+class AssetRead(AssetBase):
+    id: int
+    first_seen_at: datetime
+    last_seen_at: datetime

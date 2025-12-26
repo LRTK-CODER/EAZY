@@ -6,12 +6,12 @@ from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 from httpx import AsyncClient, ASGITransport
+from redis.asyncio import Redis
 
 from app.main import app
 from app.core.config import settings
 from app.core.db import get_session
-
-# event_loop removed
+from app.core.redis import get_redis
 
 @pytest.fixture(scope="function")
 async def db_engine():
@@ -47,12 +47,23 @@ async def db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 @pytest.fixture(scope="function")
-async def client(db_session) -> AsyncGenerator[AsyncClient, None]:
+async def redis_client() -> AsyncGenerator[Redis, None]:
+    # Use the same Redis URL from settings
+    redis = Redis.from_url(settings.REDIS_URL, decode_responses=True)
+    yield redis
+    await redis.aclose()
+
+@pytest.fixture(scope="function")
+async def client(db_session, redis_client: Redis) -> AsyncGenerator[AsyncClient, None]:
     # Override the get_session dependency in the app to use our test session
     async def override_get_session():
         yield db_session
+        
+    async def override_get_redis():
+        yield redis_client
 
     app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[get_redis] = override_get_redis
     
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
