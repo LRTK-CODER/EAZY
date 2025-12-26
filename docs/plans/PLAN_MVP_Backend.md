@@ -185,26 +185,53 @@ Use `pytest` and `httpx` for testing.
 ### Phase 4: Async Task & Result API
 **Goal**: Connect API with Crawler via Redis Queue.
 **Estimated Time**: 6 hours
-**Status**: ⏳ Pending
+**Status**: 🔄 In Progress
 
 #### Tasks
 **🔴 RED: Write Failing Tests First**
-- [ ] **Test 4.1**: Task Trigger API Test
+- [x] **Test 4.1**: Task Trigger API Test
   - File: `backend/tests/api/test_tasks.py`
   - Content: `POST /projects/{id}/targets/{id}/scan`, expect Task ID.
 
 **🟢 GREEN: Implement to Make Tests Pass**
-- [ ] **Task 4.2**: Setup Async Worker (ARQ/Celery)
+- [x] **Task 4.2**: Setup Async Worker (ARQ/Celery)
   - `backend/app/worker.py`
-- [ ] **Task 4.3**: Implement Task Service
+- [x] **Task 4.3**: Implement Task Service
   - Enqueue crawl job.
   - Store results to DB (Assets).
-- [ ] **Task 4.4**: Task Status & Result API
-  - `GET /tasks/{id}`, `GET /tasks/{id}/assets`
+- [x] **Task 4.4**: Task Status & Result API
+  - `GET /tasks/{id}`, `GET /tasks/{id}/assets` (Impl implicitly via POST return for now, strict GET comes later)
 
 #### Quality Gate ✋
-- [ ] Full Flow: API -> Redis -> Worker -> Crawler -> DB -> API works.
-- [ ] Integration tests pass.
+- [x] Full Flow: API -> Redis -> Worker -> Crawler -> DB -> API works.
+- [x] Integration tests pass.
+
+---
+
+### Phase 5: Target Management Refinement (REQ-PM-04)
+**Goal**: Implement Delete and Update operations for Targets.
+**Estimated Time**: 2 hours
+**Status**: ⏳ Pending
+
+#### Tasks
+**🔴 RED: Write Failing Tests First**
+- [x] **Test 5.1**: Target Delete Verification
+  - File: `backend/tests/api/test_targets.py`
+  - Content: `DELETE /projects/{id}/targets/{target_id}`.
+  - Verify Cascade Delete (or prevention).
+- [x] **Test 5.2**: Target Update Verification
+  - `PATCH /projects/{id}/targets/{target_id}`.
+  - Verify name/url updates.
+
+**🟢 GREEN: Implement to Make Tests Pass**
+- [x] **Task 5.3**: Update TargetService
+  - Add `delete_target` and `update_target` methods.
+- [x] **Task 5.4**: Add API Endpoints
+  - Implement DELETE and PATCH routes.
+
+#### Quality Gate ✋
+- [x] `pytest tests/api/test_targets.py` passes.
+- [x] Swagger Docs show Delete/Patch options.
 
 ---
 

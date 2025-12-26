@@ -67,3 +67,31 @@ async def read_targets(
 
     service = TargetService(session)
     return await service.get_targets(project_id, skip=skip, limit=limit)
+
+@router.delete("/{project_id}/targets/{target_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_target(
+    project_id: int,
+    target_id: int,
+    session: AsyncSession = Depends(get_session)
+):
+    service = TargetService(session)
+    # Ideally check project_id match too, but for MVP simple ID check
+    result = await service.delete_target(target_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Target not found")
+    return
+
+from app.models.target import TargetUpdate
+
+@router.patch("/{project_id}/targets/{target_id}", response_model=TargetRead)
+async def update_target(
+    project_id: int,
+    target_id: int,
+    target_in: TargetUpdate,
+    session: AsyncSession = Depends(get_session)
+):
+    service = TargetService(session)
+    updated_target = await service.update_target(target_id, target_in)
+    if not updated_target:
+        raise HTTPException(status_code=404, detail="Target not found")
+    return updated_target

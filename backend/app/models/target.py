@@ -29,6 +29,12 @@ class Target(TargetBase, table=True):
 class TargetCreate(TargetBase):
     pass
 
+class TargetUpdate(SQLModel):
+    name: Optional[str] = None
+    url: Optional[str] = None
+    description: Optional[str] = None
+    scope: Optional[TargetScope] = None
+
 class TargetRead(TargetBase):
     id: int
     project_id: int
