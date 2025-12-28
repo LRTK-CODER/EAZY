@@ -120,7 +120,7 @@ The frontend will provide a dashboard to manage Projects, Targets, and view Scan
 
 #### Tasks
 **🔴 RED: Write Failing Tests First**
-- [ ] **Test 2.1**: Sidebar Navigation Test
+- [x] **Test 2.1**: Sidebar Navigation Test
     - Verify "Dashboard", "Projects" links exist.
 - [ ] **Test 2.2**: Layout Wrapper Test
     - Verify children are rendered within the layout.
