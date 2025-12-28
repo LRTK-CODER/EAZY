@@ -92,12 +92,12 @@ The frontend will provide a dashboard to manage Projects, Targets, and view Scan
 
 #### Tasks
 **🔴 RED: Write Failing Tests First**
-- [ ] **Test 1.1**: App render test
+- [x] **Test 1.1**: App render test
     - File: `frontend/src/App.test.tsx` (to be created)
-    - Content: Verify App component renders "EAZY DAST".
+    - Content: Verify App component renders "EAZY".
 
 **🟢 GREEN: Implement to Make Tests Pass**
-- [ ] **Task 1.2**: Initialize Vite Project
+- [x] **Task 1.2**: Initialize Vite Project
     - Command: `npm create vite@latest frontend -- --template react-ts`
     - Setup TailwindCSS.
     - Setup Folder Structure (`src/components`, `src/pages`, `src/lib`, `src/hooks`).
