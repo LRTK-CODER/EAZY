@@ -18,4 +18,14 @@ describe('Layout & Sidebar', () => {
         expect(dashboardLink).toBeInTheDocument();
         expect(projectsLink).toBeInTheDocument();
     });
+
+    it('renders main content area', () => {
+        render(
+            <MemoryRouter>
+                <App />
+            </MemoryRouter>
+        );
+        const main = screen.getByRole('main');
+        expect(main).toBeInTheDocument();
+    });
 });
