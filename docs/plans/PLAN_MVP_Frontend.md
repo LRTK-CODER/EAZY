@@ -116,7 +116,7 @@ The frontend will provide a dashboard to manage Projects, Targets, and view Scan
 ### Phase 2: Layout & Design System Base
 **Goal**: Implement basic layout (Sidebar, Header) and install core shadcn components.
 **Estimated Time**: 3 hours
-**Status**: ⏳ Pending
+**Status**: ✅ Completed
 
 #### Tasks
 **🔴 RED: Write Failing Tests First**
@@ -135,17 +135,17 @@ The frontend will provide a dashboard to manage Projects, Targets, and view Scan
     - `components/layout/Sidebar.tsx`
     - `components/layout/Header.tsx`
     - `components/layout/MainLayout.tsx`
-- [ ] **Task 2.6**: Setup Routing
+- [x] **Task 2.6**: Setup Routing
     - `App.tsx` with `ReactRouter`.
     
 **🔵 REFACTOR: Improve Code Quality**
-- [ ] **Task 2.7**: Refactor Sidebar Components
+- [x] **Task 2.7**: Refactor Sidebar Components
     - Extract NavItems to config.
     - optimize re-renders.
 
 #### Quality Gate ✋
-- [ ] All UI components compile.
-- [ ] Layout tests pass.
+- [x] All UI components compile.
+- [x] Layout tests pass.
 
 ---
 

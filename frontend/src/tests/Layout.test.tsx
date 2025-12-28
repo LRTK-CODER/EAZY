@@ -5,11 +5,7 @@ import App from '../App';
 
 describe('Layout & Sidebar', () => {
     it('renders sidebar navigation links', () => {
-        render(
-            <MemoryRouter>
-                <App />
-            </MemoryRouter>
-        );
+        render(<App />);
 
         // Sidebar links expected in Phase 2
         const dashboardLink = screen.getByRole('link', { name: /dashboard/i });
@@ -20,11 +16,7 @@ describe('Layout & Sidebar', () => {
     });
 
     it('renders main content area', () => {
-        render(
-            <MemoryRouter>
-                <App />
-            </MemoryRouter>
-        );
+        render(<App />);
         const main = screen.getByRole('main');
         expect(main).toBeInTheDocument();
     });
