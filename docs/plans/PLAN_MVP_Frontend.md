@@ -1,6 +1,6 @@
 # Implementation Plan: MVP Frontend
 
-**Status**: 🔄 In Progress
+**Status**: ✅ Completed
 **Started**: 2025-12-28
 **Last Updated**: 2025-12-28
 **Estimated Completion**: 2025-12-31
@@ -104,12 +104,12 @@ The frontend will provide a dashboard to manage Projects, Targets, and view Scan
 - [x] **Task 1.3**: Configure Test Runner (Vitest)
     - Install `vitest`, `jsdom`, `@testing-library/react`.
     - Create `vitest.setup.ts`.
-- [ ] **Task 1.4**: Install Basic Dependencies
+- [x] **Task 1.4**: Install Basic Dependencies
     - `react-router-dom`, `clsx`, `tailwind-merge`.
 
 #### Quality Gate ✋
-- [ ] `npm run dev` starts the server.
-- [ ] `npm run test` passes (App render).
+- [x] `npm run dev` starts the server.
+- [x] `npm run test` passes (App render).
 
 ---
 
@@ -137,6 +137,11 @@ The frontend will provide a dashboard to manage Projects, Targets, and view Scan
     - `components/layout/MainLayout.tsx`
 - [ ] **Task 2.6**: Setup Routing
     - `App.tsx` with `ReactRouter`.
+    
+**🔵 REFACTOR: Improve Code Quality**
+- [ ] **Task 2.7**: Refactor Sidebar Components
+    - Extract NavItems to config.
+    - optimize re-renders.
 
 #### Quality Gate ✋
 - [ ] All UI components compile.
@@ -169,6 +174,11 @@ The frontend will provide a dashboard to manage Projects, Targets, and view Scan
     - `components/features/project/CreateProjectForm.tsx`
     - Use React Hook Form + Zod.
 
+**🔵 REFACTOR: Improve Code Quality**
+- [ ] **Task 3.6**: Abstract Form Logic
+    - Create generic `useForm` wrapper if needed.
+    - Ensure clear separation of API logic (`hooks/useProjects`) and UI.
+
 #### Quality Gate ✋
 - [ ] Can view projects from backend.
 - [ ] Can create a new project.
@@ -196,6 +206,11 @@ The frontend will provide a dashboard to manage Projects, Targets, and view Scan
 - [ ] **Task 4.5**: Trigger Scan Logic
     - Connect `POST /projects/{id}/targets/{id}/scan`.
 
+**🔵 REFACTOR: Improve Code Quality**
+- [ ] **Task 4.6**: Optimistic Updates
+    - Update UI immediately after Scan Trigger (optional).
+    - Extract Target-related components.
+
 #### Quality Gate ✋
 - [ ] Can add a target to a project.
 - [ ] Can click "Scan" and see toast/response.
@@ -219,6 +234,11 @@ The frontend will provide a dashboard to manage Projects, Targets, and view Scan
 - [ ] **Task 5.3**: Asset Table Component
     - `components/features/asset/AssetTable.tsx`.
     - Columns: Hash, Method, URL, Type, Last Seen.
+
+**🔵 REFACTOR: Improve Code Quality**
+- [ ] **Task 5.4**: Optimize Data Table
+    - Implement pagination/sorting if data is large.
+    - Memoize expensive rows.
 
 #### Quality Gate ✋
 - [ ] Can view results of a scan.
