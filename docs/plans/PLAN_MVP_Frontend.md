@@ -128,7 +128,7 @@ The frontend will provide a dashboard to manage Projects, Targets, and view Scan
 **🟢 GREEN: Implement to Make Tests Pass**
 - [x] **Task 2.3**: Install Shadcn/UI CLI & Init
     - Configure `components.json`.
-- [ ] **Task 2.4**: Add Base Components
+- [x] **Task 2.4**: Add Base Components
     - `button`, `card`, `input`, `table` (via shadcn).
     - `components/ui/...`
 - [ ] **Task 2.5**: Create Layout Components
