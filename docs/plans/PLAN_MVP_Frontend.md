@@ -131,7 +131,7 @@ The frontend will provide a dashboard to manage Projects, Targets, and view Scan
 - [x] **Task 2.4**: Add Base Components
     - `button`, `card`, `input`, `table` (via shadcn).
     - `components/ui/...`
-- [ ] **Task 2.5**: Create Layout Components
+- [x] **Task 2.5**: Create Layout Components
     - `components/layout/Sidebar.tsx`
     - `components/layout/Header.tsx`
     - `components/layout/MainLayout.tsx`
