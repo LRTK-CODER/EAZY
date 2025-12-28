@@ -101,7 +101,7 @@ The frontend will provide a dashboard to manage Projects, Targets, and view Scan
     - Command: `npm create vite@latest frontend -- --template react-ts`
     - Setup TailwindCSS.
     - Setup Folder Structure (`src/components`, `src/pages`, `src/lib`, `src/hooks`).
-- [ ] **Task 1.3**: Configure Test Runner (Vitest)
+- [x] **Task 1.3**: Configure Test Runner (Vitest)
     - Install `vitest`, `jsdom`, `@testing-library/react`.
     - Create `vitest.setup.ts`.
 - [ ] **Task 1.4**: Install Basic Dependencies
