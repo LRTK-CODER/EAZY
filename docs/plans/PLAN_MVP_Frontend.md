@@ -180,9 +180,14 @@
     - 폼 상호작용 (업데이트 중 버튼 비활성화, 취소 버튼).
     - **완료**: 2026-01-01 (Commit: 3717a8b)
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, EditProjectForm.tsx 파일 미존재)
-- [ ] **Test 3.5**: Sidebar 프로젝트 목록 테스트
+- [x] **Test 3.5**: Sidebar 프로젝트 목록 테스트
     - API에서 프로젝트 목록을 가져와 렌더링하는지 확인.
     - 로딩, 에러, 빈 상태 처리 확인.
+    - 프로젝트 선택 및 Select All 기능.
+    - Header 액션 (Plus, Trash 버튼).
+    - 라우트 기반 렌더링 (/projects, /dashboard, /settings).
+    - **완료**: 2026-01-01 (Commit: d768a09)
+    - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, services/projectService.ts 파일 미존재)
 - [ ] **Test 3.6**: 프로젝트 삭제 테스트
     - 개별 삭제 버튼 클릭 시 확인 다이얼로그 표시.
     - 일괄 삭제 버튼 클릭 시 선택된 프로젝트들 삭제.
