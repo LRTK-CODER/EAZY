@@ -1,6 +1,6 @@
 # 구현 계획: MVP 프론트엔드
 
-**상태**: ✅ Phase 2 완료
+**상태**: 🔄 Phase 3 진행 중
 **시작일**: 2025-12-28
 **최근 업데이트**: 2026-01-01
 **예상 완료일**: 2026-01-03
@@ -152,13 +152,15 @@
 ### Phase 3: 프로젝트 CRUD (사이드바)
 **목표**: 사이드바에서 프로젝트 생성/조회/수정/삭제 기능 구현.
 **예상 시간**: 5시간
-**상태**: ⏳ 대기 중
+**상태**: 🔄 진행 중
 
 #### 작업
 **🔴 RED: 실패하는 테스트 먼저 작성**
-- [ ] **Test 3.1**: API Client 테스트
+- [x] **Test 3.1**: API Client 테스트
     - `lib/api.ts`의 HTTP 메서드 테스트 (get, post, put, del).
     - 인터셉터 동작 테스트 (인증 토큰, 에러 처리).
+    - **완료**: 2026-01-01 (Commit: 194fabc)
+    - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, lib/api.ts 파일 미존재)
 - [ ] **Test 3.2**: Project Service 테스트
     - `getProjects`, `getProject`, `createProject`, `updateProject`, `deleteProject` 테스트.
     - Mock API 응답 검증.
