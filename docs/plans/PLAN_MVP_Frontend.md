@@ -161,9 +161,11 @@
     - 인터셉터 동작 테스트 (인증 토큰, 에러 처리).
     - **완료**: 2026-01-01 (Commit: 194fabc)
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, lib/api.ts 파일 미존재)
-- [ ] **Test 3.2**: Project Service 테스트
-    - `getProjects`, `getProject`, `createProject`, `updateProject`, `deleteProject` 테스트.
+- [x] **Test 3.2**: Project Service 테스트
+    - `getProjects`, `getProject`, `createProject`, `updateProject`, `deleteProject`, `deleteProjects` 테스트.
     - Mock API 응답 검증.
+    - **완료**: 2026-01-01 (Commit: 908c956)
+    - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, services/projectService.ts 파일 미존재)
 - [ ] **Test 3.3**: CreateProjectForm 테스트
     - 입력 필드 (이름, 설명) 및 제출 버튼 확인.
     - 폼 제출 시 API 호출 트리거 확인.
