@@ -1,249 +1,356 @@
-# Implementation Plan: MVP Frontend
+# 구현 계획: MVP 프론트엔드
 
-**Status**: ✅ Completed
-**Started**: 2025-12-28
-**Last Updated**: 2025-12-28
-**Estimated Completion**: 2025-12-31
-
----
-
-**⚠️ CRITICAL INSTRUCTIONS**: After completing each phase:
-1. ✅ Check off completed task checkboxes
-2. 🧪 Run all quality gate validation commands
-3. ⚠️ Verify ALL quality gate items pass
-4. 📅 Update "Last Updated" date above
-5. 📝 Document learnings in Notes section
-6. ➡️ Only then proceed to next phase
-
-⛔ **DO NOT skip quality gates or proceed with failing checks**
+**상태**: ✅ Phase 2 완료
+**시작일**: 2025-12-28
+**최근 업데이트**: 2026-01-01
+**예상 완료일**: 2026-01-03
 
 ---
 
-## 📋 Overview
+**⚠️ 중요 지침**: 각 Phase 완료 후 반드시:
+1. ✅ 완료된 작업 체크박스를 체크
+2. 🧪 모든 품질 게이트 검증 명령어 실행
+3. ⚠️ 모든 품질 게이트 항목이 통과했는지 확인
+4. 📅 위의 "최근 업데이트" 날짜 갱신
+5. 📝 Notes 섹션에 학습 내용 문서화
+6. ➡️ 그 후에만 다음 Phase로 진행
 
-### Feature Description
-Build the Frontend for EAZY MVP using **React** (Vite), **TypeScript**, **TailwindCSS**, and **shadcn/ui**.
-The frontend will provide a dashboard to manage Projects, Targets, and view Scan Results.
-
-### Success Criteria
-- [ ] Project initializes successfully with Vite & TypeScript.
-- [ ] Shadcn/UI components configured and working.
-- [ ] Users can Create/List Projects and Targets via UI.
-- [ ] Users can trigger scans and view results (Assets).
-- [ ] **TDD**: Component tests implemented using Vitest & React Testing Library.
-
-### User Impact
-- Provides a graphical interface for the DAST tool, replacing raw API calls.
-- Visualizes attack surface data for easier analysis.
+⛔ **품질 게이트를 건너뛰거나 실패한 체크를 무시하고 진행하지 말 것**
 
 ---
 
-## 🏗️ Architecture Decisions
+## 📋 개요
 
-| Decision | Rationale | Trade-offs |
-|----------|-----------|------------|
-| **Vite** | Fast build time, modern ecosystem. | - |
-| **shadcn/ui** | Copy-paste components, high customizability, accessible. | Requires manual component management (not an npm package). |
-| **Zustand** | Simple global state management (if needed). | Less boilerplate than Redux. |
-| **TanStack Query** | Server state management (API cache, loading states). | Adding complexity for simple apps, but essential for data-heavy dashboard. |
-| **Atomic Layout** | `components/ui` (atoms), `components/features` (molecules/organisms), `pages` (templates). | Promotes reusability and small component size. |
+### 기능 설명
+**React** (Vite), **TypeScript**, **TailwindCSS**, **shadcn/ui**를 사용하여 EAZY MVP 프론트엔드를 구축합니다.
+프론트엔드는 프로젝트와 Target을 관리하고 스캔 결과를 확인할 수 있는 대시보드를 제공합니다.
+
+### 성공 기준
+- [ ] Vite & TypeScript로 프로젝트가 성공적으로 초기화됨.
+- [ ] Shadcn/UI 컴포넌트가 구성되고 작동함.
+- [ ] 사용자가 UI를 통해 프로젝트와 Target을 생성/조회/수정/삭제할 수 있음.
+- [ ] 사용자가 스캔을 트리거하고 결과(Assets)를 확인할 수 있음.
+- [ ] **TDD**: Vitest & React Testing Library를 사용하여 컴포넌트 테스트 구현.
+
+### 사용자 영향
+- DAST 도구를 위한 그래픽 인터페이스를 제공하여 Raw API 호출을 대체.
+- 공격 표면 데이터를 시각화하여 분석을 용이하게 함.
 
 ---
 
-## 📦 Dependencies
+## 🏗️ 아키텍처 결정
 
-### Required Before Starting
-- Backend API running (for integration)
+| 결정 사항 | 근거 | 트레이드오프 |
+|----------|------|------------|
+| **Vite** | 빠른 빌드 시간, 최신 생태계. | - |
+| **shadcn/ui** | 복사-붙여넣기 컴포넌트, 높은 커스터마이징, 접근성. | npm 패키지가 아니므로 수동 컴포넌트 관리 필요. |
+| **Zustand** | 간단한 전역 상태 관리 (필요시). | Redux보다 보일러플레이트 적음. |
+| **TanStack Query** | 서버 상태 관리 (API 캐시, 로딩 상태). | 단순한 앱에는 복잡도 증가하지만, 데이터 중심 대시보드에는 필수. |
+| **Atomic Layout** | `components/ui` (atoms), `components/features` (molecules/organisms), `pages` (templates). | 재사용성과 작은 컴포넌트 크기 촉진. |
 
-### External Dependencies
+---
+
+## 📦 의존성
+
+### 시작 전 필수 요구사항
+- 백엔드 API 실행 중 (통합을 위해)
+
+### 외부 의존성
 - `react`, `react-dom`, `react-router-dom`
-- `axios` (or `ky` / `fetch`)
+- `axios` (또는 `ky` / `fetch`)
 - `@tanstack/react-query`
 - `tailwindcss`, `postcss`, `autoprefixer`
-- `lucide-react` (icons)
-- `clsx`, `tailwind-merge` (utils)
-- `zod`, `react-hook-form` (forms)
+- `lucide-react` (아이콘)
+- `clsx`, `tailwind-merge` (유틸)
+- `zod`, `react-hook-form` (폼)
 - **Dev**: `vitest`, `@testing-library/react`, `jsdom`
 
 ---
 
-## 🧪 Test Strategy
+## 🧪 테스트 전략
 
-### Testing Approach
-**TDD (Test-Driven Development)**:
-1.  **RED**: Write a failing test for a component (e.g., "renders project list").
-2.  **GREEN**: Implement the component to pass the test.
-3.  **REFACTOR**: Improve code structure and styles.
+### 테스트 접근 방식
+**TDD (테스트 주도 개발)**:
+1. **RED**: 실패하는 테스트를 먼저 작성 (예: "프로젝트 목록 렌더링").
+2. **GREEN**: 테스트를 통과하는 컴포넌트 구현.
+3. **REFACTOR**: 코드 구조 및 스타일 개선.
 
-### Test Pyramid for This Feature
-| Test Type | Coverage Target | Purpose |
-|-----------|-----------------|---------|
-| **Unit/Component** | ≥80% | UI components, Hooks, Utils |
-| **Integration** | Critical Flows | Page-level interaction (mocked API) |
+### 이 기능의 테스트 피라미드
+| 테스트 유형 | 커버리지 목표 | 목적 |
+|-----------|--------------|------|
+| **Unit/Component** | ≥80% | UI 컴포넌트, 훅, 유틸 |
+| **Integration** | 주요 흐름 | 페이지 수준 상호작용 (모킹된 API) |
 
 ---
 
-## 🚀 Implementation Phases
+## 🚀 구현 단계
 
-### Phase 1: Project Initialization & Infrastructure
-**Goal**: Setup React+Vite project with basic tooling and structure.
-**Estimated Time**: 2 hours
-**Status**: ⏳ Pending
+### Phase 1: 프로젝트 초기화 & 인프라
+**목표**: React+Vite 프로젝트를 기본 도구 및 구조와 함께 설정.
+**예상 시간**: 2시간
+**상태**: ✅ 완료
 
-#### Tasks
-**🔴 RED: Write Failing Tests First**
-- [x] **Test 1.1**: App render test
-    - File: `frontend/src/App.test.tsx` (to be created)
-    - Content: Verify App component renders "EAZY".
+#### 작업
+**🔴 RED: 실패하는 테스트 먼저 작성**
+- [x] **Test 1.1**: App 렌더링 테스트
+    - 파일: `frontend/src/App.test.tsx` (생성 예정)
+    - 내용: App 컴포넌트가 "EAZY"를 렌더링하는지 확인.
 
-**🟢 GREEN: Implement to Make Tests Pass**
-- [x] **Task 1.2**: Initialize Vite Project
-    - Command: `npm create vite@latest frontend -- --template react-ts`
-    - Setup TailwindCSS.
-    - Setup Folder Structure (`src/components`, `src/pages`, `src/lib`, `src/hooks`).
-- [x] **Task 1.3**: Configure Test Runner (Vitest)
-    - Install `vitest`, `jsdom`, `@testing-library/react`.
-    - Create `vitest.setup.ts`.
-- [x] **Task 1.4**: Install Basic Dependencies
+**🟢 GREEN: 테스트를 통과하도록 구현**
+- [x] **Task 1.2**: Vite 프로젝트 초기화
+    - 명령어: `npm create vite@latest frontend -- --template react-ts`
+    - TailwindCSS 설정.
+    - 폴더 구조 설정 (`src/components`, `src/pages`, `src/lib`, `src/hooks`).
+- [x] **Task 1.3**: 테스트 러너 구성 (Vitest)
+    - `vitest`, `jsdom`, `@testing-library/react` 설치.
+    - `vitest.setup.ts` 생성.
+- [x] **Task 1.4**: 기본 의존성 설치
     - `react-router-dom`, `clsx`, `tailwind-merge`.
 
-#### Quality Gate ✋
-- [x] `npm run dev` starts the server.
-- [x] `npm run test` passes (App render).
+#### 품질 게이트 ✋
+- [x] `npm run dev`로 서버가 시작됨.
+- [x] `npm run test`가 통과함 (App 렌더링).
 
 ---
 
-### Phase 2: Layout & Design System Base
-**Goal**: Implement basic layout (Sidebar, Header) and install core shadcn components.
-**Estimated Time**: 3 hours
-**Status**: ✅ Completed
+### Phase 2: 레이아웃 & 디자인 시스템 기반
+**목표**: 기본 레이아웃 (Sidebar, Header) 구현 및 핵심 shadcn 컴포넌트 설치.
+**예상 시간**: 3시간
+**상태**: ✅ 완료
 
-#### Tasks
-**🔴 RED: Write Failing Tests First**
-- [x] **Test 2.1**: Sidebar Navigation Test
-    - Verify "Dashboard", "Projects" links exist.
-- [x] **Test 2.2**: Layout Wrapper Test
-    - Verify children are rendered within the layout.
+#### 작업
+**🔴 RED: 실패하는 테스트 먼저 작성**
+- [x] **Test 2.1**: Sidebar 네비게이션 테스트
+    - "Dashboard", "Projects" 링크가 존재하는지 확인.
+- [x] **Test 2.2**: Layout Wrapper 테스트
+    - children이 레이아웃 내에 렌더링되는지 확인.
 
-**🟢 GREEN: Implement to Make Tests Pass**
-- [x] **Task 2.3**: Install Shadcn/UI CLI & Init
-    - Configure `components.json`.
-- [x] **Task 2.4**: Add Base Components
-    - `button`, `card`, `input`, `table` (via shadcn).
+**🟢 GREEN: 테스트를 통과하도록 구현**
+- [x] **Task 2.3**: Shadcn/UI CLI 설치 & 초기화
+    - `components.json` 구성.
+- [x] **Task 2.4**: 기본 컴포넌트 추가
+    - `button`, `card`, `input`, `table` (shadcn을 통해).
     - `components/ui/...`
-- [x] **Task 2.5**: Create Layout Components
+- [x] **Task 2.5**: 레이아웃 컴포넌트 생성
     - `components/layout/Sidebar.tsx`
     - `components/layout/Header.tsx`
     - `components/layout/MainLayout.tsx`
-- [x] **Task 2.6**: Setup Routing
-    - `App.tsx` with `ReactRouter`.
-    
-**🔵 REFACTOR: Improve Code Quality**
-- [x] **Task 2.7**: Refactor Sidebar Components
-    - Extract NavItems to config.
-    - optimize re-renders.
+- [x] **Task 2.6**: 라우팅 설정
+    - `App.tsx`에 `ReactRouter` 설정.
 
-#### Quality Gate ✋
-- [x] All UI components compile.
-- [x] Layout tests pass.
+**🔵 REFACTOR: 코드 품질 개선**
+- [x] **Task 2.7**: Sidebar 컴포넌트 리팩토링
+    - NavItems를 config로 추출.
+    - 재렌더링 최적화.
+
+#### 품질 게이트 ✋
+- [x] 모든 UI 컴포넌트가 컴파일됨.
+- [x] 레이아웃 테스트가 통과함.
 
 ---
 
-### Phase 3: Project Management Feature
-**Goal**: CRUD for Projects (List, Create).
-**Estimated Time**: 4 hours
-**Status**: ⏳ Pending
+### Phase 3: 프로젝트 CRUD (사이드바)
+**목표**: 사이드바에서 프로젝트 생성/조회/수정/삭제 기능 구현.
+**예상 시간**: 5시간
+**상태**: ⏳ 대기 중
 
-#### Tasks
-**🔴 RED: Write Failing Tests First**
-- [ ] **Test 3.1**: Project List Component Test
-    - Mock API response.
-    - Verify list of projects is displayed.
-- [ ] **Test 3.2**: Create Project Form Test
-    - Verify input fields (Name, Desc) and Submit button.
-    - Verify form submission triggers API call.
+#### 작업
+**🔴 RED: 실패하는 테스트 먼저 작성**
+- [ ] **Test 3.1**: API Client 테스트
+    - `lib/api.ts`의 HTTP 메서드 테스트 (get, post, put, del).
+    - 인터셉터 동작 테스트 (인증 토큰, 에러 처리).
+- [ ] **Test 3.2**: Project Service 테스트
+    - `getProjects`, `getProject`, `createProject`, `updateProject`, `deleteProject` 테스트.
+    - Mock API 응답 검증.
+- [ ] **Test 3.3**: CreateProjectForm 테스트
+    - 입력 필드 (이름, 설명) 및 제출 버튼 확인.
+    - 폼 제출 시 API 호출 트리거 확인.
+    - 유효성 검사 (이름 필수, 최대 255자).
+- [ ] **Test 3.4**: EditProjectForm 테스트
+    - 기존 프로젝트 데이터로 폼 초기화 확인.
+    - 수정 시 API 호출 확인.
+- [ ] **Test 3.5**: Sidebar 프로젝트 목록 테스트
+    - API에서 프로젝트 목록을 가져와 렌더링하는지 확인.
+    - 로딩, 에러, 빈 상태 처리 확인.
+- [ ] **Test 3.6**: 프로젝트 삭제 테스트
+    - 개별 삭제 버튼 클릭 시 확인 다이얼로그 표시.
+    - 일괄 삭제 버튼 클릭 시 선택된 프로젝트들 삭제.
+    - 삭제 후 목록 갱신 확인.
 
-**🟢 GREEN: Implement to Make Tests Pass**
-- [ ] **Task 3.3**: API Client Setup
-    - `lib/api.ts` (Axios instance).
-    - `services/projectService.ts`.
-- [ ] **Task 3.4**: Project List Page
-    - `pages/projects/ProjectList.tsx`
-    - Use TanStack Query (`useQuery`).
-- [ ] **Task 3.5**: Create Project Modal/Page
+**🟢 GREEN: 테스트를 통과하도록 구현**
+- [ ] **Task 3.7**: API Client 설정
+    - `lib/api.ts` (Axios 인스턴스).
+    - 인터셉터 (인증, 에러 처리).
+    - HTTP 메서드: `get`, `post`, `put`, `patch`, `del`.
+- [ ] **Task 3.8**: 타입 정의
+    - `types/project.ts`: `Project`, `ProjectCreate`, `ProjectUpdate` 인터페이스.
+- [ ] **Task 3.9**: Project Service
+    - `services/projectService.ts`:
+      - `getProjects(params?)`: 프로젝트 목록 조회
+      - `getProject(id)`: 단일 프로젝트 조회
+      - `createProject(data)`: 프로젝트 생성
+      - `updateProject(id, data)`: 프로젝트 수정
+      - `deleteProject(id)`: 프로젝트 삭제
+      - `deleteProjects(ids)`: 프로젝트 일괄 삭제
+- [ ] **Task 3.10**: TanStack Query 훅
+    - `hooks/useProjects.ts`:
+      - `useProjects()`: 프로젝트 목록 조회 (useQuery)
+      - `useProject(id)`: 단일 프로젝트 조회 (useQuery)
+      - `useCreateProject()`: 프로젝트 생성 (useMutation)
+      - `useUpdateProject()`: 프로젝트 수정 (useMutation)
+      - `useDeleteProject()`: 프로젝트 삭제 (useMutation)
+      - `useDeleteProjects()`: 프로젝트 일괄 삭제 (useMutation)
+      - Query Key Factory 패턴 적용
+- [ ] **Task 3.11**: CreateProjectForm 컴포넌트
     - `components/features/project/CreateProjectForm.tsx`
-    - Use React Hook Form + Zod.
+    - React Hook Form + Zod 검증.
+    - Dialog 형식.
+- [ ] **Task 3.12**: EditProjectForm 컴포넌트
+    - `components/features/project/EditProjectForm.tsx`
+    - CreateProjectForm과 유사하지만 기존 데이터로 초기화.
+    - Dialog 형식.
+- [ ] **Task 3.13**: DeleteProjectDialog 컴포넌트
+    - `components/features/project/DeleteProjectDialog.tsx`
+    - 확인 다이얼로그 (AlertDialog).
+    - 단일 삭제 및 일괄 삭제 지원.
+- [ ] **Task 3.14**: Sidebar 프로젝트 목록 통합
+    - `components/layout/Sidebar.tsx` 수정:
+      - `dummyProjects` 제거.
+      - `useProjects()` 훅 사용하여 실제 API 데이터 표시.
+      - Plus 버튼 → CreateProjectForm 다이얼로그 열기.
+      - Edit 드롭다운 메뉴 → EditProjectForm 다이얼로그 열기.
+      - Delete 드롭다운 메뉴 → DeleteProjectDialog 열기 (개별).
+      - Trash2 버튼 → DeleteProjectDialog 열기 (일괄).
+      - 로딩, 에러, 빈 상태 처리.
+- [ ] **Task 3.15**: Main.tsx QueryClient 설정
+    - `main.tsx`에 QueryClientProvider 추가 (아직 없다면).
 
-**🔵 REFACTOR: Improve Code Quality**
-- [ ] **Task 3.6**: Abstract Form Logic
-    - Create generic `useForm` wrapper if needed.
-    - Ensure clear separation of API logic (`hooks/useProjects`) and UI.
+**🔵 REFACTOR: 코드 품질 개선**
+- [ ] **Task 3.16**: 컴포넌트 추상화
+    - API 로직과 UI 로직 명확히 분리 (`hooks/useProjects`와 컴포넌트).
+    - 공통 폼 로직 추출 (필요시).
+    - Zod 스키마 재사용 (Create와 Update 간).
 
-#### Quality Gate ✋
-- [ ] Can view projects from backend.
-- [ ] Can create a new project.
-- [ ] Tests pass with mocked API.
+#### 품질 게이트 ✋
+- [ ] 백엔드에서 프로젝트 목록을 조회할 수 있음.
+- [ ] 새 프로젝트를 생성할 수 있음.
+- [ ] 프로젝트를 수정할 수 있음.
+- [ ] 프로젝트를 개별 삭제할 수 있음.
+- [ ] 프로젝트를 일괄 삭제할 수 있음.
+- [ ] 모든 테스트가 모킹된 API로 통과함.
+- [ ] `npm run build`가 성공함.
+- [ ] `npm run lint`가 에러 없이 통과함.
 
 ---
 
-### Phase 4: Target Management & Scanner Integration
-**Goal**: Manage Targets within a Project and Trigger Scans.
-**Estimated Time**: 4 hours
-**Status**: ⏳ Pending
+### Phase 4: 프로젝트 상세 페이지 & Target 관리
+**목표**: 선택된 프로젝트의 상세 정보 표시 및 Target CRUD 구현.
+**예상 시간**: 5시간
+**상태**: ⏳ 대기 중
 
-#### Tasks
-**🔴 RED: Write Failing Tests First**
-- [ ] **Test 4.1**: Target List Test
-    - Mock Projects/{id}/Targets.
-- [ ] **Test 4.2**: Scan Trigger Test
-    - Verify "Scan" button calls API.
+#### 작업
+**🔴 RED: 실패하는 테스트 먼저 작성**
+- [ ] **Test 4.1**: ProjectDetailPage 테스트
+    - URL 파라미터에서 projectId를 추출하는지 확인.
+    - 프로젝트 데이터를 조회하여 h1 태그에 프로젝트명 표시 확인.
+    - 로딩, 에러 상태 처리 확인.
+- [ ] **Test 4.2**: Target List 테스트
+    - `GET /projects/{id}/targets` API를 모킹하여 Target 목록 렌더링 확인.
+    - 로딩, 에러, 빈 상태 처리 확인.
+- [ ] **Test 4.3**: CreateTargetForm 테스트
+    - 입력 필드 (Name, URL, Scope) 확인.
+    - 폼 제출 시 API 호출 확인.
+- [ ] **Test 4.4**: EditTargetForm 테스트
+    - 기존 Target 데이터로 폼 초기화 확인.
+- [ ] **Test 4.5**: 스캔 트리거 테스트
+    - "Scan" 버튼 클릭 시 API 호출 확인.
+    - 성공/실패 토스트 메시지 확인.
 
-**🟢 GREEN: Implement to Make Tests Pass**
-- [ ] **Task 4.3**: Target List Component
+**🟢 GREEN: 테스트를 통과하도록 구현**
+- [ ] **Task 4.6**: ProjectDetailPage 생성
+    - `pages/projects/ProjectDetailPage.tsx`
+    - `useParams()`로 projectId 추출.
+    - `useProject(projectId)` 훅으로 프로젝트 조회.
+    - `<main>` 태그 내 `<h1>{project.name}</h1>` 표시.
+    - 로딩, 에러 상태 UI.
+- [ ] **Task 4.7**: 라우팅 추가
+    - `App.tsx`에 `/projects/:projectId` 라우트 추가.
+    - ProjectDetailPage 컴포넌트 연결.
+- [ ] **Task 4.8**: Target 타입 정의
+    - `types/target.ts`: `Target`, `TargetCreate`, `TargetUpdate` 인터페이스.
+- [ ] **Task 4.9**: Target Service
+    - `services/targetService.ts`:
+      - `getTargets(projectId)`: Target 목록 조회
+      - `getTarget(projectId, targetId)`: 단일 Target 조회
+      - `createTarget(projectId, data)`: Target 생성
+      - `updateTarget(projectId, targetId, data)`: Target 수정
+      - `deleteTarget(projectId, targetId)`: Target 삭제
+      - `triggerScan(projectId, targetId)`: 스캔 트리거
+- [ ] **Task 4.10**: Target 훅
+    - `hooks/useTargets.ts`:
+      - `useTargets(projectId)`: Target 목록 조회
+      - `useTarget(projectId, targetId)`: 단일 Target 조회
+      - `useCreateTarget()`: Target 생성
+      - `useUpdateTarget()`: Target 수정
+      - `useDeleteTarget()`: Target 삭제
+      - `useTriggerScan()`: 스캔 트리거
+- [ ] **Task 4.11**: TargetList 컴포넌트
     - `components/features/target/TargetList.tsx`
-- [ ] **Task 4.4**: Add Target Form
-    - `components/features/target/CreateTargetForm.tsx` (Name, URL, Scope).
-- [ ] **Task 4.5**: Trigger Scan Logic
-    - Connect `POST /projects/{id}/targets/{id}/scan`.
+    - `useTargets(projectId)` 훅 사용.
+    - Table 형식으로 Target 목록 표시.
+- [ ] **Task 4.12**: CreateTargetForm 컴포넌트
+    - `components/features/target/CreateTargetForm.tsx`
+    - 필드: Name, URL, Scope.
+    - React Hook Form + Zod.
+- [ ] **Task 4.13**: EditTargetForm 컴포넌트
+    - `components/features/target/EditTargetForm.tsx`
+    - CreateTargetForm과 유사.
+- [ ] **Task 4.14**: ProjectDetailPage에 Target 기능 통합
+    - TargetList 표시.
+    - "Add Target" 버튼 → CreateTargetForm.
+    - 각 Target 행에 Edit, Delete, Scan 버튼.
 
-**🔵 REFACTOR: Improve Code Quality**
-- [ ] **Task 4.6**: Optimistic Updates
-    - Update UI immediately after Scan Trigger (optional).
-    - Extract Target-related components.
+**🔵 REFACTOR: 코드 품질 개선**
+- [ ] **Task 4.15**: Optimistic Updates (선택사항)
+    - 스캔 트리거 후 UI 즉시 업데이트.
+    - Target 관련 컴포넌트 추출 및 재사용성 개선.
 
-#### Quality Gate ✋
-- [ ] Can add a target to a project.
-- [ ] Can click "Scan" and see toast/response.
+#### 품질 게이트 ✋
+- [ ] 프로젝트 상세 페이지가 프로젝트명을 h1으로 표시함.
+- [ ] 프로젝트에 Target을 추가할 수 있음.
+- [ ] Target을 수정/삭제할 수 있음.
+- [ ] "Scan" 버튼을 클릭하면 토스트/응답을 볼 수 있음.
+- [ ] 모든 테스트가 통과함.
 
 ---
 
-### Phase 5: Dashboard & Scan Results
-**Goal**: Visualize scan results (Assets).
-**Estimated Time**: 3 hours
-**Status**: ⏳ Pending
+### Phase 5: 대시보드 & 스캔 결과
+**목표**: 스캔 결과(Assets)를 시각화.
+**예상 시간**: 3시간
+**상태**: ⏳ 대기 중
 
-#### Tasks
-**🔴 RED: Write Failing Tests First**
-- [ ] **Test 5.1**: Asset Table Test
-    - Verify rendering of Method, URL, Type.
+#### 작업
+**🔴 RED: 실패하는 테스트 먼저 작성**
+- [ ] **Test 5.1**: Asset Table 테스트
+    - Method, URL, Type 렌더링 확인.
 
-**🟢 GREEN: Implement to Make Tests Pass**
+**🟢 GREEN: 테스트를 통과하도록 구현**
 - [ ] **Task 5.2**: Asset Service & Query
     - `GET /tasks/{id}/assets`.
-    - (Optional) `GET /projects/{id}/assets` (Total View) - *Needs Backend Support or derived view*.
-- [ ] **Task 5.3**: Asset Table Component
+    - (선택사항) `GET /projects/{id}/assets` (전체 뷰) - *백엔드 지원 필요 또는 파생 뷰*.
+- [ ] **Task 5.3**: Asset Table 컴포넌트
     - `components/features/asset/AssetTable.tsx`.
-    - Columns: Hash, Method, URL, Type, Last Seen.
+    - 열: Hash, Method, URL, Type, Last Seen.
 
-**🔵 REFACTOR: Improve Code Quality**
-- [ ] **Task 5.4**: Optimize Data Table
-    - Implement pagination/sorting if data is large.
-    - Memoize expensive rows.
+**🔵 REFACTOR: 코드 품질 개선**
+- [ ] **Task 5.4**: 데이터 테이블 최적화
+    - 데이터가 많을 경우 페이지네이션/정렬 구현.
+    - 비용이 많이 드는 행 메모이제이션.
 
-#### Quality Gate ✋
-- [ ] Can view results of a scan.
+#### 품질 게이트 ✋
+- [ ] 스캔 결과를 볼 수 있음.
 
 ---
 
-## 📝 Notes & Learnings
-*   (To be filled during implementation)
+## 📝 노트 & 학습 내용
+*   (구현 중 작성 예정)
