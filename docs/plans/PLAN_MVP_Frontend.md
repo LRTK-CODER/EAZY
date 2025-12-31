@@ -188,10 +188,14 @@
     - 라우트 기반 렌더링 (/projects, /dashboard, /settings).
     - **완료**: 2026-01-01 (Commit: d768a09)
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, services/projectService.ts 파일 미존재)
-- [ ] **Test 3.6**: 프로젝트 삭제 테스트
+- [x] **Test 3.6**: 프로젝트 삭제 테스트
     - 개별 삭제 버튼 클릭 시 확인 다이얼로그 표시.
     - 일괄 삭제 버튼 클릭 시 선택된 프로젝트들 삭제.
     - 삭제 후 목록 갱신 확인.
+    - Dialog 렌더링 및 상호작용 (Cancel, 버튼 비활성화).
+    - 영구 삭제 경고 메시지.
+    - **완료**: 2026-01-01 (Commit: 15d73f1)
+    - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, DeleteProjectDialog.tsx 파일 미존재)
 
 **🟢 GREEN: 테스트를 통과하도록 구현**
 - [ ] **Task 3.7**: API Client 설정
