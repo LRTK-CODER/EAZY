@@ -173,9 +173,13 @@
     - 폼 상호작용 (제출 중 버튼 비활성화, 취소 버튼).
     - **완료**: 2026-01-01 (Commit: e1d17d5)
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, CreateProjectForm.tsx 파일 미존재)
-- [ ] **Test 3.4**: EditProjectForm 테스트
+- [x] **Test 3.4**: EditProjectForm 테스트
     - 기존 프로젝트 데이터로 폼 초기화 확인.
     - 수정 시 API 호출 확인.
+    - 폼 검증 (이름 필수, 최대 255자).
+    - 폼 상호작용 (업데이트 중 버튼 비활성화, 취소 버튼).
+    - **완료**: 2026-01-01 (Commit: 3717a8b)
+    - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, EditProjectForm.tsx 파일 미존재)
 - [ ] **Test 3.5**: Sidebar 프로젝트 목록 테스트
     - API에서 프로젝트 목록을 가져와 렌더링하는지 확인.
     - 로딩, 에러, 빈 상태 처리 확인.
