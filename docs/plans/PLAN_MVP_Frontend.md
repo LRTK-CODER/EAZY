@@ -221,15 +221,18 @@
     - **완료**: 2026-01-01 (Commit: e2a9386)
     - 테스트 결과: ✅ PASS (17/17 tests passed)
     - 참고: 쿼리 스트링 빌더 구현 (skip, limit 파라미터)
-- [ ] **Task 3.10**: TanStack Query 훅
+- [x] **Task 3.10**: TanStack Query 훅
     - `hooks/useProjects.ts`:
-      - `useProjects()`: 프로젝트 목록 조회 (useQuery)
-      - `useProject(id)`: 단일 프로젝트 조회 (useQuery)
-      - `useCreateProject()`: 프로젝트 생성 (useMutation)
-      - `useUpdateProject()`: 프로젝트 수정 (useMutation)
-      - `useDeleteProject()`: 프로젝트 삭제 (useMutation)
-      - `useDeleteProjects()`: 프로젝트 일괄 삭제 (useMutation)
-      - Query Key Factory 패턴 적용
+      - `projectKeys`: Query Key Factory 패턴 (일관된 캐시 키 관리)
+      - `useProjects(params?)`: 프로젝트 목록 조회 (useQuery, 페이지네이션 지원)
+      - `useProject(id)`: 단일 프로젝트 조회 (useQuery, enabled 옵션)
+      - `useCreateProject()`: 프로젝트 생성 (useMutation, lists 무효화)
+      - `useUpdateProject()`: 프로젝트 수정 (useMutation, detail + lists 무효화)
+      - `useDeleteProject()`: 프로젝트 삭제 (useMutation, 전체 무효화)
+      - `useDeleteProjects()`: 프로젝트 일괄 삭제 (useMutation, 전체 무효화)
+    - **완료**: 2026-01-01 (Commit: 6e5d9b2)
+    - 테스트 결과: ✅ Dev 서버 컴파일 성공, 컴포넌트 테스트에서 간접 검증 예정
+    - 참고: 자동 캐시 무효화 및 리페치 구현
 - [ ] **Task 3.11**: CreateProjectForm 컴포넌트
     - `components/features/project/CreateProjectForm.tsx`
     - React Hook Form + Zod 검증.
