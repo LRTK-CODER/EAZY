@@ -247,10 +247,13 @@
     - **완료**: 2026-01-01 (Commit: ae50900)
     - 테스트 결과: ✅ PASS (20/20 tests passed)
     - 참고: useEffect로 project 변경 감지 및 폼 초기화, null description 처리, useUpdateProject 훅 사용
-- [ ] **Task 3.13**: DeleteProjectDialog 컴포넌트
+- [x] **Task 3.13**: DeleteProjectDialog 컴포넌트
     - `components/features/project/DeleteProjectDialog.tsx`
     - 확인 다이얼로그 (AlertDialog).
     - 단일 삭제 및 일괄 삭제 지원.
+    - **완료**: 2026-01-01 (Commit: 8cced6b)
+    - 테스트 결과: ✅ PASS (18/18 tests passed)
+    - 참고: useState로 loading state 관리, projectService 직접 호출, 단일/일괄 자동 판별
 - [ ] **Task 3.14**: Sidebar 프로젝트 목록 통합
     - `components/layout/Sidebar.tsx` 수정:
       - `dummyProjects` 제거.
