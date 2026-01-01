@@ -205,8 +205,11 @@
     - **완료**: 2026-01-01 (Commit: 96e2c00)
     - 테스트 결과: ✅ PASS (5/5 tests passed)
     - 참고: 인증 관련 테스트 제거 (14개 → 5개)
-- [ ] **Task 3.8**: 타입 정의
-    - `types/project.ts`: `Project`, `ProjectCreate`, `ProjectUpdate` 인터페이스.
+- [x] **Task 3.8**: 타입 정의
+    - `types/project.ts`: `Project`, `ProjectCreate`, `ProjectUpdate`, `ProjectListParams` 인터페이스.
+    - 모든 테스트 파일에서 타입 관련 `@ts-expect-error` 제거.
+    - **완료**: 2026-01-01 (Commit: 9ba9767)
+    - 테스트 결과: ✅ 타입 정의 완료, TypeScript 컴파일 성공
 - [ ] **Task 3.9**: Project Service
     - `services/projectService.ts`:
       - `getProjects(params?)`: 프로젝트 목록 조회
