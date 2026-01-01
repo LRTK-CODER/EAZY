@@ -8,7 +8,6 @@ import {
     deleteProject,
     deleteProjects,
 } from './projectService';
-// @ts-expect-error - project types don't exist yet (TDD RED phase)
 import type { Project, ProjectCreate, ProjectListParams } from '@/types/project';
 import * as api from '@/lib/api';
 

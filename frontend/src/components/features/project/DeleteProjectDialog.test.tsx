@@ -7,7 +7,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { DeleteProjectDialog } from './DeleteProjectDialog';
 import * as projectService from '@/services/projectService';
 import { toast } from 'sonner';
-// @ts-expect-error - Project type doesn't exist yet (TDD RED phase)
 import type { Project } from '@/types/project';
 
 // Mock the project service
