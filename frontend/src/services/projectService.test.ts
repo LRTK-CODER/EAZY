@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-// @ts-expect-error - projectService.ts doesn't exist yet (TDD RED phase)
 import {
     getProjects,
     getProject,
