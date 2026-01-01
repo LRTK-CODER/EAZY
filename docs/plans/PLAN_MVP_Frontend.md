@@ -210,14 +210,17 @@
     - 모든 테스트 파일에서 타입 관련 `@ts-expect-error` 제거.
     - **완료**: 2026-01-01 (Commit: 9ba9767)
     - 테스트 결과: ✅ 타입 정의 완료, TypeScript 컴파일 성공
-- [ ] **Task 3.9**: Project Service
+- [x] **Task 3.9**: Project Service
     - `services/projectService.ts`:
-      - `getProjects(params?)`: 프로젝트 목록 조회
+      - `getProjects(params?)`: 프로젝트 목록 조회 (페이지네이션 지원)
       - `getProject(id)`: 단일 프로젝트 조회
       - `createProject(data)`: 프로젝트 생성
       - `updateProject(id, data)`: 프로젝트 수정
       - `deleteProject(id)`: 프로젝트 삭제
-      - `deleteProjects(ids)`: 프로젝트 일괄 삭제
+      - `deleteProjects(ids)`: 프로젝트 일괄 삭제 (Promise.all 사용)
+    - **완료**: 2026-01-01 (Commit: e2a9386)
+    - 테스트 결과: ✅ PASS (17/17 tests passed)
+    - 참고: 쿼리 스트링 빌더 구현 (skip, limit 파라미터)
 - [ ] **Task 3.10**: TanStack Query 훅
     - `hooks/useProjects.ts`:
       - `useProjects()`: 프로젝트 목록 조회 (useQuery)
