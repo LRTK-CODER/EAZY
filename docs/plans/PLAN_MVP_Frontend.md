@@ -233,10 +233,13 @@
     - **완료**: 2026-01-01 (Commit: 6e5d9b2)
     - 테스트 결과: ✅ Dev 서버 컴파일 성공, 컴포넌트 테스트에서 간접 검증 예정
     - 참고: 자동 캐시 무효화 및 리페치 구현
-- [ ] **Task 3.11**: CreateProjectForm 컴포넌트
+- [x] **Task 3.11**: CreateProjectForm 컴포넌트
     - `components/features/project/CreateProjectForm.tsx`
     - React Hook Form + Zod 검증.
     - Dialog 형식.
+    - **완료**: 2026-01-01 (Commit: f9df5f7)
+    - 테스트 결과: ✅ PASS (16/16 tests passed)
+    - 참고: Name 필드 (필수, max 255자), Description 필드 (선택), Toast 알림, 자동 폼 초기화
 - [ ] **Task 3.12**: EditProjectForm 컴포넌트
     - `components/features/project/EditProjectForm.tsx`
     - CreateProjectForm과 유사하지만 기존 데이터로 초기화.
