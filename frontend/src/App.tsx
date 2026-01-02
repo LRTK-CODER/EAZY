@@ -1,5 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
+import { ArchivedProjectsPage } from './pages/ArchivedProjectsPage';
+import { ActiveProjectsListPage } from './pages/ActiveProjectsListPage';
+import { ProjectsPage } from './pages/ProjectsPage';
+import { ProjectDetailPage } from './pages/ProjectDetailPage';
 import './App.css';
 
 function App() {
@@ -30,24 +34,10 @@ function App() {
           } />
 
           {/* Projects Routes */}
-          <Route path="/projects" element={
-            <div>
-              <h1 className="text-3xl font-bold mb-4">Projects</h1>
-              <p className="text-muted-foreground">Select a project from the sidebar</p>
-            </div>
-          } />
-          <Route path="/projects/archived" element={
-            <div>
-              <h1 className="text-3xl font-bold mb-4">Archived Projects</h1>
-              <p className="text-muted-foreground">No archived projects</p>
-            </div>
-          } />
-          <Route path="/projects/:id" element={
-            <div>
-              <h1 className="text-3xl font-bold mb-4">Project Details</h1>
-              <p className="text-muted-foreground">Project details page</p>
-            </div>
-          } />
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/active" element={<ActiveProjectsListPage />} />
+          <Route path="/projects/archived" element={<ArchivedProjectsPage />} />
+          <Route path="/projects/:id" element={<ProjectDetailPage />} />
 
           {/* Settings Routes */}
           <Route path="/settings" element={

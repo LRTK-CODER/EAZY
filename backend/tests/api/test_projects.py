@@ -121,3 +121,33 @@ async def test_delete_nonexistent_project(client):
     """Test deleting a project that doesn't exist."""
     response = await client.delete("/api/v1/projects/99999")
     assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_restore_project(client):
+    """Test restoring an archived project."""
+    # Create and archive project
+    create_res = await client.post(
+        "/api/v1/projects/",
+        json={"name": "To Restore", "description": ""}
+    )
+    project_id = create_res.json()["id"]
+    await client.delete(f"/api/v1/projects/{project_id}")
+
+    # Restore it
+    response = await client.patch(f"/api/v1/projects/{project_id}/restore")
+    assert response.status_code == 204
+
+    # Verify back in regular list
+    list_res = await client.get("/api/v1/projects/")
+    project_ids = [p["id"] for p in list_res.json()]
+    assert project_id in project_ids
+
+    # Verify NOT in archived list
+    archived_res = await client.get("/api/v1/projects/?archived=true")
+    archived_ids = [p["id"] for p in archived_res.json()]
+    assert project_id not in archived_ids
+
+    # Verify archived_at is None
+    get_res = await client.get(f"/api/v1/projects/{project_id}")
+    assert get_res.json()["archived_at"] is None
+    assert get_res.json()["is_archived"] is False

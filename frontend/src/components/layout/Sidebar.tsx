@@ -10,6 +10,7 @@ import {
     MoreVertical,
     Edit,
     Archive,
+    ArrowLeft,
     AlertCircle,
     Loader2,
 } from "lucide-react";
@@ -28,11 +29,11 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useProjects } from "@/hooks/useProjects";
+import { useProjects, useArchivedProjects } from "@/hooks/useProjects";
 import type { Project } from "@/types/project";
 import { CreateProjectForm } from "@/components/features/project/CreateProjectForm";
 import { EditProjectForm } from "@/components/features/project/EditProjectForm";
-import { DeleteProjectDialog } from "@/components/features/project/DeleteProjectDialog";
+import { ArchivedDialog } from "@/components/features/project/ArchivedDialog";
 
 // Dashboard 메뉴
 const dashboardMenus = [
@@ -122,9 +123,9 @@ function ProjectItem({
                         <Edit className="h-3 w-3 mr-2" />
                         Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive" onClick={onDelete}>
-                        <Trash2 className="h-3 w-3 mr-2" />
-                        Delete
+                    <DropdownMenuItem onClick={onDelete}>
+                        <Archive className="h-3 w-3 mr-2" />
+                        Move to Archive
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -160,6 +161,9 @@ export function Sidebar() {
         undefined,
         activeSection === "projects"
     );
+
+    // Fetch archived projects count
+    const { data: archivedProjects = [] } = useArchivedProjects();
 
     // 프로젝트 선택 토글
     const toggleProject = (id: number) => {
@@ -291,13 +295,13 @@ export function Sidebar() {
                                         disabled={selectedProjects.length === 0}
                                         onClick={handleBulkDelete}
                                     >
-                                        <Trash2 className="h-4 w-4" />
+                                        <Archive className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
                                     {selectedProjects.length > 0
-                                        ? `Delete ${selectedProjects.length} project${selectedProjects.length > 1 ? 's' : ''}`
-                                        : 'Delete'}
+                                        ? `Archive ${selectedProjects.length} project${selectedProjects.length > 1 ? 's' : ''}`
+                                        : 'Archive'}
                                 </TooltipContent>
                             </Tooltip>
                             <Tooltip>
@@ -317,77 +321,75 @@ export function Sidebar() {
                     </div>
                 </div>
 
-                {/* Archived Link (상단) */}
-                {!isArchivePage && (
+                {/* Navigation Link (상단) */}
+                {!isArchivePage ? (
                     <Link
                         to="/projects/archived"
                         className="flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors border-b hover:bg-accent hover:text-accent-foreground text-muted-foreground"
                     >
                         <Archive className="h-4 w-4" />
-                        <span>View Archived</span>
+                        <span>
+                            View Archived {archivedProjects.length > 0 && `(${archivedProjects.length})`}
+                        </span>
+                    </Link>
+                ) : (
+                    <Link
+                        to="/projects"
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors border-b hover:bg-accent hover:text-accent-foreground text-muted-foreground"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        <span>Back to Projects</span>
                     </Link>
                 )}
 
                 {/* Project List */}
                 <div className="flex-1 overflow-auto p-2 custom-scrollbar">
-                    {!isArchivePage && (
-                        <>
-                            {isLoading ? (
-                                /* Loading state */
-                                <div className="flex flex-col items-center justify-center p-6 text-center">
-                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mb-2" />
-                                    <p className="text-sm text-muted-foreground">Loading...</p>
-                                </div>
-                            ) : isError ? (
-                                /* Error state */
-                                <div className="flex flex-col items-center justify-center p-6 text-center">
-                                    <AlertCircle className="h-6 w-6 text-destructive mb-2" />
-                                    <p className="text-sm text-destructive">Error loading projects</p>
-                                </div>
-                            ) : projects.length > 0 ? (
-                                <>
-                                    {/* Select All 버튼 */}
-                                    <div className="flex justify-end px-2 mb-1">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 text-xs text-muted-foreground hover:text-foreground"
-                                            onClick={toggleAll}
-                                        >
-                                            {selectedProjects.length === projects.length ? "Deselect All" : "Select All"}
-                                        </Button>
-                                    </div>
-
-                                    {/* 프로젝트 아이템들 */}
-                                    {projects.map((project) => (
-                                        <ProjectItem
-                                            key={project.id}
-                                            project={project}
-                                            isSelected={selectedProjects.includes(project.id)}
-                                            onToggle={() => toggleProject(project.id)}
-                                            onEdit={() => handleEditProject(project)}
-                                            onDelete={() => handleDeleteProject(project)}
-                                        />
-                                    ))}
-                                </>
-                            ) : (
-                                /* 빈 상태 */
-                                <div className="flex flex-col items-center justify-center p-6 text-center">
-                                    <p className="text-sm text-muted-foreground mb-4">No projects yet</p>
-                                    <Button size="sm" variant="outline" onClick={handleCreateProject}>
-                                        <Plus className="h-3 w-3 mr-1" />
-                                        Create First Project
-                                    </Button>
-                                </div>
-                            )}
-                        </>
-                    )}
-
-                    {/* 아카이브 페이지 */}
-                    {isArchivePage && (
+                    {isLoading ? (
+                        /* Loading state */
                         <div className="flex flex-col items-center justify-center p-6 text-center">
-                            <Archive className="h-8 w-8 text-muted-foreground/50 mb-2" />
-                            <p className="text-sm text-muted-foreground">No archived projects</p>
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mb-2" />
+                            <p className="text-sm text-muted-foreground">Loading...</p>
+                        </div>
+                    ) : isError ? (
+                        /* Error state */
+                        <div className="flex flex-col items-center justify-center p-6 text-center">
+                            <AlertCircle className="h-6 w-6 text-destructive mb-2" />
+                            <p className="text-sm text-destructive">Error loading projects</p>
+                        </div>
+                    ) : projects.length > 0 ? (
+                        <>
+                            {/* Select All 버튼 */}
+                            <div className="flex justify-end px-2 mb-1">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-xs text-muted-foreground hover:text-foreground"
+                                    onClick={toggleAll}
+                                >
+                                    {selectedProjects.length === projects.length ? "Deselect All" : "Select All"}
+                                </Button>
+                            </div>
+
+                            {/* 프로젝트 아이템들 */}
+                            {projects.map((project) => (
+                                <ProjectItem
+                                    key={project.id}
+                                    project={project}
+                                    isSelected={selectedProjects.includes(project.id)}
+                                    onToggle={() => toggleProject(project.id)}
+                                    onEdit={() => handleEditProject(project)}
+                                    onDelete={() => handleDeleteProject(project)}
+                                />
+                            ))}
+                        </>
+                    ) : (
+                        /* 빈 상태 */
+                        <div className="flex flex-col items-center justify-center p-6 text-center">
+                            <p className="text-sm text-muted-foreground mb-4">No projects yet</p>
+                            <Button size="sm" variant="outline" onClick={handleCreateProject}>
+                                <Plus className="h-3 w-3 mr-1" />
+                                Create First Project
+                            </Button>
                         </div>
                     )}
                 </div>
@@ -409,7 +411,7 @@ export function Sidebar() {
                 />
             )}
 
-            <DeleteProjectDialog
+            <ArchivedDialog
                 open={deleteOpen}
                 onOpenChange={setDeleteOpen}
                 projectIds={deleteIds}

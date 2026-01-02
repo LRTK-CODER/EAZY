@@ -14,6 +14,7 @@ class Project(ProjectBase, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     is_archived: bool = Field(default=False, index=True)
+    archived_at: Optional[datetime] = Field(default=None)
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
 
@@ -27,5 +28,6 @@ class ProjectUpdate(SQLModel):
 class ProjectRead(ProjectBase):
     id: int
     is_archived: bool
+    archived_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime

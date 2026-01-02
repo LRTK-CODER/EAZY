@@ -51,6 +51,7 @@ class ProjectService:
             return False
 
         db_project.is_archived = True
+        db_project.archived_at = utc_now()
         db_project.updated_at = utc_now()
 
         self.session.add(db_project)
@@ -66,3 +67,25 @@ class ProjectService:
         await self.session.delete(db_project)
         await self.session.commit()
         return True
+
+    async def restore_project(self, project_id: int) -> bool:
+        """Restore archived project (set is_archived=False, archived_at=None)"""
+        db_project = await self.session.get(Project, project_id)
+        if not db_project:
+            return False
+
+        db_project.is_archived = False
+        db_project.archived_at = None
+        db_project.updated_at = utc_now()
+
+        self.session.add(db_project)
+        await self.session.commit()
+        return True
+
+    async def restore_projects(self, project_ids: List[int]) -> int:
+        """Bulk restore projects, return count of restored projects"""
+        count = 0
+        for project_id in project_ids:
+            if await self.restore_project(project_id):
+                count += 1
+        return count

@@ -70,6 +70,18 @@ async def delete_project(
         raise HTTPException(status_code=404, detail="Project not found")
     return
 
+@router.patch("/{project_id}/restore", status_code=status.HTTP_204_NO_CONTENT)
+async def restore_project(
+    project_id: int,
+    session: AsyncSession = Depends(get_session)
+):
+    """Restore an archived project"""
+    service = ProjectService(session)
+    restored = await service.restore_project(project_id)
+    if not restored:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return
+
 from app.models.target import TargetCreate, TargetRead
 from app.services.target_service import TargetService
 

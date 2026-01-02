@@ -96,3 +96,28 @@ export const getArchivedProjects = async (params?: ProjectListParams): Promise<P
 export const deletePermanent = async (id: number): Promise<void> => {
   return api.del<void>(`/projects/${id}?permanent=true`);
 };
+
+/**
+ * Restore an archived project
+ */
+export const restoreProject = async (id: number): Promise<void> => {
+  return api.patch<void>(`/projects/${id}/restore`);
+};
+
+/**
+ * Bulk restore projects
+ */
+export const restoreProjects = async (ids: number[]): Promise<void> => {
+  if (ids.length === 0) return;
+  const restorePromises = ids.map(id => api.patch(`/projects/${id}/restore`));
+  await Promise.all(restorePromises);
+};
+
+/**
+ * Bulk permanent delete projects
+ */
+export const deletePermanentBulk = async (ids: number[]): Promise<void> => {
+  if (ids.length === 0) return;
+  const deletePromises = ids.map(id => api.del(`/projects/${id}?permanent=true`));
+  await Promise.all(deletePromises);
+};
