@@ -29,6 +29,7 @@ import axios from 'axios';
 
 // Get mocked axios
 const mockedAxios = vi.mocked(axios);
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const mockAxiosInstance = (mockedAxios.create as any)() as any;
 
 describe('API Client', () => {

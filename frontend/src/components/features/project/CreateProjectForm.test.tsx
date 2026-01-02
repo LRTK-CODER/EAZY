@@ -3,7 +3,6 @@ import { userEvent } from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-// @ts-expect-error - CreateProjectForm doesn't exist yet (TDD RED phase)
 import { CreateProjectForm } from './CreateProjectForm';
 import * as projectService from '@/services/projectService';
 import { toast } from 'sonner';
@@ -112,6 +111,8 @@ describe('CreateProjectForm Component', () => {
                 id: 1,
                 name: 'Valid Project Name',
                 description: null,
+                is_archived: false,
+                archived_at: null,
                 created_at: '2026-01-01T00:00:00Z',
                 updated_at: '2026-01-01T00:00:00Z',
             });
@@ -145,6 +146,8 @@ describe('CreateProjectForm Component', () => {
                 id: 1,
                 name: 'Test Project',
                 description: 'Test Description',
+                is_archived: false,
+                archived_at: null,
                 created_at: '2026-01-01T00:00:00Z',
                 updated_at: '2026-01-01T00:00:00Z',
             });
@@ -175,6 +178,8 @@ describe('CreateProjectForm Component', () => {
                 id: 1,
                 name: 'Test Project',
                 description: null,
+                is_archived: false,
+                archived_at: null,
                 created_at: '2026-01-01T00:00:00Z',
                 updated_at: '2026-01-01T00:00:00Z',
             });
@@ -203,6 +208,8 @@ describe('CreateProjectForm Component', () => {
                 id: 1,
                 name: 'Test Project',
                 description: 'Test Description',
+                is_archived: false,
+                archived_at: null,
                 created_at: '2026-01-01T00:00:00Z',
                 updated_at: '2026-01-01T00:00:00Z',
             });
@@ -245,6 +252,8 @@ describe('CreateProjectForm Component', () => {
                 id: 1,
                 name: 'Test Project',
                 description: null,
+                is_archived: false,
+                archived_at: null,
                 created_at: '2026-01-01T00:00:00Z',
                 updated_at: '2026-01-01T00:00:00Z',
             });
@@ -269,6 +278,8 @@ describe('CreateProjectForm Component', () => {
                 id: 1,
                 name: 'Test Project',
                 description: 'Test Description',
+                is_archived: false,
+                archived_at: null,
                 created_at: '2026-01-01T00:00:00Z',
                 updated_at: '2026-01-01T00:00:00Z',
             });

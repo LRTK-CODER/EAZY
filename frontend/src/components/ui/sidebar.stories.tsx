@@ -170,29 +170,3 @@ export const Collapsible: Story = {
     )
 }
 
-import { AppSidebar } from "../app-sidebar"
-
-export const ApplicationShell: Story = {
-    render: () => (
-        <SidebarProvider>
-            <div className="flex min-h-[500px] w-full border border-dashed">
-                <AppSidebar />
-                <main className="flex flex-1 flex-col p-4">
-                    <div className="flex items-center gap-2">
-                        <SidebarTrigger />
-                        <h1 className="text-xl font-bold">Application Shell</h1>
-                    </div>
-                    <div className="mt-4 flex-1 rounded-lg border border-dashed p-4">
-                        This shows the AppSidebar in action within a SidebarProvider.
-                    </div>
-                </main>
-            </div>
-        </SidebarProvider>
-    ),
-    decorators: [
-        (Story) => (
-            /* Override the default decorator because this story includes its own SidebarProvider */
-            <Story />
-        )
-    ]
-}

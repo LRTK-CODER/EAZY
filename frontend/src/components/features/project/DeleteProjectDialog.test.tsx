@@ -3,11 +3,9 @@ import { userEvent } from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-// @ts-expect-error - DeleteProjectDialog doesn't exist yet (TDD RED phase)
 import { DeleteProjectDialog } from './DeleteProjectDialog';
 import * as projectService from '@/services/projectService';
 import { toast } from 'sonner';
-import type { Project } from '@/types/project';
 
 // Mock the project service
 vi.mock('@/services/projectService');
@@ -41,14 +39,6 @@ const renderWithProviders = (ui: React.ReactElement) => {
             </QueryClientProvider>
         ),
     };
-};
-
-const mockProject: Project = {
-    id: 1,
-    name: 'Test Project',
-    description: 'Test Description',
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-01T00:00:00Z',
 };
 
 describe('DeleteProjectDialog Component', () => {

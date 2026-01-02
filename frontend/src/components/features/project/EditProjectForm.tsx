@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { toast } from 'sonner';
 import { useUpdateProject } from '@/hooks/useProjects';
 import type { Project } from '@/types/project';
+import { projectFormSchema, type ProjectFormValues } from '@/schemas/projectSchema';
+import { ProjectFormFields } from './ProjectFormFields';
 import {
   Dialog,
   DialogContent,
@@ -13,28 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
-
-// Zod validation schema (same as CreateProjectForm)
-const formSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Name is required')
-    .max(255, 'Name must be at most 255 characters'),
-  description: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
 
 interface EditProjectFormProps {
   open: boolean;
@@ -43,8 +24,8 @@ interface EditProjectFormProps {
 }
 
 export function EditProjectForm({ open, onOpenChange, project }: EditProjectFormProps) {
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<ProjectFormValues>({
+    resolver: zodResolver(projectFormSchema),
     defaultValues: {
       name: '',
       description: '',
@@ -61,7 +42,7 @@ export function EditProjectForm({ open, onOpenChange, project }: EditProjectForm
 
   const updateProject = useUpdateProject();
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (data: ProjectFormValues) => {
     try {
       // Prepare data - ensure description is always a string
       const projectData = {
@@ -97,43 +78,7 @@ export function EditProjectForm({ open, onOpenChange, project }: EditProjectForm
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Name Field */}
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter project name"
-                      {...field}
-                      disabled={isSubmitting}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Description Field */}
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Enter project description (optional)"
-                      {...field}
-                      disabled={isSubmitting}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <ProjectFormFields form={form} isSubmitting={isSubmitting} />
 
             {/* Form Actions */}
             <DialogFooter>

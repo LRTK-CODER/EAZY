@@ -10,7 +10,8 @@
     ],
     "module": "ESNext",
     "types": [
-      "vite/client"
+      "vite/client",
+      "@testing-library/jest-dom"
     ],
     "skipLibCheck": true,
     /* Bundler mode */
@@ -37,5 +38,9 @@
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/**/*.stories.tsx",
+    "src/**/*.stories.ts"
   ]
 }

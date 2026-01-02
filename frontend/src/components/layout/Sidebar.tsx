@@ -6,7 +6,6 @@ import {
     BarChart3,
     Activity,
     Plus,
-    Trash2,
     MoreVertical,
     Edit,
     Archive,

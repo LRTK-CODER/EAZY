@@ -25,6 +25,8 @@ describe('Project Service', () => {
                     id: 1,
                     name: 'Test Project 1',
                     description: 'Description 1',
+                    is_archived: false,
+                    archived_at: null,
                     created_at: '2025-01-01T00:00:00Z',
                     updated_at: '2025-01-01T00:00:00Z',
                 },
@@ -32,6 +34,8 @@ describe('Project Service', () => {
                     id: 2,
                     name: 'Test Project 2',
                     description: 'Description 2',
+                    is_archived: false,
+                    archived_at: null,
                     created_at: '2025-01-01T00:00:00Z',
                     updated_at: '2025-01-01T00:00:00Z',
                 },
@@ -51,6 +55,8 @@ describe('Project Service', () => {
                     id: 3,
                     name: 'Test Project 3',
                     description: null,
+                    is_archived: false,
+                    archived_at: null,
                     created_at: '2025-01-01T00:00:00Z',
                     updated_at: '2025-01-01T00:00:00Z',
                 },
@@ -83,6 +89,8 @@ describe('Project Service', () => {
                     id: 1,
                     name: 'Test Project',
                     description: null,
+                    is_archived: false,
+                    archived_at: null,
                     created_at: '2025-01-01T00:00:00Z',
                     updated_at: '2025-01-01T00:00:00Z',
                 },
@@ -111,6 +119,8 @@ describe('Project Service', () => {
                 id: 1,
                 name: 'Test Project',
                 description: 'Test Description',
+                is_archived: false,
+                archived_at: null,
                 created_at: '2025-01-01T00:00:00Z',
                 updated_at: '2025-01-01T00:00:00Z',
             };
@@ -142,6 +152,8 @@ describe('Project Service', () => {
                 id: 1,
                 name: 'New Project',
                 description: 'New Description',
+                is_archived: false,
+                archived_at: null,
                 created_at: '2025-01-01T00:00:00Z',
                 updated_at: '2025-01-01T00:00:00Z',
             };
@@ -163,6 +175,8 @@ describe('Project Service', () => {
                 id: 1,
                 name: 'New Project',
                 description: null,
+                is_archived: false,
+                archived_at: null,
                 created_at: '2025-01-01T00:00:00Z',
                 updated_at: '2025-01-01T00:00:00Z',
             };
@@ -199,15 +213,17 @@ describe('Project Service', () => {
                 id: projectId,
                 name: 'Updated Project',
                 description: 'Updated Description',
+                is_archived: false,
+                archived_at: null,
                 created_at: '2025-01-01T00:00:00Z',
                 updated_at: '2025-01-01T12:00:00Z',
             };
 
-            vi.mocked(api.put).mockResolvedValue(mockResponse);
+            vi.mocked(api.patch).mockResolvedValue(mockResponse);
 
             const result = await updateProject(projectId, updateData);
 
-            expect(api.put).toHaveBeenCalledWith(`/projects/${projectId}`, updateData);
+            expect(api.patch).toHaveBeenCalledWith(`/projects/${projectId}`, updateData);
             expect(result).toEqual(mockResponse);
         });
 
@@ -218,7 +234,7 @@ describe('Project Service', () => {
             };
 
             const error = new Error('Project not found');
-            vi.mocked(api.put).mockRejectedValue(error);
+            vi.mocked(api.patch).mockRejectedValue(error);
 
             await expect(updateProject(projectId, updateData)).rejects.toThrow('Project not found');
         });

@@ -3,7 +3,6 @@ import { userEvent } from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-// @ts-expect-error - EditProjectForm doesn't exist yet (TDD RED phase)
 import { EditProjectForm } from './EditProjectForm';
 import * as projectService from '@/services/projectService';
 import { toast } from 'sonner';
@@ -47,6 +46,8 @@ const mockProject: Project = {
     id: 1,
     name: 'Existing Project',
     description: 'Existing Description',
+    is_archived: false,
+    archived_at: null,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
 };
@@ -124,6 +125,8 @@ describe('EditProjectForm Component', () => {
                 id: 2,
                 name: 'New Project',
                 description: 'New Description',
+                is_archived: false,
+                archived_at: null,
                 created_at: '2026-01-01T00:00:00Z',
                 updated_at: '2026-01-01T00:00:00Z',
             };

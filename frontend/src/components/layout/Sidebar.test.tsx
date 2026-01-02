@@ -42,6 +42,8 @@ const mockProjects: Project[] = [
         id: 1,
         name: 'E-commerce Security Test',
         description: 'Security testing for e-commerce platform',
+        is_archived: false,
+        archived_at: null,
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
     },
@@ -49,6 +51,8 @@ const mockProjects: Project[] = [
         id: 2,
         name: 'API Penetration Test',
         description: 'API security assessment',
+        is_archived: false,
+        archived_at: null,
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
     },
@@ -56,6 +60,8 @@ const mockProjects: Project[] = [
         id: 3,
         name: 'Mobile App DAST',
         description: null,
+        is_archived: false,
+        archived_at: null,
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
     },
@@ -206,29 +212,29 @@ describe('Sidebar - Project List', () => {
             });
         });
 
-        it('renders trash button for bulk delete', async () => {
+        it('renders archive button for bulk archive', async () => {
             vi.mocked(projectService.getProjects).mockResolvedValue(mockProjects);
 
             renderWithProviders('/projects');
 
-            // Should have Trash button in header
+            // Should have Archive button in header
             await waitFor(() => {
-                const trashButtons = screen.getAllByRole('button');
-                expect(trashButtons.some(btn => btn.querySelector('[class*="lucide-trash"]'))).toBe(true);
+                const buttons = screen.getAllByRole('button');
+                expect(buttons.some(btn => btn.querySelector('[class*="lucide-archive"]'))).toBe(true);
             });
         });
 
-        it('trash button is disabled when no projects are selected', async () => {
+        it('archive button is disabled when no projects are selected', async () => {
             vi.mocked(projectService.getProjects).mockResolvedValue(mockProjects);
 
             renderWithProviders('/projects');
 
             await waitFor(() => {
                 const buttons = screen.getAllByRole('button');
-                const trashButton = buttons.find(btn => btn.querySelector('[class*="lucide-trash"]'));
+                const archiveButton = buttons.find(btn => btn.querySelector('[class*="lucide-archive"]'));
 
-                // Trash button should be disabled initially
-                expect(trashButton).toBeDisabled();
+                // Archive button should be disabled initially
+                expect(archiveButton).toBeDisabled();
             });
         });
     });
@@ -286,7 +292,7 @@ describe('Sidebar - Project List', () => {
             });
         });
 
-        it('enables trash button when projects are selected', async () => {
+        it('enables archive button when projects are selected', async () => {
             vi.mocked(projectService.getProjects).mockResolvedValue(mockProjects);
 
             const { user } = renderWithProviders('/projects');
@@ -299,11 +305,11 @@ describe('Sidebar - Project List', () => {
             const checkboxes = screen.getAllByRole('checkbox');
             await user.click(checkboxes[0]);
 
-            // Trash button should be enabled
+            // Archive button should be enabled
             await waitFor(() => {
                 const buttons = screen.getAllByRole('button');
-                const trashButton = buttons.find(btn => btn.querySelector('[class*="lucide-trash"]'));
-                expect(trashButton).not.toBeDisabled();
+                const archiveButton = buttons.find(btn => btn.querySelector('[class*="lucide-archive"]'));
+                expect(archiveButton).not.toBeDisabled();
             });
         });
     });
