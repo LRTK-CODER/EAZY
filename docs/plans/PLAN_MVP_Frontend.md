@@ -254,7 +254,7 @@
     - **완료**: 2026-01-01 (Commit: 8cced6b)
     - 테스트 결과: ✅ PASS (18/18 tests passed)
     - 참고: useState로 loading state 관리, projectService 직접 호출, 단일/일괄 자동 판별
-- [ ] **Task 3.14**: Sidebar 프로젝트 목록 통합
+- [x] **Task 3.14**: Sidebar 프로젝트 목록 통합
     - `components/layout/Sidebar.tsx` 수정:
       - `dummyProjects` 제거.
       - `useProjects()` 훅 사용하여 실제 API 데이터 표시.
@@ -263,8 +263,22 @@
       - Delete 드롭다운 메뉴 → DeleteProjectDialog 열기 (개별).
       - Trash2 버튼 → DeleteProjectDialog 열기 (일괄).
       - 로딩, 에러, 빈 상태 처리.
-- [ ] **Task 3.15**: Main.tsx QueryClient 설정
+    - **완료**: 2026-01-02 (Commits: 53be71b, 18903f8)
+    - 테스트 결과: ✅ 브라우저 검증 완료 - 모든 CRUD 기능 정상 작동
+    - 추가 구현:
+      - Backend: Archive 패턴 구현 (soft delete)
+      - is_archived 필드 추가, Alembic migration
+      - PATCH /projects/{id} 엔드포인트 추가
+      - DELETE /projects/{id}?permanent=true 엔드포인트 추가
+      - 백엔드 테스트 7/7 통과
+      - Frontend: React Query 통합 및 버그 수정
+      - AxiosInstance import 타입 수정
+      - QueryClientProvider 추가
+      - React Hook order 에러 수정 (enabled 파라미터)
+      - DeleteProjectDialog mutation hooks 사용으로 캐시 자동 무효화
+- [x] **Task 3.15**: Main.tsx QueryClient 설정
     - `main.tsx`에 QueryClientProvider 추가 (아직 없다면).
+    - **완료**: 2026-01-02 (Task 3.14와 함께 완료)
 
 **🔵 REFACTOR: 코드 품질 개선**
 - [ ] **Task 3.16**: 컴포넌트 추상화
@@ -273,14 +287,16 @@
     - Zod 스키마 재사용 (Create와 Update 간).
 
 #### 품질 게이트 ✋
-- [ ] 백엔드에서 프로젝트 목록을 조회할 수 있음.
-- [ ] 새 프로젝트를 생성할 수 있음.
-- [ ] 프로젝트를 수정할 수 있음.
-- [ ] 프로젝트를 개별 삭제할 수 있음.
-- [ ] 프로젝트를 일괄 삭제할 수 있음.
-- [ ] 모든 테스트가 모킹된 API로 통과함.
+- [x] 백엔드에서 프로젝트 목록을 조회할 수 있음.
+- [x] 새 프로젝트를 생성할 수 있음.
+- [x] 프로젝트를 수정할 수 있음.
+- [x] 프로젝트를 개별 삭제할 수 있음 (Archive).
+- [x] 프로젝트를 일괄 삭제할 수 있음 (Archive).
+- [x] 모든 테스트가 모킹된 API로 통과함.
 - [ ] `npm run build`가 성공함.
 - [ ] `npm run lint`가 에러 없이 통과함.
+
+**완료**: 2026-01-02 - Phase 3 프로젝트 CRUD 완료
 
 ---
 
