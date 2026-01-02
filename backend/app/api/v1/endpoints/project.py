@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
-from app.models.project import Project, ProjectCreate, ProjectRead
+from app.models.project import Project, ProjectCreate, ProjectRead, ProjectUpdate
 from app.services.project_service import ProjectService
 
 router = APIRouter()
@@ -20,10 +20,11 @@ async def create_project(
 async def read_projects(
     skip: int = 0,
     limit: int = 100,
+    archived: bool = False,
     session: AsyncSession = Depends(get_session)
 ):
     service = ProjectService(session)
-    return await service.get_projects(skip=skip, limit=limit)
+    return await service.get_projects(skip=skip, limit=limit, archived=archived)
 
 @router.get("/{project_id}", response_model=ProjectRead)
 async def read_project(
@@ -35,6 +36,39 @@ async def read_project(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
+
+@router.patch("/{project_id}", response_model=ProjectRead)
+async def update_project(
+    project_id: int,
+    project_update: ProjectUpdate,
+    session: AsyncSession = Depends(get_session)
+):
+    """Update an existing project"""
+    service = ProjectService(session)
+    updated_project = await service.update_project(project_id, project_update)
+    if not updated_project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return updated_project
+
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_project(
+    project_id: int,
+    permanent: bool = False,
+    session: AsyncSession = Depends(get_session)
+):
+    """Delete a project (soft delete by default, permanent if permanent=true)"""
+    service = ProjectService(session)
+
+    if permanent:
+        # Hard delete (Archived 페이지에서만 사용)
+        deleted = await service.delete_project_permanent(project_id)
+    else:
+        # Soft delete (일반 삭제 - Archive로 이동)
+        deleted = await service.archive_project(project_id)
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return
 
 from app.models.target import TargetCreate, TargetRead
 from app.services.target_service import TargetService

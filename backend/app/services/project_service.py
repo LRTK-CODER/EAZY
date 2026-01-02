@@ -3,7 +3,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 
-from app.models.project import Project, ProjectCreate
+from app.models.project import Project, ProjectCreate, ProjectUpdate, utc_now
 
 class ProjectService:
     def __init__(self, session: AsyncSession):
@@ -16,10 +16,53 @@ class ProjectService:
         await self.session.refresh(db_project)
         return db_project
 
-    async def get_projects(self, skip: int = 0, limit: int = 100) -> List[Project]:
-        query = select(Project).offset(skip).limit(limit)
+    async def get_projects(self, skip: int = 0, limit: int = 100, archived: bool = False) -> List[Project]:
+        """Get projects, by default excludes archived"""
+        query = select(Project).where(Project.is_archived == archived).offset(skip).limit(limit)
         result = await self.session.exec(query)
         return result.all()
 
     async def get_project(self, project_id: int) -> Optional[Project]:
         return await self.session.get(Project, project_id)
+
+    async def update_project(self, project_id: int, project_update: ProjectUpdate) -> Optional[Project]:
+        """Update project and return updated instance, or None if not found"""
+        db_project = await self.session.get(Project, project_id)
+        if not db_project:
+            return None
+
+        # Update only provided fields
+        update_data = project_update.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_project, key, value)
+
+        # Update timestamp
+        db_project.updated_at = utc_now()
+
+        self.session.add(db_project)
+        await self.session.commit()
+        await self.session.refresh(db_project)
+        return db_project
+
+    async def archive_project(self, project_id: int) -> bool:
+        """Archive project (soft delete) and return True if successful, False if not found"""
+        db_project = await self.session.get(Project, project_id)
+        if not db_project:
+            return False
+
+        db_project.is_archived = True
+        db_project.updated_at = utc_now()
+
+        self.session.add(db_project)
+        await self.session.commit()
+        return True
+
+    async def delete_project_permanent(self, project_id: int) -> bool:
+        """Permanently delete project from DB (hard delete), return True if deleted, False if not found"""
+        db_project = await self.session.get(Project, project_id)
+        if not db_project:
+            return False
+
+        await self.session.delete(db_project)
+        await self.session.commit()
+        return True
