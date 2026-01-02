@@ -43,7 +43,7 @@ export const createProject = async (data: ProjectCreate): Promise<Project> => {
  * Update an existing project
  */
 export const updateProject = async (id: number, data: ProjectCreate): Promise<Project> => {
-  return api.put<Project>(`/projects/${id}`, data);
+  return api.patch<Project>(`/projects/${id}`, data);
 };
 
 /**
@@ -66,4 +66,33 @@ export const deleteProjects = async (ids: number[]): Promise<void> => {
 
   // Wait for all deletions, but throw if any fail
   await Promise.all(deletePromises);
+};
+
+/**
+ * Fetch archived projects
+ */
+export const getArchivedProjects = async (params?: ProjectListParams): Promise<Project[]> => {
+  let url = '/projects/?archived=true';
+
+  if (params) {
+    const queryParams = new URLSearchParams();
+    queryParams.append('archived', 'true');
+    if (params.skip !== undefined) {
+      queryParams.append('skip', params.skip.toString());
+    }
+    if (params.limit !== undefined) {
+      queryParams.append('limit', params.limit.toString());
+    }
+    url = `/projects/?${queryParams.toString()}`;
+  }
+
+  return api.get<Project[]>(url);
+};
+
+/**
+ * Permanently delete a project (hard delete)
+ * Used only in Archived page
+ */
+export const deletePermanent = async (id: number): Promise<void> => {
+  return api.del<void>(`/projects/${id}?permanent=true`);
 };

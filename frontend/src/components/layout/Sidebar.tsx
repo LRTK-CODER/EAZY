@@ -10,6 +10,8 @@ import {
     MoreVertical,
     Edit,
     Archive,
+    AlertCircle,
+    Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,11 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useProjects } from "@/hooks/useProjects";
+import type { Project } from "@/types/project";
+import { CreateProjectForm } from "@/components/features/project/CreateProjectForm";
+import { EditProjectForm } from "@/components/features/project/EditProjectForm";
+import { DeleteProjectDialog } from "@/components/features/project/DeleteProjectDialog";
 
 // Dashboard 메뉴
 const dashboardMenus = [
@@ -41,24 +48,19 @@ const settingsMenus = [
     { label: "API Keys", href: "/settings/api-keys", icon: Settings },
 ];
 
-// 더미 프로젝트 데이터
-const dummyProjects = [
-    { id: 1, name: "E-commerce Security Test" },
-    { id: 2, name: "API Penetration Test" },
-    { id: 3, name: "Mobile App DAST" },
-    { id: 4, name: "Banking Portal Scan" },
-    { id: 5, name: "Healthcare System Test" },
-];
-
 // 프로젝트 아이템 컴포넌트
 function ProjectItem({
     project,
     isSelected,
     onToggle,
+    onEdit,
+    onDelete,
 }: {
-    project: { id: number; name: string };
+    project: Project;
     isSelected: boolean;
     onToggle: () => void;
+    onEdit: () => void;
+    onDelete: () => void;
 }) {
     const textRef = useRef<HTMLAnchorElement>(null);
     const [isTruncated, setIsTruncated] = useState(false);
@@ -116,11 +118,11 @@ function ProjectItem({
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={onEdit}>
                         <Edit className="h-3 w-3 mr-2" />
                         Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
+                    <DropdownMenuItem className="text-destructive" onClick={onDelete}>
                         <Trash2 className="h-3 w-3 mr-2" />
                         Delete
                     </DropdownMenuItem>
@@ -134,6 +136,16 @@ export function Sidebar() {
     const location = useLocation();
     const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
 
+    // Dialog states
+    const [createOpen, setCreateOpen] = useState(false);
+    const [editOpen, setEditOpen] = useState(false);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+
+    // Context states for dialogs
+    const [editingProject, setEditingProject] = useState<Project | null>(null);
+    const [deleteIds, setDeleteIds] = useState<number[]>([]);
+    const [deleteNames, setDeleteNames] = useState<string[]>([]);
+
     // 현재 경로에 따라 활성 섹션 결정
     const activeSection = location.pathname.startsWith("/projects")
         ? "projects"
@@ -142,6 +154,12 @@ export function Sidebar() {
         : "dashboard";
 
     const isArchivePage = location.pathname === "/projects/archived";
+
+    // Fetch projects only when in projects section
+    const { data: projects = [], isLoading, isError } = useProjects(
+        undefined,
+        activeSection === "projects"
+    );
 
     // 프로젝트 선택 토글
     const toggleProject = (id: number) => {
@@ -152,11 +170,37 @@ export function Sidebar() {
 
     // 전체 선택/해제
     const toggleAll = () => {
-        if (selectedProjects.length === dummyProjects.length) {
+        if (selectedProjects.length === projects.length) {
             setSelectedProjects([]);
         } else {
-            setSelectedProjects(dummyProjects.map((p) => p.id));
+            setSelectedProjects(projects.map((p) => p.id));
         }
+    };
+
+    // Handlers for dialogs
+    const handleCreateProject = () => {
+        setCreateOpen(true);
+    };
+
+    const handleEditProject = (project: Project) => {
+        setEditingProject(project);
+        setEditOpen(true);
+    };
+
+    const handleDeleteProject = (project: Project) => {
+        setDeleteIds([project.id]);
+        setDeleteNames([project.name]);
+        setDeleteOpen(true);
+    };
+
+    const handleBulkDelete = () => {
+        const names = projects
+            .filter((p) => selectedProjects.includes(p.id))
+            .map((p) => p.name);
+        setDeleteIds(selectedProjects);
+        setDeleteNames(names);
+        setDeleteOpen(true);
+        setSelectedProjects([]); // Clear selection after opening dialog
     };
 
     // Dashboard Sidebar
@@ -245,7 +289,7 @@ export function Sidebar() {
                                         variant="ghost"
                                         className="h-7 w-7 p-0"
                                         disabled={selectedProjects.length === 0}
-                                        onClick={() => setSelectedProjects([])}
+                                        onClick={handleBulkDelete}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -258,7 +302,12 @@ export function Sidebar() {
                             </Tooltip>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 w-7 p-0"
+                                        onClick={handleCreateProject}
+                                    >
                                         <Plus className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
@@ -283,7 +332,19 @@ export function Sidebar() {
                 <div className="flex-1 overflow-auto p-2 custom-scrollbar">
                     {!isArchivePage && (
                         <>
-                            {dummyProjects.length > 0 ? (
+                            {isLoading ? (
+                                /* Loading state */
+                                <div className="flex flex-col items-center justify-center p-6 text-center">
+                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mb-2" />
+                                    <p className="text-sm text-muted-foreground">Loading...</p>
+                                </div>
+                            ) : isError ? (
+                                /* Error state */
+                                <div className="flex flex-col items-center justify-center p-6 text-center">
+                                    <AlertCircle className="h-6 w-6 text-destructive mb-2" />
+                                    <p className="text-sm text-destructive">Error loading projects</p>
+                                </div>
+                            ) : projects.length > 0 ? (
                                 <>
                                     {/* Select All 버튼 */}
                                     <div className="flex justify-end px-2 mb-1">
@@ -293,17 +354,19 @@ export function Sidebar() {
                                             className="h-6 text-xs text-muted-foreground hover:text-foreground"
                                             onClick={toggleAll}
                                         >
-                                            {selectedProjects.length === dummyProjects.length ? "Deselect All" : "Select All"}
+                                            {selectedProjects.length === projects.length ? "Deselect All" : "Select All"}
                                         </Button>
                                     </div>
 
                                     {/* 프로젝트 아이템들 */}
-                                    {dummyProjects.map((project) => (
+                                    {projects.map((project) => (
                                         <ProjectItem
                                             key={project.id}
                                             project={project}
                                             isSelected={selectedProjects.includes(project.id)}
                                             onToggle={() => toggleProject(project.id)}
+                                            onEdit={() => handleEditProject(project)}
+                                            onDelete={() => handleDeleteProject(project)}
                                         />
                                     ))}
                                 </>
@@ -311,7 +374,7 @@ export function Sidebar() {
                                 /* 빈 상태 */
                                 <div className="flex flex-col items-center justify-center p-6 text-center">
                                     <p className="text-sm text-muted-foreground mb-4">No projects yet</p>
-                                    <Button size="sm" variant="outline">
+                                    <Button size="sm" variant="outline" onClick={handleCreateProject}>
                                         <Plus className="h-3 w-3 mr-1" />
                                         Create First Project
                                     </Button>
@@ -334,6 +397,24 @@ export function Sidebar() {
                     EAZY v0.1.0
                 </div>
             </aside>
+
+            {/* Dialogs */}
+            <CreateProjectForm open={createOpen} onOpenChange={setCreateOpen} />
+
+            {editingProject && (
+                <EditProjectForm
+                    open={editOpen}
+                    onOpenChange={setEditOpen}
+                    project={editingProject}
+                />
+            )}
+
+            <DeleteProjectDialog
+                open={deleteOpen}
+                onOpenChange={setDeleteOpen}
+                projectIds={deleteIds}
+                projectNames={deleteNames}
+            />
         </TooltipProvider>
     );
 }

@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { toast } from 'sonner';
-import * as projectService from '@/services/projectService';
+import { useDeleteProject, useDeleteProjects } from '@/hooks/useProjects';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,26 +24,25 @@ export function DeleteProjectDialog({
   projectIds,
   projectNames,
 }: DeleteProjectDialogProps) {
-  const [isDeleting, setIsDeleting] = useState(false);
+  const deleteProject = useDeleteProject();
+  const deleteProjects = useDeleteProjects();
 
+  const isDeleting = deleteProject.isPending || deleteProjects.isPending;
   const isBulk = projectIds.length > 1;
   const count = projectIds.length;
 
   const handleDelete = async () => {
-    setIsDeleting(true);
     try {
       if (isBulk) {
-        await projectService.deleteProjects(projectIds);
+        await deleteProjects.mutateAsync(projectIds);
         toast.success(`${count} projects deleted successfully`);
       } else {
-        await projectService.deleteProject(projectIds[0]);
+        await deleteProject.mutateAsync(projectIds[0]);
         toast.success('Project deleted successfully');
       }
       onOpenChange(false);
     } catch {
       toast.error(isBulk ? 'Failed to delete projects' : 'Failed to delete project');
-    } finally {
-      setIsDeleting(false);
     }
   };
 

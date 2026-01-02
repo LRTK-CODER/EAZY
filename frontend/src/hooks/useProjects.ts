@@ -17,10 +17,11 @@ export const projectKeys = {
 /**
  * Hook to fetch list of projects with optional pagination
  */
-export const useProjects = (params?: ProjectListParams) => {
+export const useProjects = (params?: ProjectListParams, enabled = true) => {
   return useQuery({
     queryKey: projectKeys.list(params),
     queryFn: () => projectService.getProjects(params),
+    enabled,
   });
 };
 
