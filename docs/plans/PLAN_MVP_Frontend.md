@@ -338,9 +338,13 @@
     - **완료**: 2026-01-03
     - 테스트 결과: ✅ PASS (4/4 tests passed)
     - Lines 117-139: read_target 엔드포인트 추가 (프로젝트 검증 → 타겟 조회 → 소유권 확인)
-- [ ] **Task 4.4**: Target 타입 정의
+- [x] **Task 4.4**: Target 타입 정의
     - 파일: `frontend/src/types/target.ts`
-    - TargetScope enum, Target, TargetCreate, TargetUpdate, TargetListParams, ScanTriggerResponse
+    - TargetScope const object, Target, TargetCreate, TargetUpdate, TargetListParams, ScanTriggerResponse
+    - **완료**: 2026-01-03 (Commit: a1eb234)
+    - 6개 타입 정의 완료, JSDoc 주석 추가, TypeScript strict mode 통과
+    - 백엔드 스키마와 100% 일치, project.ts 패턴 준수
+    - targetService.test.ts 업데이트 (TargetScope 상수 사용)
 - [ ] **Task 4.5**: Task 타입 정의
     - 파일: `frontend/src/types/task.ts`
     - TaskStatus enum (PENDING, RUNNING, COMPLETED, FAILED)
