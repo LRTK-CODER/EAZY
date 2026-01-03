@@ -1,9 +1,9 @@
 # 구현 계획: MVP 프론트엔드
 
-**상태**: 🔄 Phase 3 진행 중
+**상태**: 🔄 Phase 4 진행 중
 **시작일**: 2025-12-28
-**최근 업데이트**: 2026-01-01
-**예상 완료일**: 2026-01-03
+**최근 업데이트**: 2026-01-03
+**예상 완료일**: 2026-01-05
 
 ---
 
@@ -316,10 +316,13 @@
 **목표**: 백엔드 API 완성 및 프론트엔드 기반 타입/서비스 구축
 
 **🔴 RED**
-- [ ] **Test 4.1**: Target Service 테스트
+- [x] **Test 4.1**: Target Service 테스트
     - 파일: `frontend/src/services/targetService.test.ts`
     - getTargets, getTarget, createTarget, updateTarget, deleteTarget, triggerScan
     - Mock API 응답 검증
+    - **완료**: 2026-01-03 (Commit: d03e729)
+    - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, targetService.ts 파일 미존재)
+    - 총 15개 테스트 케이스 작성 (getTargets 4개, getTarget 2개, createTarget 3개, updateTarget 2개, deleteTarget 2개, triggerScan 2개)
 - [ ] **Test 4.2**: Task Service 테스트
     - 파일: `frontend/src/services/taskService.test.ts`
     - getTaskStatus(taskId): Task 상태 조회 (GET /tasks/{task_id})
