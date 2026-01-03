@@ -374,9 +374,13 @@
     - 7개 export 구현 (targetKeys + 6개 훅), JSDoc 주석 추가, TypeScript strict mode 통과
     - useProjects.ts 패턴 준수, 자동 캐시 무효화 구현
     - 컴파일 성공, 컴포넌트 테스트에서 간접 검증 예정
-- [ ] **Task 4.9**: Task 훅 (폴링 포함)
+- [x] **Task 4.9**: Task 훅 (폴링 포함)
     - 파일: `frontend/src/hooks/useTasks.ts`
     - taskKeys, useTaskStatus (refetchInterval로 폴링, COMPLETED/FAILED시 중지)
+    - **완료**: 2026-01-03 (Commit: bcde27f)
+    - 2개 export 구현 (taskKeys + useTaskStatus), JSDoc 주석 추가, TypeScript strict mode 통과
+    - 폴링 기능: 5초마다 자동 폴링, COMPLETED/FAILED 시 자동 중지
+    - useTargets.ts 패턴 준수, 컴파일 성공
 
 **✅ 수동 테스트 체크포인트 1**
 ```bash
