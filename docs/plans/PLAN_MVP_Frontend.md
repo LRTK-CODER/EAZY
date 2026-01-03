@@ -419,18 +419,30 @@ npm run build  # 타입 에러 없는지 확인
     - 테스트 케이스: 23개 (렌더링 3개, 초기화 6개, 검증 4개, 제출 5개, 상호작용 5개)
 
 **🟢 GREEN**
-- [ ] **Task 4.13**: Target Zod 스키마
+- [x] **Task 4.13**: Target Zod 스키마
     - 파일: `frontend/src/schemas/targetSchema.ts`
     - targetFormSchema (name, url, description, scope), TargetFormValues
-- [ ] **Task 4.14**: TargetFormFields 컴포넌트
+    - **완료**: 2026-01-04 (Commit: 2689520)
+    - 테스트 결과: ✅ PASS (29/29 tests)
+    - URL 검증: strict validation with URL constructor
+- [x] **Task 4.14**: TargetFormFields 컴포넌트
     - 파일: `frontend/src/components/features/target/TargetFormFields.tsx`
     - Name, URL, Description, Scope 필드 (Create/Edit 공용)
-- [ ] **Task 4.15**: CreateTargetForm 컴포넌트
+    - **완료**: 2026-01-04 (Commit: 2689520)
+    - Select 컴포넌트 추가 완료 (frontend/src/components/ui/select.tsx)
+    - Controlled Select with hidden input for testability
+- [x] **Task 4.15**: CreateTargetForm 컴포넌트
     - 파일: `frontend/src/components/features/target/CreateTargetForm.tsx`
     - Dialog + React Hook Form + Zod, useCreateTarget 훅
-- [ ] **Task 4.16**: EditTargetForm 컴포넌트
+    - **완료**: 2026-01-04 (Commit: 2689520)
+    - 테스트 결과: ✅ PASS (21/21 tests)
+    - projectId prop for target association
+- [x] **Task 4.16**: EditTargetForm 컴포넌트
     - 파일: `frontend/src/components/features/target/EditTargetForm.tsx`
     - target prop으로 초기화, useUpdateTarget 훅
+    - **완료**: 2026-01-04 (Commit: 2689520)
+    - 테스트 결과: ✅ PASS (20/20 tests)
+    - useEffect for form initialization, null description handling
 
 **✅ 수동 테스트 체크포인트 2**
 ```bash
