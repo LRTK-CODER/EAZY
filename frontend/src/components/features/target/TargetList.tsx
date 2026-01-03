@@ -16,6 +16,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { EditTargetForm } from './EditTargetForm';
 import { DeleteTargetDialog } from './DeleteTargetDialog';
 
@@ -54,27 +61,27 @@ function ScanStatusBadge({ projectId, targetId }: { projectId: number; targetId:
   switch (task.status) {
     case TaskStatus.PENDING:
       return (
-        <Badge variant="outline" className="bg-gray-100 text-gray-700 border-gray-300">
+        <Badge variant="secondary" className="text-muted-foreground">
           Pending
         </Badge>
       );
     case TaskStatus.RUNNING:
       return (
-        <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">
+        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
           Running
         </Badge>
       );
     case TaskStatus.COMPLETED:
       return (
-        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800">
           <CheckCircle2 className="h-3 w-3 mr-1" />
           Completed
         </Badge>
       );
     case TaskStatus.FAILED:
       return (
-        <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300">
+        <Badge variant="destructive" className="border border-destructive/50">
           <XCircle className="h-3 w-3 mr-1" />
           Failed
         </Badge>
@@ -145,17 +152,19 @@ export function TargetList({ projectId }: TargetListProps) {
   // Table with targets - show table structure even when loading/error/empty
   return (
     <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>URL</TableHead>
-            <TableHead>Scope</TableHead>
-            <TableHead>Created At</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+      <div className="rounded-md border">
+        <ScrollArea className="w-full">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>URL</TableHead>
+                <TableHead>Scope</TableHead>
+                <TableHead>Created At</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
           {isLoading ? (
             <TableRow>
               <TableCell colSpan={5} className="h-24 text-center">
@@ -188,45 +197,67 @@ export function TargetList({ projectId }: TargetListProps) {
               </TableCell>
               <TableCell className="text-muted-foreground">{target.url}</TableCell>
               <TableCell>
-                <Badge variant="outline">{target.scope}</Badge>
+                <Badge variant="secondary" className="text-xs">
+                  {target.scope}
+                </Badge>
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {formatDate(target.created_at)}
               </TableCell>
               <TableCell className="text-right">
-                <div className="flex items-center justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(target)}
-                    aria-label="Edit"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(target)}
-                    aria-label="Delete"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleScan(target)}
-                    aria-label="Scan"
-                    disabled={triggerScan.isPending}
-                  >
-                    <Play className="h-4 w-4" />
-                  </Button>
-                </div>
+                <TooltipProvider>
+                  <div className="flex items-center justify-end gap-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(target)}
+                        >
+                          <Edit className="h-4 w-4" />
+                          <span className="sr-only">Edit target</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Edit</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(target)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Delete target</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Delete</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleScan(target)}
+                          disabled={triggerScan.isPending}
+                        >
+                          <Play className="h-4 w-4" />
+                          <span className="sr-only">Scan target</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Scan</TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TooltipProvider>
               </TableCell>
             </TableRow>
             ))
           )}
         </TableBody>
       </Table>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+      </div>
 
       {/* Dialogs */}
       {selectedTarget && (
