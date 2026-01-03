@@ -366,10 +366,14 @@
     - **완료**: 2026-01-03 (Commit: e197dfb)
     - getTaskStatus 함수 구현, JSDoc 주석 추가, TypeScript strict mode 통과
     - targetService.ts 패턴 준수, 테스트 4/4 통과
-- [ ] **Task 4.8**: Target 훅 (TanStack Query)
+- [x] **Task 4.8**: Target 훅 (TanStack Query)
     - 파일: `frontend/src/hooks/useTargets.ts`
     - targetKeys (Query Key Factory)
     - useTargets, useTarget, useCreateTarget, useUpdateTarget, useDeleteTarget, useTriggerScan
+    - **완료**: 2026-01-03 (Commit: 0507475)
+    - 7개 export 구현 (targetKeys + 6개 훅), JSDoc 주석 추가, TypeScript strict mode 통과
+    - useProjects.ts 패턴 준수, 자동 캐시 무효화 구현
+    - 컴파일 성공, 컴포넌트 테스트에서 간접 검증 예정
 - [ ] **Task 4.9**: Task 훅 (폴링 포함)
     - 파일: `frontend/src/hooks/useTasks.ts`
     - taskKeys, useTaskStatus (refetchInterval로 폴링, COMPLETED/FAILED시 중지)
