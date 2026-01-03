@@ -2,7 +2,7 @@
 
 **상태**: 🔄 Phase 4 진행 중
 **시작일**: 2025-12-28
-**최근 업데이트**: 2026-01-04 (Step 3 RED Phase 완료)
+**최근 업데이트**: 2026-01-04 (Step 3 GREEN Phase 완료 - UI/UX 검토 포함)
 **예상 완료일**: 2026-01-05
 
 ---
@@ -473,13 +473,19 @@ npm run storybook
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, 22개 테스트)
 
 **🟢 GREEN**
-- [ ] **Task 4.19**: DeleteTargetDialog 컴포넌트
+- [x] **Task 4.19**: DeleteTargetDialog 컴포넌트
     - 파일: `frontend/src/components/features/target/DeleteTargetDialog.tsx`
     - AlertDialog, useDeleteTarget 훅, 영구 삭제 경고
-- [ ] **Task 4.20**: TargetList 컴포넌트
+    - **완료**: 2026-01-04 (Commit: d400d90)
+    - 테스트 결과: ✅ PASS (14/14 tests)
+    - UI/UX 검토: 완료 (설계 점수 7/10)
+- [x] **Task 4.20**: TargetList 컴포넌트
     - 파일: `frontend/src/components/features/target/TargetList.tsx`
     - useTargets 훅, Table (Name, URL, Scope, Created At, Actions)
     - Scan 버튼 + 상태 표시 (useTaskStatus 연동)
+    - **완료**: 2026-01-04 (Commit: 830e9b9)
+    - 테스트 결과: ✅ PASS (22/22 tests, 26 total)
+    - UI/UX 검토: 완료 (UX 점수 7.5/10)
 
 **✅ 수동 테스트 체크포인트 3**
 ```bash
