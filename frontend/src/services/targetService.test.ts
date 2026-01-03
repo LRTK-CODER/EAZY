@@ -7,8 +7,8 @@ import {
     deleteTarget,
     triggerScan,
 } from './targetService';
-// @ts-expect-error - Target types will be defined in Task 4.4
 import type { Target, TargetCreate, TargetUpdate, TargetListParams } from '@/types/target';
+import { TargetScope } from '@/types/target';
 import * as api from '@/lib/api';
 
 // Mock the API module
@@ -28,7 +28,7 @@ describe('Target Service', () => {
                     name: 'example.com',
                     url: 'https://example.com',
                     description: 'Test target',
-                    scope: 'DOMAIN',
+                    scope: TargetScope.DOMAIN,
                     created_at: '2025-01-01T00:00:00Z',
                     updated_at: '2025-01-01T00:00:00Z',
                 },
@@ -38,7 +38,7 @@ describe('Target Service', () => {
                     name: 'test.com',
                     url: 'https://test.com',
                     description: null,
-                    scope: 'SUBDOMAIN',
+                    scope: TargetScope.SUBDOMAIN,
                     created_at: '2025-01-01T00:00:00Z',
                     updated_at: '2025-01-01T00:00:00Z',
                 },
@@ -60,7 +60,7 @@ describe('Target Service', () => {
                     name: 'skipped.com',
                     url: 'https://skipped.com',
                     description: null,
-                    scope: 'URL_ONLY',
+                    scope: TargetScope.URL_ONLY,
                     created_at: '2025-01-01T00:00:00Z',
                     updated_at: '2025-01-01T00:00:00Z',
                 },
@@ -95,7 +95,7 @@ describe('Target Service', () => {
                     name: 'example.com',
                     url: 'https://example.com',
                     description: 'Test target',
-                    scope: 'DOMAIN',
+                    scope: TargetScope.DOMAIN,
                     created_at: '2025-01-01T00:00:00Z',
                     updated_at: '2025-01-01T00:00:00Z',
                 },
