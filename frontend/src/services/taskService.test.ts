@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getTaskStatus } from './taskService';
-// @ts-expect-error - Task types will be defined in Task 4.5
 import type { Task } from '@/types/task';
 import * as api from '@/lib/api';
 
