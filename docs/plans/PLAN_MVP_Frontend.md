@@ -303,83 +303,193 @@
 ---
 
 ### Phase 4: 프로젝트 상세 페이지 & Target 관리
-**목표**: 선택된 프로젝트의 상세 정보 표시 및 Target CRUD 구현.
-**예상 시간**: 5시간
+**목표**: 기존 ProjectDetailPage를 확장하여 Target CRUD 및 스캔 상태 폴링 구현.
+**예상 시간**: 8시간
 **상태**: ⏳ 대기 중
 
-#### 작업
-**🔴 RED: 실패하는 테스트 먼저 작성**
-- [ ] **Test 4.1**: ProjectDetailPage 테스트
-    - URL 파라미터에서 projectId를 추출하는지 확인.
-    - 프로젝트 데이터를 조회하여 h1 태그에 프로젝트명 표시 확인.
-    - 로딩, 에러 상태 처리 확인.
-- [ ] **Test 4.2**: Target List 테스트
-    - `GET /projects/{id}/targets` API를 모킹하여 Target 목록 렌더링 확인.
-    - 로딩, 에러, 빈 상태 처리 확인.
-- [ ] **Test 4.3**: CreateTargetForm 테스트
-    - 입력 필드 (Name, URL, Scope) 확인.
-    - 폼 제출 시 API 호출 확인.
-- [ ] **Test 4.4**: EditTargetForm 테스트
-    - 기존 Target 데이터로 폼 초기화 확인.
-- [ ] **Test 4.5**: 스캔 트리거 테스트
-    - "Scan" 버튼 클릭 시 API 호출 확인.
-    - 성공/실패 토스트 메시지 확인.
+> **참고**: ProjectDetailPage.tsx와 `/projects/:id` 라우트는 이미 존재함 (확장 필요)
+> URL 파라미터: `id` (useParams<{ id: string }>())
 
-**🟢 GREEN: 테스트를 통과하도록 구현**
-- [ ] **Task 4.6**: ProjectDetailPage 생성
-    - `pages/projects/ProjectDetailPage.tsx`
-    - `useParams()`로 projectId 추출.
-    - `useProject(projectId)` 훅으로 프로젝트 조회.
-    - `<main>` 태그 내 `<h1>{project.name}</h1>` 표시.
-    - 로딩, 에러 상태 UI.
-- [ ] **Task 4.7**: 라우팅 추가
-    - `App.tsx`에 `/projects/:projectId` 라우트 추가.
-    - ProjectDetailPage 컴포넌트 연결.
-- [ ] **Task 4.8**: Target 타입 정의
-    - `types/target.ts`: `Target`, `TargetCreate`, `TargetUpdate` 인터페이스.
-- [ ] **Task 4.9**: Target Service
-    - `services/targetService.ts`:
-      - `getTargets(projectId)`: Target 목록 조회
-      - `getTarget(projectId, targetId)`: 단일 Target 조회
-      - `createTarget(projectId, data)`: Target 생성
-      - `updateTarget(projectId, targetId, data)`: Target 수정
-      - `deleteTarget(projectId, targetId)`: Target 삭제
-      - `triggerScan(projectId, targetId)`: 스캔 트리거
-- [ ] **Task 4.10**: Target 훅
-    - `hooks/useTargets.ts`:
-      - `useTargets(projectId)`: Target 목록 조회
-      - `useTarget(projectId, targetId)`: 단일 Target 조회
-      - `useCreateTarget()`: Target 생성
-      - `useUpdateTarget()`: Target 수정
-      - `useDeleteTarget()`: Target 삭제
-      - `useTriggerScan()`: 스캔 트리거
-- [ ] **Task 4.11**: TargetList 컴포넌트
-    - `components/features/target/TargetList.tsx`
-    - `useTargets(projectId)` 훅 사용.
-    - Table 형식으로 Target 목록 표시.
-- [ ] **Task 4.12**: CreateTargetForm 컴포넌트
-    - `components/features/target/CreateTargetForm.tsx`
-    - 필드: Name, URL, Scope.
-    - React Hook Form + Zod.
-- [ ] **Task 4.13**: EditTargetForm 컴포넌트
-    - `components/features/target/EditTargetForm.tsx`
-    - CreateTargetForm과 유사.
-- [ ] **Task 4.14**: ProjectDetailPage에 Target 기능 통합
-    - TargetList 표시.
-    - "Add Target" 버튼 → CreateTargetForm.
-    - 각 Target 행에 Edit, Delete, Scan 버튼.
+---
+
+#### Step 1: 백엔드 API 추가 & 기반 구조
+**목표**: 백엔드 API 완성 및 프론트엔드 기반 타입/서비스 구축
+
+**🔴 RED**
+- [ ] **Test 4.1**: Target Service 테스트
+    - 파일: `frontend/src/services/targetService.test.ts`
+    - getTargets, getTarget, createTarget, updateTarget, deleteTarget, triggerScan
+    - Mock API 응답 검증
+- [ ] **Test 4.2**: Task Service 테스트
+    - 파일: `frontend/src/services/taskService.test.ts`
+    - getTaskStatus(taskId): Task 상태 조회 (GET /tasks/{task_id})
+
+**🟢 GREEN**
+- [ ] **Task 4.3**: 백엔드 단일 Target 조회 API 추가
+    - 파일: `backend/app/api/v1/endpoints/project.py`
+    - GET /projects/{project_id}/targets/{target_id} 엔드포인트 추가
+    - 검증: `pytest backend/tests/ -k target` 통과
+- [ ] **Task 4.4**: Target 타입 정의
+    - 파일: `frontend/src/types/target.ts`
+    - TargetScope enum, Target, TargetCreate, TargetUpdate, TargetListParams, ScanTriggerResponse
+- [ ] **Task 4.5**: Task 타입 정의
+    - 파일: `frontend/src/types/task.ts`
+    - TaskStatus enum (PENDING, RUNNING, COMPLETED, FAILED)
+    - TaskType enum (CRAWL, SCAN), Task 인터페이스
+- [ ] **Task 4.6**: Target Service
+    - 파일: `frontend/src/services/targetService.ts`
+    - getTargets, getTarget, createTarget, updateTarget, deleteTarget, triggerScan
+- [ ] **Task 4.7**: Task Service
+    - 파일: `frontend/src/services/taskService.ts`
+    - getTaskStatus(taskId)
+- [ ] **Task 4.8**: Target 훅 (TanStack Query)
+    - 파일: `frontend/src/hooks/useTargets.ts`
+    - targetKeys (Query Key Factory)
+    - useTargets, useTarget, useCreateTarget, useUpdateTarget, useDeleteTarget, useTriggerScan
+- [ ] **Task 4.9**: Task 훅 (폴링 포함)
+    - 파일: `frontend/src/hooks/useTasks.ts`
+    - taskKeys, useTaskStatus (refetchInterval로 폴링, COMPLETED/FAILED시 중지)
+
+**✅ 수동 테스트 체크포인트 1**
+```bash
+# 백엔드 API 테스트
+curl http://localhost:8000/api/v1/projects/1/targets/
+curl http://localhost:8000/api/v1/projects/1/targets/1
+
+# 프론트엔드 테스트
+cd frontend && npm run test -- targetService taskService
+npm run build  # 타입 에러 없는지 확인
+```
+
+---
+
+#### Step 2: Target 폼 컴포넌트 (Create/Edit)
+**목표**: Target 생성/수정 폼 UI 구현
+
+**🔴 RED**
+- [ ] **Test 4.10**: Target Zod 스키마 테스트
+    - 파일: `frontend/src/schemas/targetSchema.test.ts`
+    - targetFormSchema 유효성 검사 (name 필수, url 필수/URL형식, scope 필수)
+- [ ] **Test 4.11**: CreateTargetForm 테스트
+    - 파일: `frontend/src/components/features/target/CreateTargetForm.test.tsx`
+    - 입력 필드, 유효성 검사, 제출 시 useCreateTarget 호출, Toast 알림
+- [ ] **Test 4.12**: EditTargetForm 테스트
+    - 파일: `frontend/src/components/features/target/EditTargetForm.test.tsx`
+    - 기존 데이터로 폼 초기화, useUpdateTarget 호출
+
+**🟢 GREEN**
+- [ ] **Task 4.13**: Target Zod 스키마
+    - 파일: `frontend/src/schemas/targetSchema.ts`
+    - targetFormSchema (name, url, description, scope), TargetFormValues
+- [ ] **Task 4.14**: TargetFormFields 컴포넌트
+    - 파일: `frontend/src/components/features/target/TargetFormFields.tsx`
+    - Name, URL, Description, Scope 필드 (Create/Edit 공용)
+- [ ] **Task 4.15**: CreateTargetForm 컴포넌트
+    - 파일: `frontend/src/components/features/target/CreateTargetForm.tsx`
+    - Dialog + React Hook Form + Zod, useCreateTarget 훅
+- [ ] **Task 4.16**: EditTargetForm 컴포넌트
+    - 파일: `frontend/src/components/features/target/EditTargetForm.tsx`
+    - target prop으로 초기화, useUpdateTarget 훅
+
+**✅ 수동 테스트 체크포인트 2**
+```bash
+# 프론트엔드 테스트
+cd frontend && npm run test -- targetSchema CreateTargetForm EditTargetForm
+npm run build
+
+# Storybook으로 확인 (선택)
+npm run storybook
+```
+
+---
+
+#### Step 3: Delete Dialog & TargetList
+**목표**: 삭제 다이얼로그 및 Target 목록 UI 구현
+
+**🔴 RED**
+- [ ] **Test 4.17**: DeleteTargetDialog 테스트
+    - 파일: `frontend/src/components/features/target/DeleteTargetDialog.test.tsx`
+    - AlertDialog 렌더링, useDeleteTarget 호출, 영구 삭제 경고
+- [ ] **Test 4.18**: TargetList 테스트
+    - 파일: `frontend/src/components/features/target/TargetList.test.tsx`
+    - Table 렌더링, 로딩/에러/빈 상태, Edit/Delete/Scan 버튼
+    - 스캔 상태 표시 (PENDING, RUNNING, COMPLETED, FAILED 뱃지)
+
+**🟢 GREEN**
+- [ ] **Task 4.19**: DeleteTargetDialog 컴포넌트
+    - 파일: `frontend/src/components/features/target/DeleteTargetDialog.tsx`
+    - AlertDialog, useDeleteTarget 훅, 영구 삭제 경고
+- [ ] **Task 4.20**: TargetList 컴포넌트
+    - 파일: `frontend/src/components/features/target/TargetList.tsx`
+    - useTargets 훅, Table (Name, URL, Scope, Created At, Actions)
+    - Scan 버튼 + 상태 표시 (useTaskStatus 연동)
+
+**✅ 수동 테스트 체크포인트 3**
+```bash
+# 프론트엔드 테스트
+cd frontend && npm run test -- DeleteTargetDialog TargetList
+npm run build
+
+# 브라우저에서 TargetList 단독 테스트
+# 임시로 App.tsx에 <TargetList projectId={1} /> 렌더링
+# - 목록 조회 확인
+# - Edit 버튼 → EditTargetForm Dialog 열림
+# - Delete 버튼 → DeleteTargetDialog 열림
+# - Scan 버튼 → API 호출 확인 (Network 탭)
+```
+
+---
+
+#### Step 4: ProjectDetailPage 통합
+**목표**: 모든 컴포넌트를 ProjectDetailPage에 통합
+
+**🔴 RED**
+- [ ] **Test 4.21**: ProjectDetailPage 확장 테스트
+    - 파일: `frontend/src/pages/ProjectDetailPage.test.tsx`
+    - URL 파라미터 `id` 추출 확인
+    - TargetList 렌더링, "Add Target" 버튼 → CreateTargetForm Dialog
+
+**🟢 GREEN**
+- [ ] **Task 4.22**: ProjectDetailPage 확장
+    - 파일: `frontend/src/pages/ProjectDetailPage.tsx` (수정)
+    - 기존 구조 유지, Target 섹션 추가
+    - TargetList + "Add Target" 버튼 + CreateTargetForm Dialog
+
+**✅ 수동 테스트 체크포인트 4 (최종)**
+```bash
+# 브라우저에서 전체 플로우 테스트
+1. 사이드바에서 프로젝트 클릭 → /projects/{id} 이동
+2. 프로젝트 상세 페이지에 Target 섹션 표시 확인
+3. "Add Target" 버튼 클릭 → CreateTargetForm Dialog
+4. Target 생성 → 목록에 추가됨
+5. Target Edit → 수정 확인
+6. Target Delete → 삭제 확인
+7. Scan 버튼 → 스캔 트리거 및 상태 폴링 확인
+```
+
+---
 
 **🔵 REFACTOR: 코드 품질 개선**
-- [ ] **Task 4.15**: Optimistic Updates (선택사항)
-    - 스캔 트리거 후 UI 즉시 업데이트.
-    - Target 관련 컴포넌트 추출 및 재사용성 개선.
+- [ ] **Task 4.23**: 컴포넌트 추상화 및 최적화
+    - TargetFormFields 재사용 확인
+    - ESLint/TypeScript 정리
+    - **완료**: (예정)
+
+---
 
 #### 품질 게이트 ✋
-- [ ] 프로젝트 상세 페이지가 프로젝트명을 h1으로 표시함.
-- [ ] 프로젝트에 Target을 추가할 수 있음.
-- [ ] Target을 수정/삭제할 수 있음.
-- [ ] "Scan" 버튼을 클릭하면 토스트/응답을 볼 수 있음.
-- [ ] 모든 테스트가 통과함.
+- [ ] 백엔드에서 Target 목록을 조회할 수 있음.
+- [ ] 백엔드에서 단일 Target을 조회할 수 있음.
+- [ ] 새 Target을 생성할 수 있음.
+- [ ] Target을 수정할 수 있음.
+- [ ] Target을 삭제할 수 있음.
+- [ ] "Scan" 버튼 클릭 시 스캔이 트리거되고 Toast 알림이 표시됨.
+- [ ] 스캔 상태가 실시간으로 업데이트됨 (폴링).
+- [ ] 프로젝트 상세 페이지에서 프로젝트명이 표시됨.
+- [ ] 프로젝트 상세 페이지에서 TargetList가 렌더링됨.
+- [ ] 모든 테스트가 모킹된 API로 통과함.
+- [ ] `npm run build`가 성공함.
+- [ ] `npm run lint`가 에러 없이 통과함.
 
 ---
 
