@@ -2,7 +2,7 @@
 
 **상태**: 🔄 Phase 4 진행 중
 **시작일**: 2025-12-28
-**최근 업데이트**: 2026-01-03
+**최근 업데이트**: 2026-01-04
 **예상 완료일**: 2026-01-05
 
 ---
@@ -399,15 +399,24 @@ npm run build  # 타입 에러 없는지 확인
 **목표**: Target 생성/수정 폼 UI 구현
 
 **🔴 RED**
-- [ ] **Test 4.10**: Target Zod 스키마 테스트
+- [x] **Test 4.10**: Target Zod 스키마 테스트
     - 파일: `frontend/src/schemas/targetSchema.test.ts`
     - targetFormSchema 유효성 검사 (name 필수, url 필수/URL형식, scope 필수)
-- [ ] **Test 4.11**: CreateTargetForm 테스트
+    - **완료**: 2026-01-03 (Commit: cfcfff9)
+    - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, targetSchema.ts 파일 미존재)
+    - 테스트 케이스: 34개 (name 5개, url 8개, description 4개, scope 7개, 완전성 5개, 기타 5개)
+- [x] **Test 4.11**: CreateTargetForm 테스트
     - 파일: `frontend/src/components/features/target/CreateTargetForm.test.tsx`
     - 입력 필드, 유효성 검사, 제출 시 useCreateTarget 호출, Toast 알림
-- [ ] **Test 4.12**: EditTargetForm 테스트
+    - **완료**: 2026-01-03 (Commit: c249e7d)
+    - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, CreateTargetForm.tsx 파일 미존재)
+    - 테스트 케이스: 24개 (렌더링 3개, 검증 9개, 제출 7개, 상호작용 3개, 기타 2개)
+- [x] **Test 4.12**: EditTargetForm 테스트
     - 파일: `frontend/src/components/features/target/EditTargetForm.test.tsx`
     - 기존 데이터로 폼 초기화, useUpdateTarget 호출
+    - **완료**: 2026-01-03 (Commit: 19b615b)
+    - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, EditTargetForm.tsx 파일 미존재)
+    - 테스트 케이스: 23개 (렌더링 3개, 초기화 6개, 검증 4개, 제출 5개, 상호작용 5개)
 
 **🟢 GREEN**
 - [ ] **Task 4.13**: Target Zod 스키마
