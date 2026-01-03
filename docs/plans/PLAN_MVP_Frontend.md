@@ -345,10 +345,14 @@
     - 6개 타입 정의 완료, JSDoc 주석 추가, TypeScript strict mode 통과
     - 백엔드 스키마와 100% 일치, project.ts 패턴 준수
     - targetService.test.ts 업데이트 (TargetScope 상수 사용)
-- [ ] **Task 4.5**: Task 타입 정의
+- [x] **Task 4.5**: Task 타입 정의
     - 파일: `frontend/src/types/task.ts`
-    - TaskStatus enum (PENDING, RUNNING, COMPLETED, FAILED)
-    - TaskType enum (CRAWL, SCAN), Task 인터페이스
+    - TaskStatus const object (pending, running, completed, failed)
+    - TaskType const object (crawl, scan), Task 인터페이스
+    - **완료**: 2026-01-03 (Commit: 5ae9fef)
+    - 3개 타입 정의 완료, JSDoc 주석 추가, TypeScript strict mode 통과
+    - 백엔드 Task 모델과 100% 일치, target.ts 패턴 재사용
+    - taskService.test.ts 업데이트 (@ts-expect-error 제거)
 - [ ] **Task 4.6**: Target Service
     - 파일: `frontend/src/services/targetService.ts`
     - getTargets, getTarget, createTarget, updateTarget, deleteTarget, triggerScan
