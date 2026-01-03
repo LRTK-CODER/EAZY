@@ -25,9 +25,7 @@ export const targetFormSchema = z.object({
       { message: 'URL must be valid' }
     ),
   description: z.string().optional(),
-  scope: z
-    .enum(['DOMAIN', 'SUBDOMAIN', 'URL_ONLY'])
-    .default('DOMAIN'),
+  scope: z.enum(['DOMAIN', 'SUBDOMAIN', 'URL_ONLY']),
 });
 
 /**
