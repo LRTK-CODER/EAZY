@@ -360,9 +360,12 @@
     - 6개 함수 구현 완료, JSDoc 주석 추가, TypeScript strict mode 통과
     - projectService.ts 패턴 준수, 테스트 15/15 통과
     - lib/api.ts 타입 유연성 개선 (unknown 타입 지원)
-- [ ] **Task 4.7**: Task Service
+- [x] **Task 4.7**: Task Service
     - 파일: `frontend/src/services/taskService.ts`
     - getTaskStatus(taskId)
+    - **완료**: 2026-01-03 (Commit: e197dfb)
+    - getTaskStatus 함수 구현, JSDoc 주석 추가, TypeScript strict mode 통과
+    - targetService.ts 패턴 준수, 테스트 4/4 통과
 - [ ] **Task 4.8**: Target 훅 (TanStack Query)
     - 파일: `frontend/src/hooks/useTargets.ts`
     - targetKeys (Query Key Factory)
