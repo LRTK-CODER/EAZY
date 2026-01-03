@@ -323,9 +323,12 @@
     - **완료**: 2026-01-03 (Commit: d03e729)
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, targetService.ts 파일 미존재)
     - 총 15개 테스트 케이스 작성 (getTargets 4개, getTarget 2개, createTarget 3개, updateTarget 2개, deleteTarget 2개, triggerScan 2개)
-- [ ] **Test 4.2**: Task Service 테스트
+- [x] **Test 4.2**: Task Service 테스트
     - 파일: `frontend/src/services/taskService.test.ts`
     - getTaskStatus(taskId): Task 상태 조회 (GET /tasks/{task_id})
+    - **완료**: 2026-01-03 (Commit: d38773a)
+    - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, taskService.ts 파일 미존재)
+    - 총 4개 테스트 케이스 작성 (기본 성공, 404 에러, RUNNING 상태, COMPLETED with result)
 
 **🟢 GREEN**
 - [ ] **Task 4.3**: 백엔드 단일 Target 조회 API 추가
