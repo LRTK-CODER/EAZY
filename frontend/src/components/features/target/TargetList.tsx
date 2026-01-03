@@ -94,7 +94,7 @@ function ScanStatusBadge({ projectId, targetId }: { projectId: number; targetId:
 /**
  * TargetList component displays a table of targets with actions
  * Features:
- * - Table rendering with columns: Name, URL, Scope, Created At, Actions
+ * - Table rendering with columns: Name, URL, Scope, Status, Created At, Actions
  * - Loading/Error/Empty states
  * - Edit/Delete/Scan actions for each target
  * - Scan status badges with real-time updates
@@ -160,6 +160,7 @@ export function TargetList({ projectId }: TargetListProps) {
                 <TableHead>Name</TableHead>
                 <TableHead>URL</TableHead>
                 <TableHead>Scope</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Created At</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -167,7 +168,7 @@ export function TargetList({ projectId }: TargetListProps) {
             <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
+              <TableCell colSpan={6} className="h-24 text-center">
                 <div className="flex items-center justify-center">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mr-2" />
                   <p className="text-sm text-muted-foreground">Loading targets...</p>
@@ -176,30 +177,28 @@ export function TargetList({ projectId }: TargetListProps) {
             </TableRow>
           ) : isError ? (
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
+              <TableCell colSpan={6} className="h-24 text-center">
                 <p className="text-sm text-destructive">Error loading targets</p>
               </TableCell>
             </TableRow>
           ) : targets.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
+              <TableCell colSpan={6} className="h-24 text-center">
                 <p className="text-sm text-muted-foreground">No targets found</p>
               </TableCell>
             </TableRow>
           ) : (
             targets.map((target) => (
             <TableRow key={target.id}>
-              <TableCell className="font-medium">
-                <div className="flex items-center gap-2">
-                  <span>{target.name}</span>
-                  <ScanStatusBadge projectId={target.project_id} targetId={target.id} />
-                </div>
-              </TableCell>
+              <TableCell className="font-medium">{target.name}</TableCell>
               <TableCell className="text-muted-foreground">{target.url}</TableCell>
               <TableCell>
                 <Badge variant="secondary" className="text-xs">
                   {target.scope}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                <ScanStatusBadge projectId={target.project_id} targetId={target.id} />
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {formatDate(target.created_at)}

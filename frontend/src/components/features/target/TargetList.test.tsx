@@ -154,6 +154,7 @@ describe('TargetList Component', () => {
         expect(screen.getByText(/name/i)).toBeInTheDocument();
         expect(screen.getByText(/url/i)).toBeInTheDocument();
         expect(screen.getByText(/scope/i)).toBeInTheDocument();
+        expect(screen.getByText(/status/i)).toBeInTheDocument();
         expect(screen.getByText(/created at/i)).toBeInTheDocument();
         expect(screen.getByText(/actions/i)).toBeInTheDocument();
       });
