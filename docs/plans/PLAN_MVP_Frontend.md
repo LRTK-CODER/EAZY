@@ -2,7 +2,7 @@
 
 **상태**: 🔄 Phase 4 진행 중
 **시작일**: 2025-12-28
-**최근 업데이트**: 2026-01-04
+**최근 업데이트**: 2026-01-04 (Step 3 RED Phase 완료)
 **예상 완료일**: 2026-01-05
 
 ---
@@ -460,13 +460,17 @@ npm run storybook
 **목표**: 삭제 다이얼로그 및 Target 목록 UI 구현
 
 **🔴 RED**
-- [ ] **Test 4.17**: DeleteTargetDialog 테스트
+- [x] **Test 4.17**: DeleteTargetDialog 테스트
     - 파일: `frontend/src/components/features/target/DeleteTargetDialog.test.tsx`
     - AlertDialog 렌더링, useDeleteTarget 호출, 영구 삭제 경고
-- [ ] **Test 4.18**: TargetList 테스트
+    - **완료**: 2026-01-04 (Commit: bbfd5d6)
+    - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, 14개 테스트)
+- [x] **Test 4.18**: TargetList 테스트
     - 파일: `frontend/src/components/features/target/TargetList.test.tsx`
     - Table 렌더링, 로딩/에러/빈 상태, Edit/Delete/Scan 버튼
     - 스캔 상태 표시 (PENDING, RUNNING, COMPLETED, FAILED 뱃지)
+    - **완료**: 2026-01-04 (Commit: 88f5fff)
+    - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, 22개 테스트)
 
 **🟢 GREEN**
 - [ ] **Task 4.19**: DeleteTargetDialog 컴포넌트
