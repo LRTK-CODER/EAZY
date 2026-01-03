@@ -42,22 +42,22 @@ const axiosInstance: AxiosInstance = axios.create({
 // );
 
 // HTTP method wrappers
-export const get = async <T = unknown>(url: string, params?: Record<string, unknown>): Promise<T> => {
+export const get = async <T = unknown>(url: string, params?: unknown): Promise<T> => {
   const response = await axiosInstance.get<T>(url, params ? { params } : undefined);
   return response.data;
 };
 
-export const post = async <T = unknown>(url: string, data?: Record<string, unknown>): Promise<T> => {
+export const post = async <T = unknown>(url: string, data?: unknown): Promise<T> => {
   const response = await axiosInstance.post<T>(url, data);
   return response.data;
 };
 
-export const put = async <T = unknown>(url: string, data?: Record<string, unknown>): Promise<T> => {
+export const put = async <T = unknown>(url: string, data?: unknown): Promise<T> => {
   const response = await axiosInstance.put<T>(url, data);
   return response.data;
 };
 
-export const patch = async <T = unknown>(url: string, data?: Record<string, unknown>): Promise<T> => {
+export const patch = async <T = unknown>(url: string, data?: unknown): Promise<T> => {
   const response = await axiosInstance.patch<T>(url, data);
   return response.data;
 };
