@@ -114,6 +114,30 @@ async def read_targets(
     service = TargetService(session)
     return await service.get_targets(project_id, skip=skip, limit=limit)
 
+@router.get("/{project_id}/targets/{target_id}", response_model=TargetRead)
+async def read_target(
+    project_id: int,
+    target_id: int,
+    session: AsyncSession = Depends(get_session)
+):
+    # Verify project exists first
+    project_service = ProjectService(session)
+    if not await project_service.get_project(project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Get the specific target
+    service = TargetService(session)
+    target = await service.get_target(target_id)
+
+    if not target:
+        raise HTTPException(status_code=404, detail="Target not found")
+
+    # Verify target belongs to the project
+    if target.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Target not found")
+
+    return target
+
 @router.delete("/{project_id}/targets/{target_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_target(
     project_id: int,
