@@ -353,9 +353,13 @@
     - 3개 타입 정의 완료, JSDoc 주석 추가, TypeScript strict mode 통과
     - 백엔드 Task 모델과 100% 일치, target.ts 패턴 재사용
     - taskService.test.ts 업데이트 (@ts-expect-error 제거)
-- [ ] **Task 4.6**: Target Service
+- [x] **Task 4.6**: Target Service
     - 파일: `frontend/src/services/targetService.ts`
     - getTargets, getTarget, createTarget, updateTarget, deleteTarget, triggerScan
+    - **완료**: 2026-01-03 (Commit: 89cd96b)
+    - 6개 함수 구현 완료, JSDoc 주석 추가, TypeScript strict mode 통과
+    - projectService.ts 패턴 준수, 테스트 15/15 통과
+    - lib/api.ts 타입 유연성 개선 (unknown 타입 지원)
 - [ ] **Task 4.7**: Task Service
     - 파일: `frontend/src/services/taskService.ts`
     - getTaskStatus(taskId)
