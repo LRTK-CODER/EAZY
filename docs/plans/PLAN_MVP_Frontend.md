@@ -331,10 +331,13 @@
     - 총 4개 테스트 케이스 작성 (기본 성공, 404 에러, RUNNING 상태, COMPLETED with result)
 
 **🟢 GREEN**
-- [ ] **Task 4.3**: 백엔드 단일 Target 조회 API 추가
+- [x] **Task 4.3**: 백엔드 단일 Target 조회 API 추가
     - 파일: `backend/app/api/v1/endpoints/project.py`
     - GET /projects/{project_id}/targets/{target_id} 엔드포인트 추가
     - 검증: `pytest backend/tests/ -k target` 통과
+    - **완료**: 2026-01-03
+    - 테스트 결과: ✅ PASS (4/4 tests passed)
+    - Lines 117-139: read_target 엔드포인트 추가 (프로젝트 검증 → 타겟 조회 → 소유권 확인)
 - [ ] **Task 4.4**: Target 타입 정의
     - 파일: `frontend/src/types/target.ts`
     - TargetScope enum, Target, TargetCreate, TargetUpdate, TargetListParams, ScanTriggerResponse
