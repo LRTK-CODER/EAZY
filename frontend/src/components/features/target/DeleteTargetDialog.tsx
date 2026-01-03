@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { AlertCircle } from 'lucide-react';
 import { useDeleteTarget } from '@/hooks/useTargets';
 import {
   AlertDialog,
@@ -58,8 +59,9 @@ export function DeleteTargetDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <AlertDialogDescription className="text-destructive">
-          This action cannot be undone.
+        <AlertDialogDescription className="flex items-center gap-2 text-destructive">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          <span>This action cannot be undone.</span>
         </AlertDialogDescription>
 
         <AlertDialogFooter>
