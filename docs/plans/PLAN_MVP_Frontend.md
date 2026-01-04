@@ -2,7 +2,7 @@
 
 **상태**: 🔄 Phase 4 진행 중
 **시작일**: 2025-12-28
-**최근 업데이트**: 2026-01-04 (Step 4 Test 4.21 완료 - TDD RED phase)
+**최근 업데이트**: 2026-01-04 (Step 4 Task 4.22 완료 - TDD GREEN phase)
 **예상 완료일**: 2026-01-05
 
 ---
@@ -516,10 +516,13 @@ npm run build
     - 테스트 구성: Route extraction (3), Page rendering (6), Loading/Error (3), TargetList (4), Add Target button (4), Dialog (5), Integration (3)
 
 **🟢 GREEN**
-- [ ] **Task 4.22**: ProjectDetailPage 확장
+- [x] **Task 4.22**: ProjectDetailPage 확장
     - 파일: `frontend/src/pages/ProjectDetailPage.tsx` (수정)
     - 기존 구조 유지, Target 섹션 추가
     - TargetList + "Add Target" 버튼 + CreateTargetForm Dialog
+    - **완료**: 2026-01-04 (Commit: 64c2fd6)
+    - 구현 결과: 28/28 테스트 모두 통과 (100%)
+    - 에이전트 협업: typescript-pro (구현), ui-designer (UI 검토 8.5/10), ux-researcher (UX 검토 8.5/10)
 
 **✅ 수동 테스트 체크포인트 4 (최종)**
 ```bash
