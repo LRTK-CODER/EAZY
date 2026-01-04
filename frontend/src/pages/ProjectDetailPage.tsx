@@ -1,13 +1,17 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Loader2, AlertCircle, ArrowLeft, Plus } from 'lucide-react';
 import { formatDistanceToNow } from '@/utils/date';
 import { useProject } from '@/hooks/useProjects';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { TargetList } from '@/components/features/target/TargetList';
+import { CreateTargetForm } from '@/components/features/target/CreateTargetForm';
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: project, isLoading, isError } = useProject(Number(id));
+  const [createTargetOpen, setCreateTargetOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -62,10 +66,25 @@ export function ProjectDetailPage() {
 
       <Separator className="mb-6" />
 
-      {/* Future expansion area - Tabs, Scan Results, etc. */}
-      <div className="text-muted-foreground">
-        Additional project features will be added here.
+      {/* Target Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-semibold">Targets</h2>
+          <Button onClick={() => setCreateTargetOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Target
+          </Button>
+        </div>
+
+        <TargetList projectId={Number(id)} />
       </div>
+
+      {/* CreateTargetForm Dialog */}
+      <CreateTargetForm
+        open={createTargetOpen}
+        onOpenChange={setCreateTargetOpen}
+        projectId={Number(id)}
+      />
     </div>
   );
 }
