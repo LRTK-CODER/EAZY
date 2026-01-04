@@ -2,7 +2,7 @@
 
 **상태**: 🔄 Phase 4 진행 중
 **시작일**: 2025-12-28
-**최근 업데이트**: 2026-01-04 (Step 3 GREEN Phase 완료 - UI/UX 검토 포함)
+**최근 업데이트**: 2026-01-04 (Step 4 Test 4.21 완료 - TDD RED phase)
 **예상 완료일**: 2026-01-05
 
 ---
@@ -507,10 +507,13 @@ npm run build
 **목표**: 모든 컴포넌트를 ProjectDetailPage에 통합
 
 **🔴 RED**
-- [ ] **Test 4.21**: ProjectDetailPage 확장 테스트
+- [x] **Test 4.21**: ProjectDetailPage 확장 테스트
     - 파일: `frontend/src/pages/ProjectDetailPage.test.tsx`
     - URL 파라미터 `id` 추출 확인
     - TargetList 렌더링, "Add Target" 버튼 → CreateTargetForm Dialog
+    - **완료**: 2026-01-04 (Commit: f67bd35)
+    - 테스트 결과: 28개 테스트 작성 (14개 통과, 14개 실패 - TDD RED phase 예상대로)
+    - 테스트 구성: Route extraction (3), Page rendering (6), Loading/Error (3), TargetList (4), Add Target button (4), Dialog (5), Integration (3)
 
 **🟢 GREEN**
 - [ ] **Task 4.22**: ProjectDetailPage 확장
