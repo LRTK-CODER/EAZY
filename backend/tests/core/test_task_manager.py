@@ -7,12 +7,13 @@ async def test_enqueue_task(client):
     """Test enqueuing a crawl task."""
     mock_redis = AsyncMock()
     task_manager = TaskManager(redis=mock_redis)
-    
+
     project_id = 1
     target_id = 1
-    
-    task_id = await task_manager.enqueue_crawl_task(project_id, target_id)
-    
+    db_task_id = 123  # DB에 생성된 Task ID
+
+    task_id = await task_manager.enqueue_crawl_task(project_id, target_id, db_task_id)
+
     assert task_id is not None
     # Verify Redis rpush was called to add to queue
     mock_redis.rpush.assert_called_once()
