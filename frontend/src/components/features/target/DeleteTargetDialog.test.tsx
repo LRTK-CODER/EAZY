@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { DeleteTargetDialog } from './DeleteTargetDialog';
 import * as targetService from '@/services/targetService';
 import { toast } from 'sonner';
+import { AxiosError } from 'axios';
 import type { Target } from '@/types/target';
 
 // Mock the target service
@@ -152,7 +153,9 @@ describe('DeleteTargetDialog Component', () => {
             await user.click(deleteButton);
 
             await waitFor(() => {
-                expect(toast.success).toHaveBeenCalledWith('Target deleted successfully');
+                expect(toast.success).toHaveBeenCalledWith('Target deleted successfully', {
+                    description: 'Related tasks and assets were also removed.',
+                });
             });
         });
 
@@ -174,7 +177,9 @@ describe('DeleteTargetDialog Component', () => {
             await user.click(deleteButton);
 
             await waitFor(() => {
-                expect(toast.error).toHaveBeenCalledWith('Failed to delete target');
+                expect(toast.error).toHaveBeenCalledWith('Failed to delete target', {
+                    description: 'An unexpected error occurred. Please try again.',
+                });
             });
         });
 
@@ -303,6 +308,117 @@ describe('DeleteTargetDialog Component', () => {
 
             // Dialog should still render but delete button might be disabled
             expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
+        });
+    });
+
+    describe('Error Handling', () => {
+        it('shows 404 error message when target not found', async () => {
+            const axiosError = new AxiosError(
+                'Not Found',
+                '404',
+                undefined,
+                undefined,
+                {
+                    status: 404,
+                    statusText: 'Not Found',
+                    data: { detail: 'Target not found' },
+                    headers: {},
+                    config: {} as any,
+                }
+            );
+
+            vi.mocked(targetService.deleteTarget).mockRejectedValue(axiosError);
+
+            const { user } = renderWithProviders(
+                <DeleteTargetDialog
+                    open={true}
+                    onOpenChange={vi.fn()}
+                    target={mockTarget}
+                    projectId={1}
+                />
+            );
+
+            const deleteButton = screen.getByRole('button', { name: /delete/i });
+            await user.click(deleteButton);
+
+            await waitFor(() => {
+                expect(toast.error).toHaveBeenCalledWith('Target not found', {
+                    description: 'The target may have been already deleted.',
+                });
+            });
+        });
+
+        it('shows 500 error message with database error details', async () => {
+            const axiosError = new AxiosError(
+                'Internal Server Error',
+                '500',
+                undefined,
+                undefined,
+                {
+                    status: 500,
+                    statusText: 'Internal Server Error',
+                    data: { detail: 'Database connection failed' },
+                    headers: {},
+                    config: {} as any,
+                }
+            );
+
+            vi.mocked(targetService.deleteTarget).mockRejectedValue(axiosError);
+
+            const { user } = renderWithProviders(
+                <DeleteTargetDialog
+                    open={true}
+                    onOpenChange={vi.fn()}
+                    target={mockTarget}
+                    projectId={1}
+                />
+            );
+
+            const deleteButton = screen.getByRole('button', { name: /delete/i });
+            await user.click(deleteButton);
+
+            await waitFor(() => {
+                expect(toast.error).toHaveBeenCalledWith('Failed to delete target', {
+                    description: 'Database error: Database connection failed',
+                });
+            });
+        });
+
+        it('shows success message with CASCADE information', async () => {
+            vi.mocked(targetService.deleteTarget).mockResolvedValue(undefined);
+
+            const { user } = renderWithProviders(
+                <DeleteTargetDialog
+                    open={true}
+                    onOpenChange={vi.fn()}
+                    target={mockTarget}
+                    projectId={1}
+                />
+            );
+
+            const deleteButton = screen.getByRole('button', { name: /delete/i });
+            await user.click(deleteButton);
+
+            await waitFor(() => {
+                expect(toast.success).toHaveBeenCalledWith('Target deleted successfully', {
+                    description: 'Related tasks and assets were also removed.',
+                });
+            });
+        });
+
+        it('shows CASCADE warning in dialog description', () => {
+            renderWithProviders(
+                <DeleteTargetDialog
+                    open={true}
+                    onOpenChange={vi.fn()}
+                    target={mockTarget}
+                    projectId={1}
+                />
+            );
+
+            expect(
+                screen.getByText(/permanently delete the target and all related tasks/i)
+            ).toBeInTheDocument();
         });
     });
 });
