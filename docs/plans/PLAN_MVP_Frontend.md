@@ -1,9 +1,9 @@
 # 구현 계획: MVP 프론트엔드
 
-**상태**: ✅ Phase 4 완료
+**상태**: ✅ Phase 4 완료 → ⏳ Phase 5-Pre & Phase 5 대기 중
 **시작일**: 2025-12-28
-**최근 업데이트**: 2026-01-05 (Task 4.23 완료 - CASCADE 구현 및 에러 처리 개선)
-**예상 완료일**: 2026-01-05
+**최근 업데이트**: 2026-01-05 (Phase 5 & 6 계획 수립 완료)
+**예상 완료일**: 2026-01-12 (Phase 5-Pre: 3시간, Phase 5: 13시간, Phase 6: 5시간)
 
 ---
 
@@ -573,31 +573,412 @@ npm run build
 
 ---
 
-### Phase 5: 대시보드 & 스캔 결과
-**목표**: 스캔 결과(Assets)를 시각화.
+## 🎯 Phase 5-Pre: Backend API 추가 (시작 전 필수)
+
+**목표**: Frontend 구현 전에 Target의 모든 Asset을 조회하는 Backend API 추가
 **예상 시간**: 3시간
 **상태**: ⏳ 대기 중
 
+> ⚠️ **중요**: Phase 5 Frontend 작업 전에 반드시 완료해야 함
+
 #### 작업
+
 **🔴 RED: 실패하는 테스트 먼저 작성**
-- [ ] **Test 5.1**: Asset Table 테스트
-    - Method, URL, Type 렌더링 확인.
+
+- [ ] **Test 5-Pre.1**: Backend API 엔드포인트 테스트
+    - 파일: `backend/tests/api/test_targets.py` (기존 파일 확장)
+    - 추가 테스트 케이스 (8개):
+      - `GET /projects/{id}/targets/{tid}/assets` 엔드포인트 존재 확인
+      - 정상 응답 (200 OK, Asset[] 반환)
+      - Target이 없을 때 404 에러
+      - Project가 없을 때 404 에러
+      - Target의 다른 Project Asset은 반환하지 않음 (권한 검증)
+      - 빈 Asset 목록 반환 (스캔 이력 없음)
+      - content_hash 기반 중복 제거 확인
+      - last_seen_at 최신 순 정렬 확인
+    - 예상 결과: ❌ FAIL (엔드포인트 미구현)
 
 **🟢 GREEN: 테스트를 통과하도록 구현**
-- [ ] **Task 5.2**: Asset Service & Query
-    - `GET /tasks/{id}/assets`.
-    - (선택사항) `GET /projects/{id}/assets` (전체 뷰) - *백엔드 지원 필요 또는 파생 뷰*.
-- [ ] **Task 5.3**: Asset Table 컴포넌트
-    - `components/features/asset/AssetTable.tsx`.
-    - 열: Hash, Method, URL, Type, Last Seen.
 
-**🔵 REFACTOR: 코드 품질 개선**
-- [ ] **Task 5.4**: 데이터 테이블 최적화
-    - 데이터가 많을 경우 페이지네이션/정렬 구현.
-    - 비용이 많이 드는 행 메모이제이션.
+- [ ] **Task 5-Pre.2**: Backend API 엔드포인트 추가
+    - 파일: `backend/app/api/v1/endpoints/project.py` (수정)
+    - 위치: Line 140 부근 (read_target 엔드포인트 이후)
+    - 구현:
+      ```python
+      @router.get("/projects/{project_id}/targets/{target_id}/assets",
+                  response_model=List[AssetRead])
+      async def get_target_assets(
+          project_id: int,
+          target_id: int,
+          session: AsyncSession = Depends(get_session)
+      ):
+          """Get all unique assets for a target"""
+          from app.models.asset import Asset
+          from app.models.target import Target
+          from sqlmodel import select
+
+          # Verify project and target exist
+          project = await session.get(Project, project_id)
+          if not project:
+              raise HTTPException(status_code=404, detail="Project not found")
+
+          target = await session.get(Target, target_id)
+          if not target or target.project_id != project_id:
+              raise HTTPException(status_code=404, detail="Target not found")
+
+          # Query all assets (deduplication by content_hash UNIQUE)
+          statement = (
+              select(Asset)
+              .where(Asset.target_id == target_id)
+              .order_by(Asset.last_seen_at.desc())
+          )
+          results = await session.execute(statement)
+          return results.scalars().all()
+      ```
+    - 테스트 결과: ✅ 8/8 통과 확인
+
+- [ ] **Task 5-Pre.3**: API 문서 업데이트
+    - 파일: `docs/api_spec.md` (수정)
+    - 새 엔드포인트 문서 추가
 
 #### 품질 게이트 ✋
-- [ ] 스캔 결과를 볼 수 있음.
+- [ ] Backend 테스트 8/8 통과
+- [ ] `uv run pytest backend/tests/api/test_targets.py -k assets`
+- [ ] Swagger UI에서 엔드포인트 확인 (http://localhost:8000/docs)
+- [ ] curl 테스트: `curl http://localhost:8000/api/v1/projects/1/targets/1/assets`
+
+---
+
+## 🎯 Phase 5: 스캔 결과 (Scan Results)
+
+**목표**: Target별 스캔 결과(Assets) 조회 및 시각화 (Full 버전 - 필터링/정렬 포함)
+**예상 시간**: 13시간
+**상태**: ⏳ 대기 중 (Phase 5-Pre 완료 후 시작)
+
+### 아키텍처 결정
+
+| 결정 사항 | 근거 | 트레이드오프 |
+|----------|------|------------|
+| **Backend API 우선** | 깔끔한 구조, 브라우저 간 동기화 | Backend 작업 추가 (Phase 5-Pre) |
+| **New Page Navigation** | Full screen, 명확한 정보 계층 | Dialog 대비 클릭 depth 증가 |
+| **Full 구현** | 처음부터 완성도 높은 기능 제공 | MVP 대비 3시간 추가 |
+| **Polling 10s** | 기존 패턴 재사용, 구현 간단 | WebSocket 대비 효율 낮음 (MVP 충분) |
+
+---
+
+### Step 1: Asset 인프라 구축
+**목표**: Asset 데이터 처리 기반 (Types, Service, Hooks)
+**예상 시간**: 3시간
+
+#### 작업
+
+**🔴 RED: 실패하는 테스트 먼저 작성**
+
+- [ ] **Test 5.1**: Asset Service 테스트
+    - 파일: `frontend/src/services/assetService.test.ts`
+    - getTargetAssets(projectId, targetId) 함수 테스트 (10개)
+    - 예상: ❌ FAIL
+
+- [ ] **Test 5.2**: Asset Hooks 테스트
+    - 파일: `frontend/src/hooks/useAssets.test.ts`
+    - useTargetAssets 훅 테스트 (8개)
+    - 예상: ❌ FAIL
+
+**🟢 GREEN: 테스트를 통과하도록 구현**
+
+- [ ] **Task 5.3**: Asset 타입 정의
+    - 파일: `frontend/src/types/asset.ts`
+    - AssetType, AssetSource enum, Asset interface
+
+- [ ] **Task 5.4**: Asset Service
+    - 파일: `frontend/src/services/assetService.ts`
+    - getTargetAssets(projectId, targetId) 함수 구현
+
+- [ ] **Task 5.5**: Asset Hooks (TanStack Query)
+    - 파일: `frontend/src/hooks/useAssets.ts`
+    - useTargetAssets 훅 (10초 폴링)
+
+#### ✅ 체크포인트 1
+```bash
+npm run test -- asset
+npm run build
+curl http://localhost:8000/api/v1/projects/1/targets/1/assets
+```
+
+---
+
+### Step 2: TargetResultsPage & AssetTable 구현
+**목표**: 새 페이지 및 Asset Table (MVP)
+**예상 시간**: 4시간
+
+#### 작업
+
+**🔴 RED**
+
+- [ ] **Test 5.6**: AssetTable 테스트 (20개)
+    - 파일: `frontend/src/components/features/asset/AssetTable.test.tsx`
+    - Rendering, Column Display, Sorting, Pagination
+
+- [ ] **Test 5.7**: TargetResultsPage 테스트 (20개)
+    - 파일: `frontend/src/pages/TargetResultsPage.test.tsx`
+    - Route, Data Fetching, Integration, Edge Cases
+
+**🟢 GREEN**
+
+- [ ] **Task 5.8**: Breadcrumb 컴포넌트 추가
+    - `npx shadcn@latest add breadcrumb`
+
+- [ ] **Task 5.9**: AssetTable 컴포넌트 (MVP)
+    - 파일: `frontend/src/components/features/asset/AssetTable.tsx`
+    - Table, Loading/Error/Empty, Badges
+
+- [ ] **Task 5.10**: TargetResultsPage (MVP)
+    - 파일: `frontend/src/pages/TargetResultsPage.tsx`
+    - Breadcrumb, Target Header, AssetTable
+
+- [ ] **Task 5.11**: App.tsx 라우트 추가
+    - `/projects/:projectId/targets/:targetId/results`
+
+#### ✅ 체크포인트 2
+```bash
+npm run test -- AssetTable TargetResultsPage
+브라우저: /projects/1/targets/1/results
+```
+
+---
+
+### Step 3: TargetList "View Results" 버튼
+**목표**: TargetList에서 결과 페이지로 이동
+**예상 시간**: 2시간
+
+#### 작업
+
+**🔴 RED**
+
+- [ ] **Test 5.12**: TargetList "View Results" 버튼 테스트 (8개)
+    - 파일: `frontend/src/components/features/target/TargetList.test.tsx` (확장)
+
+**🟢 GREEN**
+
+- [ ] **Task 5.13**: "View Results" 버튼 추가
+    - 파일: `frontend/src/components/features/target/TargetList.tsx` (수정)
+    - BarChart 아이콘, Actions 컬럼
+
+#### ✅ 체크포인트 3
+```bash
+브라우저: ProjectDetailPage → "View Results" 클릭 → TargetResultsPage
+```
+
+---
+
+### Step 4: 고급 기능 (Filtering, Sorting, Search)
+**목표**: Asset Table 필터링/정렬 추가
+**예상 시간**: 3시간
+
+#### 작업
+
+**🔴 RED**
+
+- [ ] **Test 5.14**: Asset Filtering 테스트 (10개)
+    - Type, Source, Method 필터, URL 검색, Reset
+
+- [ ] **Test 5.15**: Asset Sorting 테스트 (8개)
+    - 컬럼 정렬, 정렬 아이콘, LocalStorage
+
+**🟢 GREEN**
+
+- [ ] **Task 5.16**: Select 컴포넌트 추가
+    - `npx shadcn@latest add select` (확인)
+
+- [ ] **Task 5.17**: Asset Filtering 구현
+    - Type/Source/Method 드롭다운, URL 검색, Reset 버튼
+
+- [ ] **Task 5.18**: Asset Sorting 구현
+    - 컬럼 헤더 클릭, 정렬 아이콘 (ChevronUp/Down)
+
+#### ✅ 체크포인트 4
+```bash
+브라우저: 필터링/정렬 동작 확인
+```
+
+---
+
+**🔵 REFACTOR: 코드 품질 개선** (1시간)
+
+- [ ] **Task 5.19**: Asset 컴포넌트 추상화
+    - AssetTableFilters.tsx, AssetTableHeader.tsx, AssetTableRow.tsx, AssetBadge.tsx 분리
+
+- [ ] **Task 5.20**: Asset 타입 가드 추가
+    - isAssetType(), isAssetSource()
+
+- [ ] **Task 5.21**: ESLint/TypeScript 확인
+    - `npm run lint`, `npm run build`
+
+---
+
+#### 품질 게이트 ✋
+
+**Backend**
+- [ ] Backend 테스트 8/8 통과 (Phase 5-Pre)
+
+**Build & Compilation**
+- [ ] `npm run build` 성공
+- [ ] TypeScript 타입 에러 없음
+
+**TDD**
+- [ ] Asset Service: 10/10
+- [ ] Asset Hooks: 8/8
+- [ ] AssetTable: 38/38
+- [ ] TargetResultsPage: 20/20
+- [ ] TargetList: 8/8
+- [ ] 커버리지 ≥80%
+
+**Functionality**
+- [ ] `/projects/{id}/targets/{tid}/results` 접근 가능
+- [ ] "View Results" 버튼 표시
+- [ ] Breadcrumb 네비게이션
+- [ ] Asset Table 데이터 표시 (Loading/Error/Empty)
+- [ ] 실시간 업데이트 (10초 폴링)
+- [ ] 필터링/정렬/검색 작동
+
+**Code Quality**
+- [ ] `npm run lint` 통과
+- [ ] JSDoc 주석
+- [ ] API 문서 업데이트
+
+**Phase 5 완료**: ✅ (날짜 기록)
+
+---
+
+## 🎯 Phase 5.5: Backend Asset 파라미터 & Flow 추적
+
+**목표**: 크롤러 확장 - Form/XHR 탐지 및 파라미터 타입 추론
+**예상 시간**: 5-7일
+**상태**: ⏳ 대기 중 (Phase 5-Pre와 병행)
+**병행**: Frontend Phase 5와 동시 진행 가능
+
+### 핵심 기능
+1. **파라미터 타입 추론**: int, string, datetime, union type 지원
+2. **Flow 추적**: sequence_order로 API 호출 순서 기록
+3. **Form 탐지**: `<form>` 태그 파싱 및 입력 필드 추출
+4. **XHR 탐지**: Playwright NetworkRoute로 AJAX 요청 캡처
+
+### 작업 목록
+
+#### Task 5.5.1: 타입 추론 유틸리티 (1일)
+- [ ] RED: TypeInferenceEngine 테스트 작성 (20개)
+- [ ] GREEN: 정규식 기반 타입 추론 구현
+- [ ] REFACTOR: Datetime 형식 확장
+
+#### Task 5.5.2: DB 스키마 확장 (0.5일)
+- [ ] Alembic 마이그레이션 (sequence_order 추가)
+- [ ] 기존 데이터 마이그레이션
+
+#### Task 5.5.3: DiscoveredAsset 설계 (0.5일)
+- [ ] DiscoveredAsset 데이터클래스 정의
+- [ ] CrawlerService 반환 타입 변경
+
+#### Task 5.5.4: Form 탐지 (2일)
+- [ ] RED: Form 크롤링 테스트 (10개)
+- [ ] GREEN: extract_forms() 구현
+- [ ] REFACTOR: 중복 코드 제거
+
+#### Task 5.5.5: XHR 탐지 (2일)
+- [ ] RED: XHR 캡처 테스트 (8개)
+- [ ] GREEN: NetworkRoute 구현
+- [ ] JSON Body Flattening 통합
+
+#### Task 5.5.6: 파라미터 추론 통합 (2일)
+- [ ] RED: 파라미터 추론 테스트 (15개)
+- [ ] GREEN: AssetService 리팩토링
+- [ ] Union type 병합 로직
+
+#### Task 5.5.7: Worker 통합 & API (1.5일)
+- [ ] Worker 크롤링 로직 업데이트
+- [ ] GET /tasks/{id}/assets/detailed 추가
+- [ ] 통합 테스트 (실제 Playwright)
+
+### 품질 게이트 ✋
+- [ ] 56개 신규 테스트 모두 통과
+- [ ] 기존 Backend 테스트 모두 통과
+- [ ] mypy strict 통과
+- [ ] 실제 웹사이트 크롤링 성공 (Form + XHR 탐지)
+- [ ] Asset 테이블에 parameters JSONB 데이터 확인
+- [ ] sequence_order 순서 보존 확인
+
+**Phase 5.5 완료**: ✅ (날짜 기록)
+
+---
+
+## 🎯 Phase 6: 대시보드 (Dashboard)
+
+**목표**: 전체 프로젝트 통계 및 최근 활동 시각화
+**예상 시간**: 5시간
+**상태**: ⏳ 대기 중 (Phase 5 완료 후)
+
+### 핵심 기능
+1. **프로젝트 통계**: 전체/활성/아카이브 수
+2. **Target 통계**: 전체 수, Scope 분포
+3. **스캔 활동**: 최근 스캔, 상태 분포
+4. **Asset 통계**: 총 수, Type 분포
+5. **최근 활동 타임라인**: 7일간 이력
+
+### 구현 개요 (상세 계획은 Phase 5 완료 후)
+
+#### Step 1: Dashboard API/집계 (2시간)
+- `GET /api/v1/dashboard/stats` 엔드포인트 추가 (권장)
+- 또는 Frontend 집계 로직
+
+#### Step 2: Dashboard 컴포넌트 (2시간)
+- StatsCard.tsx (4개 카드)
+- ChartCard.tsx (Recharts)
+- RecentActivityList.tsx
+
+#### Step 3: 테스트 (1시간)
+- DashboardPage 테스트 (20개)
+
+#### 품질 게이트 ✋
+- [ ] Dashboard 페이지 접근 (`/dashboard`)
+- [ ] 통계 카드 4개
+- [ ] 차트 2개
+- [ ] 최근 활동 목록 (10개)
+- [ ] 테스트 20/20 통과
+
+**Phase 6 완료**: ✅ (날짜 기록)
+
+---
+
+## 🔍 Phase 5.2: 추후 기능 (선택 사항)
+
+**사용자 우선순위 순서**:
+
+1. **Export to CSV** (1시간)
+   - Asset Table → CSV 다운로드
+   - 필터/정렬 결과 반영
+
+2. **Target Context Card** (2시간)
+   - TargetResultsPage 상단 카드
+   - Target 메타데이터, Edit/Delete 버튼
+
+3. **Target Switcher Dropdown** (2시간)
+   - Breadcrumb 드롭다운
+   - 동일 프로젝트 내 Target 전환
+
+4. **Row Expansion** (2시간)
+   - Asset 행 클릭 → 상세 Dialog
+   - request_spec, response_spec 표시
+
+---
+
+## 📅 예상 일정
+
+| Phase | 예상 시간 | 상태 |
+|-------|----------|------|
+| Phase 5-Pre (Backend) | 3시간 | ⏳ |
+| Phase 5 (스캔 결과) | 13시간 | ⏳ |
+| Phase 6 (대시보드) | 5시간 | ⏳ |
+| Phase 5.2 (추후) | 7시간 | ⏳ 선택 |
+| **Total** | **21-28시간** | **5-7일** |
 
 ---
 
