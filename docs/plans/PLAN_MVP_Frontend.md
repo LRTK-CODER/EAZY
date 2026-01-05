@@ -1,8 +1,8 @@
 # 구현 계획: MVP 프론트엔드
 
-**상태**: 🔄 Phase 4 진행 중
+**상태**: ✅ Phase 4 완료
 **시작일**: 2025-12-28
-**최근 업데이트**: 2026-01-04 (Step 4 Task 4.22 완료 - TDD GREEN phase)
+**최근 업데이트**: 2026-01-05 (Task 4.23 완료 - CASCADE 구현 및 에러 처리 개선)
 **예상 완료일**: 2026-01-05
 
 ---
@@ -305,7 +305,7 @@
 ### Phase 4: 프로젝트 상세 페이지 & Target 관리
 **목표**: 기존 ProjectDetailPage를 확장하여 Target CRUD 및 스캔 상태 폴링 구현.
 **예상 시간**: 8시간
-**상태**: ⏳ 대기 중
+**상태**: ✅ 완료 (2026-01-05)
 
 > **참고**: ProjectDetailPage.tsx와 `/projects/:id` 라우트는 이미 존재함 (확장 필요)
 > URL 파라미터: `id` (useParams<{ id: string }>())
@@ -539,26 +539,37 @@ npm run build
 ---
 
 **🔵 REFACTOR: 코드 품질 개선**
-- [ ] **Task 4.23**: 컴포넌트 추상화 및 최적화
-    - TargetFormFields 재사용 확인
-    - ESLint/TypeScript 정리
-    - **완료**: (예정)
+- [x] **Task 4.23**: Target 삭제 CASCADE 구현 및 에러 처리 개선
+    - **Backend**: DB CASCADE 설정으로 외래 키 제약 조건 위반 해결
+      - 마이그레이션: 5개 FK에 ON DELETE CASCADE 추가
+      - 모델 수정: Task, Asset, AssetDiscovery에 sa_column_kwargs 추가
+      - CASCADE 테스트: 9개 추가 (마이그레이션 5개, 서비스 4개)
+      - 테스트 결과: ✅ 33/33 통과
+    - **Frontend**: DeleteTargetDialog 에러 처리 개선
+      - AxiosError 타입별 상세 메시지 (404, 500, 기타)
+      - CASCADE 경고 메시지 강화
+      - 성공 시 CASCADE 정보 제공
+      - 테스트 결과: ✅ 18/18 통과
+    - **완료**: 2026-01-05 (Commits: ae4aeba, e0371e9, 691b264)
+    - **참고**: 스캔 이력이 있는 Target도 삭제 가능, 데이터 무결성 보장
 
 ---
 
 #### 품질 게이트 ✋
-- [ ] 백엔드에서 Target 목록을 조회할 수 있음.
-- [ ] 백엔드에서 단일 Target을 조회할 수 있음.
-- [ ] 새 Target을 생성할 수 있음.
-- [ ] Target을 수정할 수 있음.
-- [ ] Target을 삭제할 수 있음.
-- [ ] "Scan" 버튼 클릭 시 스캔이 트리거되고 Toast 알림이 표시됨.
-- [ ] 스캔 상태가 실시간으로 업데이트됨 (폴링).
-- [ ] 프로젝트 상세 페이지에서 프로젝트명이 표시됨.
-- [ ] 프로젝트 상세 페이지에서 TargetList가 렌더링됨.
-- [ ] 모든 테스트가 모킹된 API로 통과함.
-- [ ] `npm run build`가 성공함.
-- [ ] `npm run lint`가 에러 없이 통과함.
+- [x] 백엔드에서 Target 목록을 조회할 수 있음.
+- [x] 백엔드에서 단일 Target을 조회할 수 있음.
+- [x] 새 Target을 생성할 수 있음.
+- [x] Target을 수정할 수 있음.
+- [x] Target을 삭제할 수 있음 (CASCADE로 스캔 이력 포함 삭제 가능).
+- [x] "Scan" 버튼 클릭 시 스캔이 트리거되고 Toast 알림이 표시됨.
+- [x] 스캔 상태가 실시간으로 업데이트됨 (폴링).
+- [x] 프로젝트 상세 페이지에서 프로젝트명이 표시됨.
+- [x] 프로젝트 상세 페이지에서 TargetList가 렌더링됨.
+- [x] 모든 테스트가 모킹된 API로 통과함 (Backend 33/33, Frontend DeleteTargetDialog 18/18).
+- [x] `npm run build`가 성공함.
+- [x] `npm run lint`가 에러 없이 통과함.
+
+**Phase 4 완료**: ✅ 2026-01-05
 
 ---
 
