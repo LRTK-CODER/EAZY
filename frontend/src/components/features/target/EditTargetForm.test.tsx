@@ -292,7 +292,7 @@ describe('EditTargetForm Component', () => {
 
             // Verify API was called with correct data
             await waitFor(() => {
-                expect(mockUpdateTarget).toHaveBeenCalledWith(1, {
+                expect(mockUpdateTarget).toHaveBeenCalledWith(1, 1, {
                     name: 'Updated Target',
                     url: 'https://updated-example.com',
                     description: 'Updated description',

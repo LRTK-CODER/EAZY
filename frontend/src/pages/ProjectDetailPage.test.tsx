@@ -331,14 +331,21 @@ describe('ProjectDetailPage Component', () => {
         isError: false,
       } as any);
 
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      });
+
       rerender(
-        <QueryClient>
+        <QueryClientProvider client={queryClient}>
           <MemoryRouter initialEntries={['/projects/123']}>
             <div id="root">
               <ProjectDetailPage />
             </div>
           </MemoryRouter>
-        </QueryClient>
+        </QueryClientProvider>
       );
 
       // This test should FAIL initially (TDD RED phase)
