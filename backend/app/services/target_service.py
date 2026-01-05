@@ -33,10 +33,26 @@ class TargetService:
         return db_target
 
     async def delete_target(self, target_id: int) -> bool:
+        """
+        Target 삭제 (DB CASCADE로 관련 데이터 자동 삭제)
+
+        CASCADE 삭제 체인:
+        - Target 삭제 시 자동으로 다음 데이터가 삭제됨:
+          1. tasks (target_id FK) - Target과 연결된 모든 크롤링/스캔 작업
+          2. assets (target_id FK) - Target에서 발견된 모든 공격 표면
+          3. asset_discoveries (asset_id FK) - Asset 삭제 시 함께 삭제되는 발견 이력
+          4. asset_discoveries (task_id FK) - Task 삭제 시 함께 삭제되는 발견 이력
+
+        Args:
+            target_id: 삭제할 Target의 ID
+
+        Returns:
+            bool: 삭제 성공 시 True, Target이 존재하지 않으면 False
+        """
         db_target = await self.get_target(target_id)
         if not db_target:
             return False
-        
+
         await self.session.delete(db_target)
         await self.session.commit()
         return True

@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel, Column
+from sqlalchemy import ForeignKey
 from enum import Enum
 
 def utc_now():
@@ -18,7 +19,10 @@ class TaskType(str, Enum):
 
 class TaskBase(SQLModel):
     project_id: int = Field(foreign_key="projects.id", nullable=False)
-    target_id: Optional[int] = Field(default=None, foreign_key="targets.id")
+    target_id: Optional[int] = Field(
+        default=None,
+        sa_column=Column(ForeignKey("targets.id", ondelete="CASCADE"))
+    )
     type: TaskType = Field(default=TaskType.CRAWL)
     status: TaskStatus = Field(default=TaskStatus.PENDING)
     result: Optional[str] = Field(default=None) # JSON string for result summary

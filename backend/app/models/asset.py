@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from sqlmodel import Field, SQLModel, Column, JSON
+from sqlalchemy import ForeignKey
 from enum import Enum
 
 def utc_now():
@@ -18,7 +19,9 @@ class AssetSource(str, Enum):
     DOM = "dom"
 
 class AssetBase(SQLModel):
-    target_id: int = Field(foreign_key="targets.id", nullable=False)
+    target_id: int = Field(
+        sa_column=Column(ForeignKey("targets.id", ondelete="CASCADE"), nullable=False)
+    )
     content_hash: str = Field(index=True, unique=True, max_length=64)
     type: AssetType = Field(default=AssetType.URL)
     source: AssetSource = Field(default=AssetSource.HTML)
@@ -42,11 +45,18 @@ class Asset(AssetBase, table=True):
 
 class AssetDiscovery(SQLModel, table=True):
     __tablename__ = "asset_discoveries"
-    
+
     id: Optional[int] = Field(default=None, primary_key=True)
-    task_id: int = Field(foreign_key="tasks.id", nullable=False)
-    asset_id: int = Field(foreign_key="assets.id", nullable=False)
-    parent_asset_id: Optional[int] = Field(default=None, foreign_key="assets.id")
+    task_id: int = Field(
+        sa_column=Column(ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False)
+    )
+    asset_id: int = Field(
+        sa_column=Column(ForeignKey("assets.id", ondelete="CASCADE"), nullable=False)
+    )
+    parent_asset_id: Optional[int] = Field(
+        default=None,
+        sa_column=Column(ForeignKey("assets.id", ondelete="CASCADE"))
+    )
     discovered_at: datetime = Field(default_factory=utc_now)
 
 class AssetRead(AssetBase):
