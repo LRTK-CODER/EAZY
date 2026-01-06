@@ -1,8 +1,8 @@
 # 구현 계획: MVP 프론트엔드
 
-**상태**: ✅ Phase 4 완료 → ⏳ Phase 5-Pre & Phase 5 대기 중
+**상태**: ✅ Phase 4 완료 → ⏳ Phase 5-Pre 진행 중 (2/3 완료)
 **시작일**: 2025-12-28
-**최근 업데이트**: 2026-01-05 (Phase 5 & 6 계획 수립 완료)
+**최근 업데이트**: 2026-01-06 (Phase 5-Pre: Test 5-Pre.1 & 5-Pre.2 완료)
 **예상 완료일**: 2026-01-12 (Phase 5-Pre: 3시간, Phase 5: 13시간, Phase 6: 5시간)
 
 ---
@@ -585,7 +585,7 @@ npm run build
 
 **🔴 RED: 실패하는 테스트 먼저 작성**
 
-- [ ] **Test 5-Pre.1**: Backend API 엔드포인트 테스트
+- [x] **Test 5-Pre.1**: Backend API 엔드포인트 테스트
     - 파일: `backend/tests/api/test_targets.py` (기존 파일 확장)
     - 추가 테스트 케이스 (8개):
       - `GET /projects/{id}/targets/{tid}/assets` 엔드포인트 존재 확인
@@ -596,56 +596,36 @@ npm run build
       - 빈 Asset 목록 반환 (스캔 이력 없음)
       - content_hash 기반 중복 제거 확인
       - last_seen_at 최신 순 정렬 확인
-    - 예상 결과: ❌ FAIL (엔드포인트 미구현)
+    - **완료**: 2026-01-06
+    - 테스트 결과: ❌ 6 FAILED, ✅ 2 PASSED (예상대로 - TDD RED Phase)
+    - 테스트 파일: 567줄 (기존 2개 + 신규 8개 테스트)
 
 **🟢 GREEN: 테스트를 통과하도록 구현**
 
-- [ ] **Task 5-Pre.2**: Backend API 엔드포인트 추가
-    - 파일: `backend/app/api/v1/endpoints/project.py` (수정)
-    - 위치: Line 140 부근 (read_target 엔드포인트 이후)
-    - 구현:
-      ```python
-      @router.get("/projects/{project_id}/targets/{target_id}/assets",
-                  response_model=List[AssetRead])
-      async def get_target_assets(
-          project_id: int,
-          target_id: int,
-          session: AsyncSession = Depends(get_session)
-      ):
-          """Get all unique assets for a target"""
-          from app.models.asset import Asset
-          from app.models.target import Target
-          from sqlmodel import select
-
-          # Verify project and target exist
-          project = await session.get(Project, project_id)
-          if not project:
-              raise HTTPException(status_code=404, detail="Project not found")
-
-          target = await session.get(Target, target_id)
-          if not target or target.project_id != project_id:
-              raise HTTPException(status_code=404, detail="Target not found")
-
-          # Query all assets (deduplication by content_hash UNIQUE)
-          statement = (
-              select(Asset)
-              .where(Asset.target_id == target_id)
-              .order_by(Asset.last_seen_at.desc())
-          )
-          results = await session.execute(statement)
-          return results.scalars().all()
-      ```
-    - 테스트 결과: ✅ 8/8 통과 확인
+- [x] **Task 5-Pre.2**: Backend API 엔드포인트 추가
+    - 파일: `backend/app/api/v1/endpoints/project.py` (Line 142-177)
+    - 엔드포인트: `GET /projects/{project_id}/targets/{target_id}/assets`
+    - 기능:
+      - Project 및 Target 존재 확인 (404 에러 처리)
+      - Authorization 검증 (target.project_id == project_id)
+      - Asset 조회 (content_hash UNIQUE 제약 조건)
+      - last_seen_at DESC 정렬
+      - List[AssetRead] 반환
+    - **완료**: 2026-01-06
+    - 테스트 결과: ✅ 8/8 통과
 
 - [ ] **Task 5-Pre.3**: API 문서 업데이트
     - 파일: `docs/api_spec.md` (수정)
     - 새 엔드포인트 문서 추가
 
 #### 품질 게이트 ✋
-- [ ] Backend 테스트 8/8 통과
-- [ ] `uv run pytest backend/tests/api/test_targets.py -k assets`
+- [x] Backend 테스트 8/8 통과
+- [x] `uv run pytest backend/tests/api/test_targets.py -k assets` (✅ 8 passed)
 - [ ] Swagger UI에서 엔드포인트 확인 (http://localhost:8000/docs)
 - [ ] curl 테스트: `curl http://localhost:8000/api/v1/projects/1/targets/1/assets`
+- [ ] **Task 5-Pre.3**: API 문서 업데이트
+
+**Phase 5-Pre 완료**: ⏳ 진행 중 (Task 5-Pre.3 남음)
 
 ---
 
