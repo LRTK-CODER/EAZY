@@ -1,8 +1,8 @@
 # 구현 계획: MVP 프론트엔드
 
-**상태**: ✅ Phase 4 완료 → ⏳ Phase 5-Pre 진행 중 (2/3 완료)
+**상태**: ✅ Phase 5-Pre 완료 → ⏳ Phase 5 대기 중
 **시작일**: 2025-12-28
-**최근 업데이트**: 2026-01-06 (Phase 5-Pre: Test 5-Pre.1 & 5-Pre.2 완료)
+**최근 업데이트**: 2026-01-06 (Phase 5-Pre 완료: Backend API 추가 및 문서화)
 **예상 완료일**: 2026-01-12 (Phase 5-Pre: 3시간, Phase 5: 13시간, Phase 6: 5시간)
 
 ---
@@ -577,7 +577,7 @@ npm run build
 
 **목표**: Frontend 구현 전에 Target의 모든 Asset을 조회하는 Backend API 추가
 **예상 시간**: 3시간
-**상태**: ⏳ 대기 중
+**상태**: ✅ 완료 (2026-01-06)
 
 > ⚠️ **중요**: Phase 5 Frontend 작업 전에 반드시 완료해야 함
 
@@ -614,18 +614,22 @@ npm run build
     - **완료**: 2026-01-06
     - 테스트 결과: ✅ 8/8 통과
 
-- [ ] **Task 5-Pre.3**: API 문서 업데이트
+- [x] **Task 5-Pre.3**: API 문서 업데이트
     - 파일: `docs/api_spec.md` (수정)
     - 새 엔드포인트 문서 추가
+    - **완료**: 2026-01-06
+    - 변경 사항:
+      - Section 3.2 (Targets)에 `GET /{target_id}/assets` bullet point 추가
+      - Section 3.2.1 (Assets) 신규 섹션 추가 (엔드포인트 상세, 응답 예시, 에러 케이스)
 
 #### 품질 게이트 ✋
 - [x] Backend 테스트 8/8 통과
 - [x] `uv run pytest backend/tests/api/test_targets.py -k assets` (✅ 8 passed)
 - [ ] Swagger UI에서 엔드포인트 확인 (http://localhost:8000/docs)
 - [ ] curl 테스트: `curl http://localhost:8000/api/v1/projects/1/targets/1/assets`
-- [ ] **Task 5-Pre.3**: API 문서 업데이트
+- [x] **Task 5-Pre.3**: API 문서 업데이트 (✅ 완료)
 
-**Phase 5-Pre 완료**: ⏳ 진행 중 (Task 5-Pre.3 남음)
+**Phase 5-Pre 완료**: ✅ 2026-01-06
 
 ---
 
