@@ -83,6 +83,7 @@ async def restore_project(
     return
 
 from app.models.target import TargetCreate, TargetRead
+from app.models.asset import AssetRead
 from app.services.target_service import TargetService
 
 @router.post("/{project_id}/targets/", response_model=TargetRead, status_code=status.HTTP_201_CREATED)
@@ -137,6 +138,39 @@ async def read_target(
         raise HTTPException(status_code=404, detail="Target not found")
 
     return target
+
+@router.get("/{project_id}/targets/{target_id}/assets", response_model=List[AssetRead])
+async def get_target_assets(
+    project_id: int,
+    target_id: int,
+    session: AsyncSession = Depends(get_session)
+):
+    """Get all unique assets for a target (sorted by last_seen_at DESC)"""
+    from app.models.asset import Asset
+    from app.models.target import Target
+    from sqlmodel import select
+
+    # Verify project exists
+    project_service = ProjectService(session)
+    if not await project_service.get_project(project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Get the target and verify it belongs to the project
+    target = await session.get(Target, target_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="Target not found")
+
+    if target.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Target not found")
+
+    # Query all assets for the target (ordered by last_seen_at DESC)
+    statement = (
+        select(Asset)
+        .where(Asset.target_id == target_id)
+        .order_by(Asset.last_seen_at.desc())
+    )
+    results = await session.exec(statement)
+    return results.all()
 
 @router.delete("/{project_id}/targets/{target_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_target(
