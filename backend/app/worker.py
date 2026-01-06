@@ -8,8 +8,10 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import settings
 from app.core.queue import TaskManager
+from app.models.project import Project  # Import all models for SQLAlchemy metadata
+from app.models.target import Target
 from app.models.task import Task, TaskStatus, TaskType
-from app.models.asset import AssetType, AssetSource
+from app.models.asset import Asset, AssetDiscovery, AssetType, AssetSource
 from app.services.crawler_service import CrawlerService
 from app.services.asset_service import AssetService
 
@@ -58,7 +60,6 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
     try:
         if task_type == TaskType.CRAWL:
             # We need the Target URL
-            from app.models.target import Target
             target = await session.get(Target, target_id)
             if not target:
                 raise ValueError(f"Target {target_id} not found")

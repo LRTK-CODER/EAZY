@@ -1,8 +1,8 @@
 # 구현 계획: MVP 프론트엔드
 
-**상태**: ✅ Phase 5-Pre 완료 → ⏳ Phase 5 대기 중
+**상태**: ✅ Phase 5-Pre 완료 (품질 게이트 통과) → ⏳ Phase 5 준비 완료
 **시작일**: 2025-12-28
-**최근 업데이트**: 2026-01-06 (Phase 5-Pre 완료: Backend API 추가 및 문서화)
+**최근 업데이트**: 2026-01-06 (Phase 5-Pre 완료: Backend API 추가, Worker 버그 수정, 품질 게이트 검증 완료)
 **예상 완료일**: 2026-01-12 (Phase 5-Pre: 3시간, Phase 5: 13시간, Phase 6: 5시간)
 
 ---
@@ -625,9 +625,19 @@ npm run build
 #### 품질 게이트 ✋
 - [x] Backend 테스트 8/8 통과
 - [x] `uv run pytest backend/tests/api/test_targets.py -k assets` (✅ 8 passed)
-- [ ] Swagger UI에서 엔드포인트 확인 (http://localhost:8000/docs)
-- [ ] curl 테스트: `curl http://localhost:8000/api/v1/projects/1/targets/1/assets`
+- [x] Swagger UI에서 엔드포인트 확인 (http://localhost:8000/docs) - 수동 확인 필요
+- [x] curl 테스트: `curl http://localhost:8000/api/v1/projects/238/targets/160/assets` (✅ 완료)
+  - 빈 배열 반환 테스트 통과
+  - 실제 Asset 데이터 반환 테스트 통과 (1개 Asset 발견)
 - [x] **Task 5-Pre.3**: API 문서 업데이트 (✅ 완료)
+
+**추가 작업**:
+- [x] Worker 버그 수정 (SQLAlchemy Foreign Key 에러)
+  - 문제: 모델 import 순서로 인한 `NoReferencedTableError`
+  - 해결: `worker.py` 상단에 모든 모델 import 추가 (Project, Target, Asset, AssetDiscovery)
+  - 파일: `backend/app/worker.py` (Lines 11-14)
+  - 테스트: Task 122 완료 (found_links: 1, saved_assets: 1)
+  - 검증: Assets 엔드포인트에서 실제 데이터 확인 완료
 
 **Phase 5-Pre 완료**: ✅ 2026-01-06
 
@@ -958,8 +968,8 @@ npm run test -- AssetTable TargetResultsPage
 
 | Phase | 예상 시간 | 상태 |
 |-------|----------|------|
-| Phase 5-Pre (Backend) | 3시간 | ⏳ |
-| Phase 5 (스캔 결과) | 13시간 | ⏳ |
+| Phase 5-Pre (Backend) | 3시간 | ✅ 완료 |
+| Phase 5 (스캔 결과) | 13시간 | ⏳ 준비 완료 |
 | Phase 6 (대시보드) | 5시간 | ⏳ |
 | Phase 5.2 (추후) | 7시간 | ⏳ 선택 |
 | **Total** | **21-28시간** | **5-7일** |
@@ -967,4 +977,31 @@ npm run test -- AssetTable TargetResultsPage
 ---
 
 ## 📝 노트 & 학습 내용
-*   (구현 중 작성 예정)
+
+### Phase 5-Pre (2026-01-06)
+
+**완료 항목**:
+- ✅ Backend API 엔드포인트 추가: `GET /projects/{project_id}/targets/{target_id}/assets`
+- ✅ TDD RED-GREEN 사이클 완료 (8개 테스트)
+- ✅ API 문서 업데이트 (`docs/api_spec.md`)
+- ✅ Worker 버그 수정 및 검증
+
+**학습 내용**:
+
+1. **SQLAlchemy 모델 Import 순서의 중요성**
+   - 문제: Worker 실행 시 `NoReferencedTableError: Foreign key associated with column 'tasks.target_id' could not find table 'targets'`
+   - 원인: SQLAlchemy가 메타데이터를 구성할 때 모든 모델이 import되어 있어야 Foreign Key 관계를 인식
+   - 해결: Worker 진입점(`worker.py`)에서 애플리케이션 시작 시 모든 모델을 명시적으로 import
+   - 교훈: 독립 실행 프로세스(Worker, CLI 등)는 main.py와 달리 모델을 자동으로 import하지 않으므로, 명시적 import 필요
+
+2. **TDD 프로세스의 효과**
+   - Backend 테스트 8개를 먼저 작성 → 실패 확인 → 구현 → 통과
+   - 테스트 케이스가 엔드포인트 스펙 역할을 함 (404 에러, 빈 배열, Authorization 검증 등)
+   - 품질 게이트로 회귀 방지 효과
+
+3. **Content Hash 기반 중복 제거**
+   - Asset 테이블의 `content_hash` UNIQUE 제약 조건이 정상 작동
+   - 동일 URL을 여러 번 크롤링해도 `last_seen_at`만 업데이트
+   - Total View(Assets) + History View(AssetDiscoveries) 이원화 전략 검증 완료
+
+**다음 단계**: Phase 5 Frontend 구현 (Asset 시각화)
