@@ -1,8 +1,8 @@
 # 구현 계획: MVP 프론트엔드
 
-**상태**: ✅ Phase 5-Pre 완료 (품질 게이트 통과) → ⏳ Phase 5 준비 완료
+**상태**: ✅ Phase 5-Pre 완료 → 🔄 Phase 5 Step 2 진행 중 (50% 완료)
 **시작일**: 2025-12-28
-**최근 업데이트**: 2026-01-06 (Phase 5-Pre 완료: Backend API 추가, Worker 버그 수정, 품질 게이트 검증 완료)
+**최근 업데이트**: 2026-01-07 (Phase 5 Step 2: AssetTable 구현 완료 - TDD GREEN 20/20 통과)
 **예상 완료일**: 2026-01-12 (Phase 5-Pre: 3시간, Phase 5: 13시간, Phase 6: 5시간)
 
 ---
@@ -720,27 +720,45 @@ npm run test -- assetService.test.ts useAssets.test.tsx
 ### Step 2: TargetResultsPage & AssetTable 구현
 **목표**: 새 페이지 및 Asset Table (MVP)
 **예상 시간**: 4시간
+**상태**: 🔄 진행 중 (50% 완료)
 
 #### 작업
 
 **🔴 RED**
 
-- [ ] **Test 5.6**: AssetTable 테스트 (20개)
+- [x] **Test 5.6**: AssetTable 테스트 (20개)
     - 파일: `frontend/src/components/features/asset/AssetTable.test.tsx`
     - Rendering, Column Display, Sorting, Pagination
+    - **완료**: 2026-01-07
+    - 테스트 결과: ✅ PASS (20/20 tests passed)
+    - 총 467줄, 4개 describe 블록
 
-- [ ] **Test 5.7**: TargetResultsPage 테스트 (20개)
+- [x] **Test 5.7**: TargetResultsPage 테스트 (20개)
     - 파일: `frontend/src/pages/TargetResultsPage.test.tsx`
     - Route, Data Fetching, Integration, Edge Cases
+    - **완료**: 2026-01-07
+    - 테스트 결과: ❌ FAIL (예상대로 - RED Phase, TargetResultsPage.tsx 미존재)
+    - 총 723줄, 4개 테스트 카테고리
 
 **🟢 GREEN**
 
-- [ ] **Task 5.8**: Breadcrumb 컴포넌트 추가
+- [x] **Task 5.8**: Breadcrumb 컴포넌트 추가
     - `npx shadcn@latest add breadcrumb`
+    - **완료**: 2026-01-07
+    - 파일: `frontend/src/components/ui/breadcrumb.tsx` (확인 완료)
 
-- [ ] **Task 5.9**: AssetTable 컴포넌트 (MVP)
+- [x] **Task 5.9**: AssetTable 컴포넌트 (MVP)
     - 파일: `frontend/src/components/features/asset/AssetTable.tsx`
     - Table, Loading/Error/Empty, Badges
+    - **완료**: 2026-01-07
+    - 테스트 결과: ✅ PASS (20/20 tests passed)
+    - 총 370줄, 8개 컬럼 구현
+    - 주요 기능:
+      - Type/Source Badge (색상 variant)
+      - Sorting (Type, URL, Last Seen) + LocalStorage 저장
+      - Pagination (10/20/50 items per page)
+      - Tooltip (URL hover)
+      - Path truncation (50자 제한)
 
 - [ ] **Task 5.10**: TargetResultsPage (MVP)
     - 파일: `frontend/src/pages/TargetResultsPage.tsx`
@@ -1021,3 +1039,58 @@ npm run test -- AssetTable TargetResultsPage
    - Total View(Assets) + History View(AssetDiscoveries) 이원화 전략 검증 완료
 
 **다음 단계**: Phase 5 Frontend 구현 (Asset 시각화)
+
+---
+
+### Phase 5 Step 2 (2026-01-07)
+
+**완료 항목**:
+- ✅ Test 5.6: AssetTable.test.tsx (20개 테스트, 467줄)
+- ✅ Test 5.7: TargetResultsPage.test.tsx (20개 테스트, 723줄)
+- ✅ Task 5.8: Breadcrumb 컴포넌트 설치
+- ✅ Task 5.9: AssetTable.tsx 구현 (370줄, 20/20 테스트 통과)
+
+**학습 내용**:
+
+1. **TDD RED-GREEN 사이클의 효과**
+   - RED Phase에서 40개 테스트를 먼저 작성 → 명확한 요구사항 정의
+   - GREEN Phase에서 테스트를 통과시키는 최소한의 코드 구현
+   - 테스트가 실패 → 성공으로 전환되는 과정에서 구현 품질 검증
+   - 결과: AssetTable 20/20 테스트 통과 (100%)
+
+2. **React Testing Library 쿼리 전략**
+   - 문제: `getByText('URL')`이 여러 요소를 찾아서 실패 (테이블 헤더 + Badge)
+   - 해결: `getAllByText()` 또는 `getByRole()` 사용
+   - 교훈: 중복 텍스트가 있는 경우 role 기반 쿼리가 더 안정적
+   - 예시:
+     ```typescript
+     // ❌ 실패: 여러 요소 매칭
+     screen.getByText('URL')
+
+     // ✅ 성공: role 기반 쿼리
+     screen.getByRole('link', { name: /https:\/\/example\.com/i })
+     ```
+
+3. **TanStack Table 없이 순수 React로 Table 구현**
+   - shadcn/ui Table 컴포넌트 활용 (기본 HTML table wrapper)
+   - 클라이언트 사이드 정렬/페이지네이션 구현 (useState)
+   - LocalStorage 연동으로 정렬 상태 영구 저장
+   - 370줄로 완전한 기능의 Table 구현 (sorting, pagination, badges)
+
+4. **Badge 컴포넌트 활용 패턴**
+   - Type Badge: variant 속성으로 색상 변경 (default, secondary, outline)
+   - Source Badge: className으로 커스텀 색상 적용 (bg-yellow-50 등)
+   - 다크 모드 대응: `dark:bg-yellow-950/30` 패턴 사용
+   - 결과: 시각적으로 구분 가능한 8가지 Badge 스타일
+
+5. **날짜 포맷팅 전략**
+   - date-fns의 `formatDistanceToNow()` 사용
+   - "5 days ago", "2 hours ago" 등 상대 시간 표시
+   - UX 향상: 절대 시간보다 직관적
+
+6. **에이전트 병렬 처리 효과**
+   - Agent 1 (AssetTable 테스트) + Agent 2 (TargetResultsPage 테스트) 동시 실행
+   - 순차 실행: 120분 → 병렬 실행: 60분 (50% 시간 단축)
+   - 의존성 관리: Agent 1 완료 후 Agent 2가 AssetTable import 가능
+
+**다음 단계**: Task 5.10 (TargetResultsPage 구현), Task 5.11 (App.tsx 라우트 추가)
