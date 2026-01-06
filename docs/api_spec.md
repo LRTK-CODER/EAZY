@@ -34,6 +34,52 @@ uv run uvicorn app.main:app --reload
 *   `DELETE /{target_id}`: 타겟 삭제
 *   `PATCH /{target_id}`: 타겟 정보 수정
 *   `POST /{target_id}/scan`: **스캔(크롤링) 작업 트리거**
+*   `GET /{target_id}/assets`: **타겟의 Asset 목록 조회** (NEW)
+
+#### 3.2.1. Assets (공격 표면 자산)
+
+**엔드포인트**: `GET /projects/{project_id}/targets/{target_id}/assets`
+
+**목적**: 특정 Target의 스캔 결과로 발견된 유니크 Asset 목록 조회
+
+**핵심 특징**:
+- **중복 제거**: content_hash 기반 (동일한 URL+Method는 1개만 반환)
+- **정렬**: last_seen_at 내림차순 (최근 발견된 Asset 우선)
+- **데이터 격리**: Target이 속한 Project만 접근 가능 (Cross-Project 차단)
+
+**응답 예시** (200 OK):
+```json
+[
+  {
+    "id": 1,
+    "target_id": 1,
+    "type": "URL",
+    "source": "HTML",
+    "method": "GET",
+    "url": "https://example.com/page1",
+    "path": "/page1",
+    "content_hash": "a1b2c3...",
+    "first_seen_at": "2026-01-06T10:00:00Z",
+    "last_seen_at": "2026-01-06T12:00:00Z"
+  },
+  {
+    "id": 2,
+    "target_id": 1,
+    "type": "FORM",
+    "source": "HTML",
+    "method": "POST",
+    "url": "https://example.com/login",
+    "path": "/login",
+    "content_hash": "d4e5f6...",
+    "first_seen_at": "2026-01-06T10:05:00Z",
+    "last_seen_at": "2026-01-06T11:30:00Z"
+  }
+]
+```
+
+**에러 케이스**:
+- `404 Not Found`: Project 또는 Target이 존재하지 않음
+- `404 Not Found`: Target이 다른 Project에 속함 (권한 없음)
 
 ### 3.3. Tasks (`/api/v1/tasks`)
 비동기 작업 상태 및 결과 조회.
