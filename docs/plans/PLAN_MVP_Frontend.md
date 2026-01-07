@@ -1,8 +1,8 @@
 # 구현 계획: MVP 프론트엔드
 
-**상태**: ✅ Phase 5-Pre 완료 → 🔄 Phase 5 Step 2 진행 중 (50% 완료)
+**상태**: ✅ Phase 5-Pre 완료 → ✅ Phase 5 Step 2 완료 → 🔄 Phase 5 Step 3 준비 중
 **시작일**: 2025-12-28
-**최근 업데이트**: 2026-01-07 (Phase 5 Step 2: AssetTable 구현 완료 - TDD GREEN 20/20 통과)
+**최근 업데이트**: 2026-01-07 (Phase 5 Step 2: TargetResultsPage 구현 완료 - TDD GREEN 20/20 통과)
 **예상 완료일**: 2026-01-12 (Phase 5-Pre: 3시간, Phase 5: 13시간, Phase 6: 5시간)
 
 ---
@@ -720,7 +720,7 @@ npm run test -- assetService.test.ts useAssets.test.tsx
 ### Step 2: TargetResultsPage & AssetTable 구현
 **목표**: 새 페이지 및 Asset Table (MVP)
 **예상 시간**: 4시간
-**상태**: 🔄 진행 중 (50% 완료)
+**상태**: ✅ 완료 (2026-01-07)
 
 #### 작업
 
@@ -760,17 +760,42 @@ npm run test -- assetService.test.ts useAssets.test.tsx
       - Tooltip (URL hover)
       - Path truncation (50자 제한)
 
-- [ ] **Task 5.10**: TargetResultsPage (MVP)
+- [x] **Task 5.10**: TargetResultsPage (MVP)
     - 파일: `frontend/src/pages/TargetResultsPage.tsx`
     - Breadcrumb, Target Header, AssetTable
+    - **완료**: 2026-01-07
+    - 테스트 결과: ✅ PASS (20/20 tests passed)
+    - 총 162줄, TDD GREEN Phase 완료
+    - 주요 기능:
+      - URL params extraction (projectId, targetId)
+      - Breadcrumb 네비게이션 (Home → Projects → {project.name} → Results)
+      - Target 헤더 (Name, URL, Scope badge)
+      - AssetTable 통합 (projectId, targetId props)
+      - "Back to Project" 버튼
+      - Loading/Error/Empty 상태 완전 처리
 
-- [ ] **Task 5.11**: App.tsx 라우트 추가
+- [x] **Task 5.11**: App.tsx 라우트 추가
     - `/projects/:projectId/targets/:targetId/results`
+    - **완료**: 2026-01-07
+    - TargetResultsPage import 및 Route 연결
 
-#### ✅ 체크포인트 2
+#### ✅ 체크포인트 2 (완료: 2026-01-07)
 ```bash
 npm run test -- AssetTable TargetResultsPage
-브라우저: /projects/1/targets/1/results
+# ✅ Test Files: 2 passed (2)
+# ✅ Tests: 40 passed (40)
+# ✅ AssetTable.test.tsx: 20/20 passed
+# ✅ TargetResultsPage.test.tsx: 20/20 passed
+
+npm run build
+# ✅ Build: 성공 (TypeScript 에러 0개)
+# ✅ Output: 649.94 kB (gzip: 201.91 kB)
+
+# 브라우저 테스트: /projects/1/targets/1/results
+# ✅ Breadcrumb 네비게이션 작동
+# ✅ Target 정보 표시
+# ✅ AssetTable 렌더링
+# ✅ "Back to Project" 버튼 작동
 ```
 
 ---
@@ -1093,4 +1118,89 @@ npm run test -- AssetTable TargetResultsPage
    - 순차 실행: 120분 → 병렬 실행: 60분 (50% 시간 단축)
    - 의존성 관리: Agent 1 완료 후 Agent 2가 AssetTable import 가능
 
-**다음 단계**: Task 5.10 (TargetResultsPage 구현), Task 5.11 (App.tsx 라우트 추가)
+**다음 단계**: ✅ 완료 → Phase 5 Step 3 (TargetList "View Results" 버튼)
+
+---
+
+### Phase 5 Step 2 완료 (2026-01-07)
+
+**완료 항목**:
+- ✅ Task 5.10: TargetResultsPage.tsx 구현 (162줄, 20/20 테스트 통과)
+- ✅ Task 5.11: App.tsx 라우트 추가
+- ✅ AssetType/AssetSource enum → const object 변환
+- ✅ AssetTable mock 개선 (실제 assets 렌더링)
+- ✅ TypeScript 빌드 성공 (에러 0개)
+
+**학습 내용**:
+
+1. **Enum vs Const Object with 'as const'**
+   - 문제: TypeScript `erasableSyntaxOnly` 설정에서 enum 사용 불가
+   - 해결: `const object + as const` 패턴으로 전환
+   - 예시:
+     ```typescript
+     // ❌ Before: enum (erasableSyntaxOnly 에러)
+     export enum AssetType {
+       URL = 'url',
+       FORM = 'form',
+       XHR = 'xhr'
+     }
+
+     // ✅ After: const object + as const
+     export const AssetType = {
+       URL: 'url',
+       FORM: 'form',
+       XHR: 'xhr'
+     } as const;
+
+     export type AssetType = typeof AssetType[keyof typeof AssetType];
+     ```
+   - 장점: TargetScope 패턴과 일관성, 타입 안전성 유지, 빌드 호환성
+
+2. **Vitest Mock에서 Hook 사용하기**
+   - 문제: Mock 컴포넌트 내부에서 `require('@/hooks/useAssets')`로 hook import 시 에러
+   - 해결: `async () => { const { useTargetAssets } = await import('@/hooks/useAssets') }` 패턴
+   - 결과: Mock이 실제로 useTargetAssets hook을 호출하여 assets 렌더링
+   - 테스트 품질 향상: asset-count, 개별 asset 검증 가능
+   - 예시:
+     ```typescript
+     vi.mock('@/components/features/asset/AssetTable', async () => {
+       const { useTargetAssets } = await import('@/hooks/useAssets');
+       return {
+         AssetTable: ({ projectId, targetId }) => {
+           const { data: assets } = useTargetAssets(projectId, targetId);
+           // ... render assets
+         }
+       };
+     });
+     ```
+
+3. **useParams 타입 안전성**
+   - useParams의 제네릭 타입 명시: `useParams<{ projectId: string; targetId: string }>()`
+   - Number() 변환으로 NaN 허용 (테스트에서 edge case 검증)
+   - Optional chaining으로 안전한 데이터 접근: `project?.name`
+
+4. **Breadcrumb 컴포넌트 패턴**
+   - BreadcrumbLink의 `asChild` prop과 `<Link>` 조합
+   - React Router의 Link를 Breadcrumb 스타일로 렌더링
+   - BreadcrumbPage는 현재 페이지 (비활성 상태)
+   - 예시:
+     ```typescript
+     <BreadcrumbLink asChild>
+       <Link to="/projects">Projects</Link>
+     </BreadcrumbLink>
+     ```
+
+5. **Loading/Error/Empty 상태 처리 패턴**
+   - Early return 패턴으로 각 상태 명확히 분리
+   - Loading: `isProjectLoading || isTargetLoading` (OR 조건)
+   - Error: `isProjectError`, `isTargetError || !target` (null 체크)
+   - Empty: `assets && assets.length === 0` (데이터 존재 확인 후 길이 체크)
+   - 각 상태별 명확한 UI 메시지 제공
+
+6. **순차 처리 vs 병렬 처리 전략**
+   - Task 5.10과 5.11의 강한 의존성 (import 경로)
+   - Task 5.11의 작은 작업량 (5분)
+   - 결론: 순차 처리가 최적 (병렬화 비용 > 시간 절약)
+   - 교훈: 작은 태스크는 병렬화하지 않는 것이 더 효율적
+
+**다음 단계**: Phase 5 Step 3 (TargetList "View Results" 버튼 - 2시간 예상)
