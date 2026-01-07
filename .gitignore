@@ -1,1 +1,5 @@
 .claude/
+.claude_settings.json
+
+# Auto Claude data directory
+.auto-claude/
