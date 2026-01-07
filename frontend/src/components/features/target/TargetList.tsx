@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Edit, Trash2, Play, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Edit, Trash2, Play, CheckCircle2, XCircle, BarChart } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTargets, useTriggerScan, targetKeys } from '@/hooks/useTargets';
@@ -206,6 +207,21 @@ export function TargetList({ projectId }: TargetListProps) {
               <TableCell className="text-right">
                 <TooltipProvider>
                   <div className="flex items-center justify-end gap-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link
+                            to={`/projects/${projectId}/targets/${target.id}/results`}
+                            aria-label={`View scan results for ${target.name}`}
+                            title="View scan results"
+                          >
+                            <BarChart className="h-4 w-4" />
+                            <span className="ml-2 hidden sm:inline">View Results</span>
+                          </Link>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>View Scan Results</TooltipContent>
+                    </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button

@@ -10,8 +10,10 @@ class CrawlerService:
         
         async with async_playwright() as p:
             browser = await p.chromium.launch()
-            page = await browser.new_page()
-            
+            # Create context with SSL certificate verification disabled (for testing environments)
+            context = await browser.new_context(ignore_https_errors=True)
+            page = await context.new_page()
+
             try:
                 # Basic navigation
                 await page.goto(url, wait_until="networkidle")
@@ -28,6 +30,7 @@ class CrawlerService:
             except Exception as e:
                 print(f"Crawl error: {e}")
             finally:
+                await context.close()
                 await browser.close()
                 
         return list(links)

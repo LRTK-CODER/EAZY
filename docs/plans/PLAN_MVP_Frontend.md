@@ -1,9 +1,9 @@
 # 구현 계획: MVP 프론트엔드
 
-**상태**: ✅ Phase 5-Pre 완료 → ✅ Phase 5 Step 2 완료 → 🔄 Phase 5 Step 3 준비 중
+**상태**: ✅ Phase 5-Pre 완료 → ✅ Phase 5 Step 2 완료 → ✅ Phase 5 Step 3 완료 → 🔄 Phase 5-Improvements 계획 중
 **시작일**: 2025-12-28
-**최근 업데이트**: 2026-01-07 (Phase 5 Step 2: TargetResultsPage 구현 완료 - TDD GREEN 20/20 통과)
-**예상 완료일**: 2026-01-12 (Phase 5-Pre: 3시간, Phase 5: 13시간, Phase 6: 5시간)
+**최근 업데이트**: 2026-01-07 (Phase 5 Step 3: TargetList "View Results" 버튼 완료 - TDD GREEN 34/34 통과)
+**예상 완료일**: 2026-01-12 (Phase 5-Pre: 3시간, Phase 5: 13시간, Phase 5-Improvements: 14-18시간, Phase 6: 5시간)
 
 ---
 
@@ -803,30 +803,172 @@ npm run build
 ### Step 3: TargetList "View Results" 버튼
 **목표**: TargetList에서 결과 페이지로 이동
 **예상 시간**: 2시간
+**상태**: ✅ 완료 (2026-01-07)
 
 #### 작업
 
 **🔴 RED**
 
-- [ ] **Test 5.12**: TargetList "View Results" 버튼 테스트 (8개)
+- [x] **Test 5.12**: TargetList "View Results" 버튼 테스트 (8개)
     - 파일: `frontend/src/components/features/target/TargetList.test.tsx` (확장)
+    - **완료**: 2026-01-07
+    - 테스트 결과: ✅ PASS (8/8 tests, TDD RED → GREEN)
+    - 총 34개 테스트 통과 (26개 기존 + 8개 신규)
 
 **🟢 GREEN**
 
-- [ ] **Task 5.13**: "View Results" 버튼 추가
+- [x] **Task 5.13**: "View Results" 버튼 추가
     - 파일: `frontend/src/components/features/target/TargetList.tsx` (수정)
     - BarChart 아이콘, Actions 컬럼
+    - **완료**: 2026-01-07
+    - 테스트 결과: ✅ PASS (34/34 tests)
+    - 구현 상세:
+      - Button variant="outline" (시각적 차별화)
+      - 반응형 디자인 (모바일: 아이콘만, 데스크톱: 아이콘+텍스트)
+      - 링크: `/projects/${projectId}/targets/${target.id}/results`
+      - 접근성: aria-label, title 속성 추가
+      - Tooltip으로 UX 향상
 
-#### ✅ 체크포인트 3
+#### ✅ 체크포인트 3 (완료: 2026-01-07)
 ```bash
-브라우저: ProjectDetailPage → "View Results" 클릭 → TargetResultsPage
+# 테스트 실행
+npm run test -- TargetList
+# ✅ Test Files: 1 passed (1)
+# ✅ Tests: 34 passed (34)
+# ✅ Duration: 4.29s
+
+# 빌드 검증
+npm run build
+# ✅ SUCCESS - TypeScript 에러 0개
+# ✅ Bundle: 650.51 KB (gzip: 202.00 KB)
+
+# 브라우저: ProjectDetailPage → "View Results" 클릭 → TargetResultsPage
+# ✅ 버튼 표시 확인
+# ✅ 네비게이션 작동
+# ✅ TargetResultsPage 렌더링
 ```
+
+---
+
+## 🎯 Phase 5-Improvements: 발견된 문제점 개선
+
+**목표**: Phase 5 Step 3 완료 후 발견된 3가지 문제 해결
+**예상 시간**: 14-18시간 (~2일)
+**상태**: 🔄 계획 수립 완료 (2026-01-07)
+
+### 문제점 요약
+
+1. **크롤링 실시간 상태 부족**
+   - 현재: 상태가 잘 안 나타남, 동작 시간 표시 없음, 정지 기능 없음
+   - 필요: elapsed time 표시, Stop 버튼, ScanStatusBadge 버그 수정
+
+2. **HTTP 패킷 조회 기능 미구현**
+   - 현재: Asset에 request_spec, response_spec 필드 있지만 NULL
+   - 필요: Playwright 네트워크 인터셉션, HTTP 요청/응답 상세 조회 UI
+
+3. **파라미터 파싱 부족**
+   - 현재: parameters 필드 NULL, URL 쿼리만 추출
+   - 필요: 쿼리 파라미터 파싱 (MVP), Form/XHR은 Phase 5.5로 연기
+
+### Phase A: 실시간 크롤링 상태 개선 (6-8시간)
+
+**Backend**:
+- Task 모델 수정: `started_at`, `completed_at`, `CANCELLED` 상태 추가
+- Migration: `alembic/versions/XXXX_add_task_timestamps.py`
+- TaskService: `cancel_task()`, `get_latest_task_for_target()` 메서드 추가
+- Worker: Redis 취소 플래그 체크 (10개 링크마다), 타임스탬프 기록
+- Task API: `POST /tasks/{id}/cancel`, `GET /targets/{id}/latest-task` 엔드포인트
+
+**Frontend**:
+- ScanStatusBadge 버그 수정: targetId → taskId 또는 latest-task API 사용
+- Elapsed time 표시: "Running (3m)" 형식
+- Stop 버튼 추가 (RUNNING/PENDING 상태일 때)
+- Task Types: `started_at`, `completed_at`, `CANCELLED` 추가
+
+**Tests**: 10개 (Backend 6개, Frontend 4개)
+
+### Phase B: HTTP 패킷 조회 (5-6시간)
+
+**Backend**:
+- CrawlerService: Playwright 네트워크 인터셉션 (`page.on("request/response")`)
+- HTTP 데이터 수집: method, headers, body (10KB 제한)
+- AssetService: request_spec, response_spec 파라미터 추가
+- Worker: HTTP 데이터를 Asset에 저장
+
+**Frontend**:
+- AssetDetailDialog 컴포넌트 (NEW): Request/Response/Metadata 탭
+- AssetTable: "View Details" 버튼 onClick 구현
+- Asset Types: request_spec, response_spec 인터페이스 추가
+
+**Tests**: 6개 (Backend 3개, Frontend 3개)
+
+### Phase C: 파라미터 파싱 - 기본 (3-4시간)
+
+**Backend**:
+- CrawlerService: URL 쿼리 파라미터 파싱 (`urllib.parse.parse_qs`)
+- AssetService: parameters 파라미터 추가
+- Worker: parameters 데이터 저장
+
+**Frontend**:
+- 변경 없음 (AssetTable이 이미 parameter count 표시)
+
+**Tests**: 5개 (Backend만)
+
+**Deferred to Phase 5.5** (5-7일):
+- Form 태그 파싱
+- XHR/Fetch 캡처
+- 타입 추론 엔진 (int, string, datetime)
+
+### 아키텍처 결정
+
+| 결정 사항 | 선택 | 이유 |
+|----------|------|------|
+| Status Updates | HTTP Polling (5s) | MVP 단순성, React Query 중복 제거 |
+| Cancellation | Redis flag + DB status | Worker가 Redis 사용, 빠른 체크, 영구 기록 |
+| HTTP Body Storage | JSON (10KB 제한) | PostgreSQL JSONB, 대부분 API 응답 캡처 |
+| Latest Task Query | `/targets/{id}/latest-task` | 명확한 의미, 백엔드 최적화 |
+| Parameter Scope | URL 쿼리만 (MVP) | 80/20 규칙, 간단한 구현 |
+
+### 품질 게이트 ✋
+
+**Phase A**:
+- [ ] Migration 성공, Task 모델 업데이트
+- [ ] POST /tasks/{id}/cancel 엔드포인트 작동
+- [ ] GET /targets/{id}/latest-task 엔드포인트 작동
+- [ ] Worker 취소 신호 10초 내 반응
+- [ ] ScanStatusBadge "Running (3m)" 표시
+- [ ] Stop 버튼 동작
+- [ ] 10/10 테스트 통과
+
+**Phase B**:
+- [ ] Playwright HTTP 인터셉션 작동
+- [ ] request_spec, response_spec DB 저장
+- [ ] AssetDetailDialog 3개 탭 렌더링
+- [ ] "View Details" 버튼 동작
+- [ ] 6/6 테스트 통과
+
+**Phase C**:
+- [ ] URL 쿼리 파라미터 추출
+- [ ] parameters DB 저장
+- [ ] AssetTable "3 params" 표시
+- [ ] 5/5 테스트 통과
+
+**회귀 방지**:
+- [ ] Phase 5 Step 2 & 3 테스트 유지 (40/40 GREEN)
+- [ ] 기존 API 계약 변경 없음
+- [ ] Target CRUD, Project 기능 정상 작동
+
+### 상세 계획 문서
+
+전체 구현 계획은 다음 파일 참조:
+- `/root/.claude/plans/lexical-tumbling-sparkle.md`
 
 ---
 
 ### Step 4: 고급 기능 (Filtering, Sorting, Search)
 **목표**: Asset Table 필터링/정렬 추가
 **예상 시간**: 3시간
+**상태**: ⏳ Phase 5-Improvements 완료 후 진행
 
 #### 작업
 
@@ -1203,4 +1345,59 @@ npm run build
    - 결론: 순차 처리가 최적 (병렬화 비용 > 시간 절약)
    - 교훈: 작은 태스크는 병렬화하지 않는 것이 더 효율적
 
-**다음 단계**: Phase 5 Step 3 (TargetList "View Results" 버튼 - 2시간 예상)
+**다음 단계**: ✅ 완료 → Phase 5-Improvements (크롤링 상태 개선, HTTP 패킷 조회, 파라미터 파싱)
+
+---
+
+### Phase 5 Step 3 완료 (2026-01-07)
+
+**완료 항목**:
+- ✅ Test 5.12: TargetList "View Results" 버튼 테스트 (8개 테스트 추가)
+- ✅ Task 5.13: "View Results" 버튼 구현
+- ✅ TDD RED-GREEN 사이클 완료 (총 34/34 테스트 통과)
+- ✅ TypeScript 빌드 성공 (에러 0개)
+- ✅ 브라우저 검증 완료 (네비게이션 정상 작동)
+
+**학습 내용**:
+
+1. **TDD RED-GREEN 프로세스 검증**
+   - RED Phase: 8개 테스트 작성 → 6개 실패 (예상대로)
+   - GREEN Phase: "View Results" 버튼 구현 → 34/34 통과 (100%)
+   - 테스트 커버리지: 신규 기능 완전 커버
+
+2. **UI/UX 디자인 결정**
+   - Button variant="outline" 사용 (기존 ghost 버튼과 시각적 차별화)
+   - Actions 컬럼 첫 번째(leftmost) 배치 → 주요 액션 강조
+   - 반응형 디자인: `<span className="ml-2 hidden sm:inline">View Results</span>`
+   - 모바일 (<640px): 아이콘만 표시
+   - 데스크톱 (≥640px): 아이콘 + 텍스트
+
+3. **접근성 (Accessibility) 패턴**
+   - aria-label: `View scan results for ${target.name}` (동적 레이블)
+   - title 속성으로 툴팁 제공
+   - Tooltip 컴포넌트 래핑으로 UX 향상
+   - 스크린 리더 지원 완료
+
+4. **React Router Link 패턴**
+   - Button의 `asChild` prop 활용
+   - `<Button asChild><Link to="...">` 구조로 버튼 스타일 유지
+   - SPA 네비게이션 (페이지 리로드 없음)
+   - URL 구조: `/projects/${projectId}/targets/${targetId}/results`
+
+5. **테스트 전략**
+   - MemoryRouter로 라우팅 테스트
+   - fireEvent.click으로 버튼 클릭 시뮬레이션
+   - screen.getByRole('link') 쿼리로 접근성 검증
+   - 각 Target별 고유 링크 검증 (동적 URL 생성)
+
+6. **빌드 최적화**
+   - Bundle 크기: 650.51 KB (gzip: 202.00 KB)
+   - TypeScript strict mode 준수
+   - 기존 기능 회귀 없음 (26개 테스트 유지)
+
+**발견된 문제점** (Phase 5-Improvements로 연기):
+1. 🐛 크롤링 실시간 상태 표시 부족 (동작 시간, 정지 기능 없음)
+2. ❌ HTTP 패킷 조회 기능 미구현 (request_spec, response_spec NULL)
+3. ⚠️ 파라미터 파싱 기능 부족 (URL 쿼리, Form, XHR 미처리)
+
+**다음 단계**: Phase 5-Improvements (14-18시간 예상)

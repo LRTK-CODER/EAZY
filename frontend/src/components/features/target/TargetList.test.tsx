@@ -510,4 +510,114 @@ describe('TargetList Component', () => {
       });
     });
   });
+
+  describe('View Results Button', () => {
+    it('renders View Results button for each target', async () => {
+      vi.mocked(targetService.getTargets).mockResolvedValue(mockTargets);
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        const viewResultsLinks = screen.getAllByRole('link', { name: /view scan results/i });
+        expect(viewResultsLinks).toHaveLength(mockTargets.length);
+      });
+    });
+
+    it('navigates to correct URL when clicked', async () => {
+      vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        const viewResultsLink = screen.getByRole('link', { name: /view scan results for target domain/i });
+        expect(viewResultsLink).toHaveAttribute('href', '/projects/1/targets/1/results');
+      });
+    });
+
+    it('displays BarChart icon', async () => {
+      vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        const viewResultsLink = screen.getByRole('link', { name: /view scan results for target domain/i });
+        // BarChart icon should be present inside the link
+        expect(viewResultsLink).toBeInTheDocument();
+        // Check for svg element (lucide-react renders icons as svg)
+        const svg = viewResultsLink.querySelector('svg');
+        expect(svg).toBeInTheDocument();
+      });
+    });
+
+    it('has accessibility attributes (aria-label, title)', async () => {
+      vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        const viewResultsLink = screen.getByRole('link', { name: /view scan results for target domain/i });
+        expect(viewResultsLink).toHaveAttribute('aria-label', 'View scan results for Target DOMAIN');
+        expect(viewResultsLink).toHaveAttribute('title', 'View scan results');
+      });
+    });
+
+    it('shows "View Results" text on larger screens', async () => {
+      vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        const viewResultsText = screen.getByText('View Results');
+        expect(viewResultsText).toBeInTheDocument();
+        // Check for responsive class (hidden sm:inline)
+        expect(viewResultsText).toHaveClass('hidden', 'sm:inline');
+      });
+    });
+
+    it('each target has unique results link', async () => {
+      vi.mocked(targetService.getTargets).mockResolvedValue(mockTargets);
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        const link1 = screen.getByRole('link', { name: /view scan results for target domain/i });
+        const link2 = screen.getByRole('link', { name: /view scan results for target subdomain/i });
+        const link3 = screen.getByRole('link', { name: /view scan results for target url_only/i });
+
+        expect(link1).toHaveAttribute('href', '/projects/1/targets/1/results');
+        expect(link2).toHaveAttribute('href', '/projects/1/targets/2/results');
+        expect(link3).toHaveAttribute('href', '/projects/1/targets/3/results');
+      });
+    });
+
+    it('does not show button during loading', async () => {
+      vi.mocked(targetService.getTargets).mockImplementation(
+        () => new Promise(() => {}) // Never resolves
+      );
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/loading/i)).toBeInTheDocument();
+      });
+
+      // View Results buttons should not be present during loading
+      expect(screen.queryByRole('link', { name: /view scan results/i })).not.toBeInTheDocument();
+    });
+
+    it('does not show button during error', async () => {
+      vi.mocked(targetService.getTargets).mockRejectedValue(
+        new Error('Failed to fetch targets')
+      );
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/error.*loading.*targets/i)).toBeInTheDocument();
+      });
+
+      // View Results buttons should not be present during error
+      expect(screen.queryByRole('link', { name: /view scan results/i })).not.toBeInTheDocument();
+    });
+  });
 });
