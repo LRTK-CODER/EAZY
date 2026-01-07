@@ -4,30 +4,40 @@
  */
 
 /**
- * Asset type enum - represents the type of attack surface
+ * Asset type constants - represents the type of attack surface
  */
-export enum AssetType {
+export const AssetType = {
   /** URL endpoint */
-  URL = 'url',
+  URL: 'url',
   /** HTML Form */
-  FORM = 'form',
+  FORM: 'form',
   /** XHR/Fetch API request */
-  XHR = 'xhr'
-}
+  XHR: 'xhr'
+} as const;
 
 /**
- * Asset source enum - where the asset was discovered
+ * Asset type derived from AssetType values
  */
-export enum AssetSource {
+export type AssetType = typeof AssetType[keyof typeof AssetType];
+
+/**
+ * Asset source constants - where the asset was discovered
+ */
+export const AssetSource = {
   /** Found in HTML */
-  HTML = 'html',
+  HTML: 'html',
   /** Found in JavaScript */
-  JS = 'js',
+  JS: 'js',
   /** Found via network monitoring */
-  NETWORK = 'network',
+  NETWORK: 'network',
   /** Found in DOM */
-  DOM = 'dom'
-}
+  DOM: 'dom'
+} as const;
+
+/**
+ * Asset source type derived from AssetSource values
+ */
+export type AssetSource = typeof AssetSource[keyof typeof AssetSource];
 
 /**
  * Asset entity returned from the backend API

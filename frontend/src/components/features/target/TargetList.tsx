@@ -35,7 +35,7 @@ interface TargetListProps {
  * Uses task service to fetch and display the latest task status
  * Handles errors gracefully by not showing a badge when task data is unavailable
  */
-function ScanStatusBadge({ projectId, targetId }: { projectId: number; targetId: number }) {
+function ScanStatusBadge({ targetId }: { targetId: number }) {
   // Use useQuery directly with error handling to avoid undefined return issues
   const { data: task } = useQuery({
     queryKey: ['tasks', 'detail', targetId],
@@ -198,7 +198,7 @@ export function TargetList({ projectId }: TargetListProps) {
                 </Badge>
               </TableCell>
               <TableCell>
-                <ScanStatusBadge projectId={target.project_id} targetId={target.id} />
+                <ScanStatusBadge targetId={target.id} />
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {formatDate(target.created_at)}

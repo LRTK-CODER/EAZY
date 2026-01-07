@@ -4,6 +4,7 @@ import { ArchivedProjectsPage } from './pages/ArchivedProjectsPage';
 import { ActiveProjectsListPage } from './pages/ActiveProjectsListPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { ProjectDetailPage } from './pages/ProjectDetailPage';
+import { TargetResultsPage } from './pages/TargetResultsPage';
 import './App.css';
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
           <Route path="/projects/active" element={<ActiveProjectsListPage />} />
           <Route path="/projects/archived" element={<ArchivedProjectsPage />} />
           <Route path="/projects/:id" element={<ProjectDetailPage />} />
+          <Route path="/projects/:projectId/targets/:targetId/results" element={<TargetResultsPage />} />
 
           {/* Settings Routes */}
           <Route path="/settings" element={

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Loader2, ChevronUp, ChevronDown, ExternalLink } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import * as assetService from '@/services/assetService';
-import type { Asset, AssetType, AssetSource } from '@/types/asset';
+import type { AssetType, AssetSource } from '@/types/asset';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {

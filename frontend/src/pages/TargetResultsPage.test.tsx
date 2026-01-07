@@ -40,18 +40,29 @@ vi.mock('@/hooks/useAssets', () => ({
 }));
 
 // Mock AssetTable component (will be created in future phase)
-vi.mock('@/components/features/asset/AssetTable', () => ({
-  AssetTable: ({ assets }: { assets: Asset[] }) => (
-    <div data-testid="asset-table">
-      <div data-testid="asset-count">{assets.length}</div>
-      {assets.map((asset) => (
-        <div key={asset.id} data-testid={`asset-${asset.id}`}>
-          {asset.url}
+vi.mock('@/components/features/asset/AssetTable', async () => {
+  const { useTargetAssets } = await import('@/hooks/useAssets');
+  return {
+    AssetTable: ({ projectId, targetId }: { projectId: number; targetId: number }) => {
+      const { data: assets } = useTargetAssets(projectId, targetId);
+
+      if (!assets || assets.length === 0) {
+        return <div data-testid="asset-table">No assets</div>;
+      }
+
+      return (
+        <div data-testid="asset-table">
+          <div data-testid="asset-count">{assets.length}</div>
+          {assets.map((asset: Asset) => (
+            <div key={asset.id} data-testid={`asset-${asset.id}`}>
+              {asset.url}
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
-  ),
-}));
+      );
+    },
+  };
+});
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -357,7 +368,8 @@ describe('TargetResultsPage Component', () => {
       renderWithProviders(<TargetResultsPage />);
 
       expect(useTargetAssets).toHaveBeenCalledWith(1, 2);
-      expect(useTargetAssets).toHaveBeenCalledTimes(1);
+      // Called twice: once in TargetResultsPage and once in mocked AssetTable
+      expect(useTargetAssets).toHaveBeenCalledTimes(2);
     });
 
     it('ensures query keys are consistent across hooks', () => {
