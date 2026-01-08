@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getTaskStatus } from './taskService';
+import { getTaskStatus, cancelTask, getLatestTaskForTarget } from './taskService';
 import type { Task } from '@/types/task';
 import * as api from '@/lib/api';
 
@@ -77,6 +77,56 @@ describe('Task Service', () => {
             expect(result.status).toBe('completed');
             expect(result.result).toBeTruthy();
             expect(result.result).toContain('assets_found');
+        });
+    });
+
+    describe('cancelTask', () => {
+        it('should cancel task successfully', async () => {
+            vi.mocked(api.post).mockResolvedValue(undefined);
+
+            await cancelTask(123);
+
+            expect(api.post).toHaveBeenCalledWith('/tasks/123/cancel');
+        });
+
+        it('should throw error when cancelling completed task', async () => {
+            const error = new Error('Cannot cancel completed task');
+            vi.mocked(api.post).mockRejectedValue(error);
+
+            await expect(cancelTask(456)).rejects.toThrow('Cannot cancel completed task');
+            expect(api.post).toHaveBeenCalledWith('/tasks/456/cancel');
+        });
+    });
+
+    describe('getLatestTaskForTarget', () => {
+        it('should fetch latest task for target', async () => {
+            const mockTask: Task = {
+                id: 789,
+                project_id: 1,
+                target_id: 5,
+                type: 'crawl',
+                status: 'completed',
+                result: '{"found_links": 25}',
+                created_at: '2026-01-03T00:00:00Z',
+                updated_at: '2026-01-03T01:00:00Z',
+                started_at: '2026-01-03T00:05:00Z',
+                completed_at: '2026-01-03T01:00:00Z',
+            };
+
+            vi.mocked(api.get).mockResolvedValue(mockTask);
+            const result = await getLatestTaskForTarget(5);
+
+            expect(api.get).toHaveBeenCalledWith('/targets/5/latest-task');
+            expect(result).toEqual(mockTask);
+            expect(result.target_id).toBe(5);
+        });
+
+        it('should throw error when target has no tasks', async () => {
+            const error = new Error('No tasks found for target');
+            vi.mocked(api.get).mockRejectedValue(error);
+
+            await expect(getLatestTaskForTarget(999)).rejects.toThrow('No tasks found for target');
+            expect(api.get).toHaveBeenCalledWith('/targets/999/latest-task');
         });
     });
 });

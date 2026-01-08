@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Loader2, ChevronUp, ChevronDown, ExternalLink } from 'lucide-react';
+import { Loader2, ChevronUp, ChevronDown, ExternalLink, Eye } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import * as assetService from '@/services/assetService';
-import type { AssetType, AssetSource } from '@/types/asset';
+import type { Asset, AssetType, AssetSource } from '@/types/asset';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/tooltip';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from '@/utils/date';
+import { AssetDetailDialog } from './AssetDetailDialog';
 
 interface AssetTableProps {
   projectId: number;
@@ -84,6 +85,10 @@ export function AssetTable({ projectId, targetId }: AssetTableProps) {
     queryKey: ['assets', projectId, targetId],
     queryFn: () => assetService.getTargetAssets(projectId, targetId),
   });
+
+  // Asset Detail Dialog state
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   // Sort state with localStorage persistence
   const [sortState, setSortState] = useState<SortState>(() => {
@@ -299,8 +304,17 @@ export function AssetTable({ projectId, targetId }: AssetTableProps) {
 
                     {/* Actions */}
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">
-                        View Details
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => {
+                          setSelectedAsset(asset);
+                          setDialogOpen(true);
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span className="sr-only">View Details</span>
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -359,6 +373,15 @@ export function AssetTable({ projectId, targetId }: AssetTableProps) {
             </select>
           </div>
         </div>
+      )}
+
+      {/* Asset Detail Dialog */}
+      {selectedAsset && (
+        <AssetDetailDialog
+          asset={selectedAsset}
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+        />
       )}
     </div>
   );
