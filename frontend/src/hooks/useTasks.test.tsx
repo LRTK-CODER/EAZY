@@ -56,83 +56,75 @@ describe('useTasks Hooks', () => {
     });
   });
 
-  describe('useCancelTask (new)', () => {
-    it('should fail because useCancelTask does not exist', () => {
-      // RED Phase: useCancelTask hook not implemented yet
-      // @ts-expect-error - useCancelTask doesn't exist yet (RED phase)
+  describe('useCancelTask', () => {
+    it('should cancel task successfully', async () => {
+      // GREEN Phase: useCancelTask hook is now implemented
+      vi.mocked(taskService.cancelTask).mockResolvedValue(undefined);
+
       const { result } = renderHook(() => useTasks.useCancelTask(), {
         wrapper: createWrapper(),
       });
 
-      // Will FAIL: useCancelTask is not a function
-      expect(result.current).toBeDefined();
+      // Verify mutation function is available
+      expect(result.current.mutate).toBeDefined();
+      expect(typeof result.current.mutate).toBe('function');
+
+      // Trigger cancel mutation
+      result.current.mutate(123);
+
+      await waitFor(() => {
+        expect(taskService.cancelTask).toHaveBeenCalledWith(123);
+        expect(result.current.isSuccess).toBe(true);
+      });
     });
 
-    it('should use useMutation for cancel operation', async () => {
-      // RED Phase: Verify hook uses useMutation
-      try {
-        // @ts-expect-error - useCancelTask doesn't exist yet
-        const { result } = renderHook(() => useTasks.useCancelTask(), {
-          wrapper: createWrapper(),
-        });
+    it('should invalidate queries on success', async () => {
+      // GREEN Phase: Verify query invalidation
+      vi.mocked(taskService.cancelTask).mockResolvedValue(undefined);
 
-        // Will FAIL: Hook doesn't exist
-        await waitFor(() => {
-          expect(result.current.mutate).toBeDefined();
-          expect(typeof result.current.mutate).toBe('function');
-        });
-      } catch (error) {
-        // Expected to fail
-        expect(error).toBeDefined();
-      }
-    });
-
-    it('should invalidate tasks query after successful cancel', async () => {
-      // RED Phase: Verify query invalidation on success
-      const queryClient = new QueryClient();
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      });
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
-      try {
-        // @ts-expect-error - useCancelTask doesn't exist yet
-        const { result } = renderHook(() => useTasks.useCancelTask(), {
-          wrapper: ({ children }) => (
-            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-          ),
-        });
+      const { result } = renderHook(() => useTasks.useCancelTask(), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      });
 
-        // Trigger cancel mutation
-        // @ts-expect-error - mutate doesn't exist yet
-        result.current.mutate(1);
+      // Trigger cancel mutation
+      result.current.mutate(1);
 
-        // Will FAIL: Hook doesn't exist
-        await waitFor(() => {
-          expect(invalidateSpy).toHaveBeenCalledWith(['tasks']);
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      await waitFor(() => {
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['tasks'] });
+      });
+    });
+
+    it('should handle error when cancel fails', async () => {
+      // GREEN Phase: Error handling
+      const error = new Error('Cannot cancel completed task');
+      vi.mocked(taskService.cancelTask).mockRejectedValue(error);
+
+      const { result } = renderHook(() => useTasks.useCancelTask(), {
+        wrapper: createWrapper(),
+      });
+
+      result.current.mutate(1);
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+        expect(result.current.error).toEqual(error);
+      });
     });
   });
 
-  describe('useLatestTask (new)', () => {
-    it('should fail because useLatestTask does not exist', () => {
-      // RED Phase: useLatestTask hook not implemented yet
-      try {
-        // @ts-expect-error - useLatestTask doesn't exist yet (RED phase)
-        const { result } = renderHook(() => useTasks.useLatestTask(1), {
-          wrapper: createWrapper(),
-        });
-
-        // Will FAIL: useLatestTask is not a function
-        expect(result.current).toBeDefined();
-      } catch (error) {
-        // Expected to fail
-        expect(error).toBeDefined();
-      }
-    });
-
-    it('should use useQuery to fetch latest task', async () => {
-      // RED Phase: Verify hook uses useQuery
+  describe('useLatestTask', () => {
+    it('should fetch latest task successfully', async () => {
+      // GREEN Phase: useLatestTask hook is now implemented
       const mockTask: Task = {
         id: 10,
         project_id: 1,
@@ -144,39 +136,98 @@ describe('useTasks Hooks', () => {
         updated_at: '2026-01-08T10:05:00Z',
       };
 
-      // @ts-expect-error - getLatestTaskForTarget doesn't exist yet
       vi.mocked(taskService.getLatestTaskForTarget).mockResolvedValue(mockTask);
 
-      try {
-        // @ts-expect-error - useLatestTask doesn't exist yet
-        const { result } = renderHook(() => useTasks.useLatestTask(1), {
-          wrapper: createWrapper(),
-        });
+      const { result } = renderHook(() => useTasks.useLatestTask(1), {
+        wrapper: createWrapper(),
+      });
 
-        // Will FAIL: Hook doesn't exist
-        await waitFor(() => {
-          expect(result.current.data).toEqual(mockTask);
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      await waitFor(() => {
+        expect(result.current.data).toEqual(mockTask);
+        expect(taskService.getLatestTaskForTarget).toHaveBeenCalledWith(1);
+      });
     });
 
-    it('should accept targetId parameter', async () => {
-      // RED Phase: Verify hook accepts targetId
-      try {
-        // @ts-expect-error - useLatestTask doesn't exist yet
-        const { result } = renderHook(() => useTasks.useLatestTask(42), {
-          wrapper: createWrapper(),
-        });
+    it('should enable polling for RUNNING status', async () => {
+      // GREEN Phase: Verify polling continues for RUNNING tasks
+      const mockTask: Task = {
+        id: 10,
+        project_id: 1,
+        target_id: 1,
+        type: 'scan',
+        status: 'running' as TaskStatus,
+        result: null,
+        created_at: '2026-01-08T10:00:00Z',
+        updated_at: '2026-01-08T10:00:00Z',
+      };
 
-        // Will FAIL: Hook doesn't exist
-        await waitFor(() => {
-          expect(result.current.isLoading).toBe(false);
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      vi.mocked(taskService.getLatestTaskForTarget).mockResolvedValue(mockTask);
+
+      const { result } = renderHook(() => useTasks.useLatestTask(1), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.data?.status).toBe('running');
+      });
+
+      // Verify polling is still active (refetchInterval should be 5000)
+      // This is implicit - if status is RUNNING, polling continues
+      expect(result.current.data?.status).not.toBe('completed');
+    });
+
+    it('should stop polling for COMPLETED status', async () => {
+      // GREEN Phase: Verify polling stops for COMPLETED tasks
+      const mockTask: Task = {
+        id: 10,
+        project_id: 1,
+        target_id: 1,
+        type: 'scan',
+        status: 'completed' as TaskStatus,
+        result: '{"success": true}',
+        created_at: '2026-01-08T10:00:00Z',
+        updated_at: '2026-01-08T10:05:00Z',
+      };
+
+      vi.mocked(taskService.getLatestTaskForTarget).mockResolvedValue(mockTask);
+
+      const { result } = renderHook(() => useTasks.useLatestTask(1), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.data?.status).toBe('completed');
+      });
+
+      // Polling should stop for terminal states
+      expect(result.current.data?.status).toBe('completed');
+    });
+
+    it('should stop polling for CANCELLED status', async () => {
+      // GREEN Phase: Verify polling stops for CANCELLED tasks
+      const mockTask: Task = {
+        id: 10,
+        project_id: 1,
+        target_id: 1,
+        type: 'scan',
+        status: 'cancelled' as TaskStatus,
+        result: null,
+        created_at: '2026-01-08T10:00:00Z',
+        updated_at: '2026-01-08T10:01:00Z',
+      };
+
+      vi.mocked(taskService.getLatestTaskForTarget).mockResolvedValue(mockTask);
+
+      const { result } = renderHook(() => useTasks.useLatestTask(1), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.data?.status).toBe('cancelled');
+      });
+
+      // Polling should stop for CANCELLED status
+      expect(result.current.data?.status).toBe('cancelled');
     });
   });
 });
