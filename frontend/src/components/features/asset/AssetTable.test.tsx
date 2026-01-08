@@ -493,4 +493,68 @@ describe('AssetTable Component', () => {
       });
     });
   });
+
+  describe('View Details Button (Phase 5-Improvements Step 2)', () => {
+    it('should render "View Details" button with Eye icon in Actions column', async () => {
+      // RED Phase: "View Details" button not implemented yet
+      vi.mocked(assetService.getTargetAssets).mockResolvedValue([mockAssets[0]]);
+
+      renderWithProviders(<AssetTable projectId={1} targetId={1} />);
+
+      // Will FAIL: Button doesn't exist
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /view details/i })).toBeInTheDocument();
+      });
+    });
+
+    it('should open AssetDetailDialog when "View Details" button is clicked', async () => {
+      // RED Phase: AssetDetailDialog integration not implemented yet
+      vi.mocked(assetService.getTargetAssets).mockResolvedValue([mockAssets[0]]);
+
+      const { user } = renderWithProviders(<AssetTable projectId={1} targetId={1} />);
+
+      // Will FAIL: Button doesn't exist
+      await waitFor(() => {
+        expect(screen.getByText('https://example.com/api/users')).toBeInTheDocument();
+      });
+
+      try {
+        const viewDetailsButton = screen.getByRole('button', { name: /view details/i });
+        await user.click(viewDetailsButton);
+
+        // Dialog should open
+        await waitFor(() => {
+          expect(screen.getByRole('dialog')).toBeInTheDocument();
+        });
+      } catch (error) {
+        // Expected to fail
+        expect(error).toBeDefined();
+      }
+    });
+
+    it('should pass selected Asset data to AssetDetailDialog', async () => {
+      // RED Phase: Dialog doesn't receive asset prop yet
+      vi.mocked(assetService.getTargetAssets).mockResolvedValue([mockAssets[0]]);
+
+      const { user } = renderWithProviders(<AssetTable projectId={1} targetId={1} />);
+
+      // Will FAIL: Button and Dialog don't exist
+      await waitFor(() => {
+        expect(screen.getByText('https://example.com/api/users')).toBeInTheDocument();
+      });
+
+      try {
+        const viewDetailsButton = screen.getByRole('button', { name: /view details/i });
+        await user.click(viewDetailsButton);
+
+        // Verify Dialog contains asset data (URL, method, etc.)
+        await waitFor(() => {
+          expect(screen.getByText(/GET/)).toBeInTheDocument();
+          expect(screen.getByText(/https:\/\/example\.com\/api\/users/)).toBeInTheDocument();
+        });
+      } catch (error) {
+        expect(error).toBeDefined();
+      }
+    });
+  });
 });
