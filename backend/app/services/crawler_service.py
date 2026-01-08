@@ -1,6 +1,7 @@
 from typing import List, Set, Dict, Any, Optional
 from playwright.async_api import async_playwright, Request, Response
 import json
+import base64
 
 from app.utils.url_parser import parse_query_params
 
@@ -71,11 +72,19 @@ class CrawlerService:
                     resp_url = response.url
                     headers = dict(response.headers)
 
-                    # Only capture JSON responses (skip images, CSS, etc.)
+                    # Capture all common web content types
                     body: Optional[Any] = None
                     content_type = headers.get("content-type", "")
 
-                    if "application/json" in content_type:
+                    # Handle text-based responses (JSON, HTML, CSS, JS)
+                    if any(ct in content_type for ct in [
+                        "application/json",
+                        "text/html",
+                        "text/css",
+                        "text/javascript",
+                        "application/javascript",
+                        "application/x-javascript"
+                    ]):
                         try:
                             body_text = await response.text()
 
@@ -83,11 +92,29 @@ class CrawlerService:
                             if len(body_text) > self.MAX_BODY_SIZE:
                                 body = body_text[:self.MAX_BODY_SIZE] + "... [TRUNCATED]"
                             else:
-                                # Try to parse as JSON
-                                try:
-                                    body = json.loads(body_text)
-                                except json.JSONDecodeError:
+                                # Try to parse as JSON for API responses
+                                if "application/json" in content_type:
+                                    try:
+                                        body = json.loads(body_text)
+                                    except json.JSONDecodeError:
+                                        body = body_text
+                                else:
+                                    # HTML, CSS, JS responses stored as plain text
                                     body = body_text
+                        except Exception:
+                            pass
+
+                    # Handle binary responses (images) - encode as Base64
+                    elif "image/" in content_type:
+                        try:
+                            body_bytes = await response.body()
+
+                            # Truncate if too large
+                            if len(body_bytes) > self.MAX_BODY_SIZE:
+                                body_bytes = body_bytes[:self.MAX_BODY_SIZE]
+
+                            # Encode as Base64 string for JSON serialization
+                            body = base64.b64encode(body_bytes).decode('utf-8')
                         except Exception:
                             pass
 

@@ -33,6 +33,88 @@ async def check_cancellation(task_manager: TaskManager, task_id: int) -> bool:
     cancel_flag = await task_manager.redis.get(cancel_key)
     return cancel_flag is not None
 
+async def process_task(task_id: int, session: AsyncSession, task_manager: TaskManager | None = None) -> None:
+    """
+    Process a single task by ID (for testing).
+
+    Args:
+        task_id: Database Task ID
+        session: AsyncSession instance
+        task_manager: TaskManager instance (optional, will create if None)
+    """
+    # Create TaskManager if not provided
+    if task_manager is None:
+        redis = Redis.from_url(settings.REDIS_URL, decode_responses=True)
+        task_manager = TaskManager(redis)
+
+    # Fetch the Task record
+    stmt = select(Task).where(Task.id == task_id)
+    result = await session.exec(stmt)
+    task_record = result.first()
+
+    if not task_record:
+        raise ValueError(f"Task {task_id} not found")
+
+    # Update status to RUNNING
+    task_record.status = TaskStatus.RUNNING
+    task_record.started_at = utc_now()
+    session.add(task_record)
+    await session.commit()
+
+    # Execute the task
+    try:
+        if task_record.type == TaskType.CRAWL:
+            target = await session.get(Target, task_record.target_id)
+            if not target:
+                raise ValueError(f"Target {task_record.target_id} not found")
+
+            crawler = CrawlerService()
+            links, http_data = await crawler.crawl(target.url)
+
+            # Save Assets
+            asset_service = AssetService(session)
+            saved_count = 0
+            for link in links:
+                # Extract HTTP data for this link
+                link_http_data = http_data.get(link, {})
+                request_data = link_http_data.get("request")
+                response_data = link_http_data.get("response")
+                parameters_data = link_http_data.get("parameters")
+
+                # Get HTTP method from request data
+                http_method = request_data.get("method", "GET") if request_data else "GET"
+
+                await asset_service.process_asset(
+                    target_id=task_record.target_id,
+                    task_id=task_id,
+                    url=link,
+                    method=http_method,
+                    type=AssetType.URL,
+                    source=AssetSource.HTML,
+                    request_spec=request_data,
+                    response_spec=response_data,
+                    parameters=parameters_data
+                )
+                saved_count += 1
+
+            # Update status to COMPLETED
+            import json
+            task_record.status = TaskStatus.COMPLETED
+            task_record.completed_at = utc_now()
+            task_record.result = json.dumps({"found_links": len(links), "saved_assets": saved_count})
+            session.add(task_record)
+            await session.commit()
+
+    except Exception as e:
+        logger.error(f"Task execution failed: {e}")
+        import json
+        task_record.status = TaskStatus.FAILED
+        task_record.completed_at = utc_now()
+        task_record.result = json.dumps({"error": str(e)})
+        session.add(task_record)
+        await session.commit()
+        raise
+
 async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> bool:
     """
     Process a single task from the queue.
@@ -81,12 +163,12 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
                 raise ValueError(f"Target {target_id} not found")
                 
             crawler = CrawlerService()
-            # In a real worker, we might want to launch the browser once and reuse, 
+            # In a real worker, we might want to launch the browser once and reuse,
             # but for safety let's do per-task for now or let service handle it.
             # CrawlerService currently launches browser in crawl_page.
-            
-            # Extract links
-            links = await crawler.crawl(target.url)
+
+            # Extract links and HTTP data
+            links, http_data = await crawler.crawl(target.url)
             
             # 4. Save Assets
             asset_service = AssetService(session)
@@ -117,13 +199,25 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
 
                         return True
 
+                # Extract HTTP data for this link (if available)
+                link_http_data = http_data.get(link, {})
+                request_data = link_http_data.get("request")
+                response_data = link_http_data.get("response")
+                parameters_data = link_http_data.get("parameters")
+
+                # Get HTTP method from request data, default to GET
+                http_method = request_data.get("method", "GET") if request_data else "GET"
+
                 await asset_service.process_asset(
                     target_id=target_id,
                     task_id=db_task_id,
                     url=link,
-                    method="GET", # Crawled links are usually GET
+                    method=http_method,
                     type=AssetType.URL,
-                    source=AssetSource.HTML
+                    source=AssetSource.HTML,
+                    request_spec=request_data,
+                    response_spec=response_data,
+                    parameters=parameters_data
                 )
                 saved_count += 1
             

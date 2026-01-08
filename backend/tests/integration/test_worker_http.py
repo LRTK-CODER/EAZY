@@ -1,6 +1,6 @@
 """
-Test 5-Imp.20: Worker HTTP Integration Tests (RED Phase)
-Expected to FAIL: Worker doesn't collect/pass HTTP data yet
+Test 5-Imp.20: Worker HTTP Integration Tests (GREEN Phase)
+Expected to PASS: Worker collects and passes HTTP data with Base64 image encoding
 """
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
@@ -10,6 +10,7 @@ from app.models.target import Target, TargetScope
 from app.models.task import Task, TaskType, TaskStatus
 from app.models.asset import Asset, AssetType, AssetSource
 from sqlmodel import select
+import base64
 
 
 @pytest.mark.asyncio
@@ -201,7 +202,7 @@ async def test_worker_parses_json_response_bodies(db_session: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_worker_excludes_image_responses(db_session: AsyncSession):
-    """Test image responses excluded (Content-Type: image/*) - RED Phase"""
+    """Test image responses encoded as Base64 (Content-Type: image/*) - GREEN Phase"""
     # Setup
     project = Project(name="Image Exclusion Project")
     db_session.add(project)
@@ -228,19 +229,22 @@ async def test_worker_excludes_image_responses(db_session: AsyncSession):
     await db_session.commit()
     await db_session.refresh(task)
 
-    # Mock image response
+    # Mock image response (Base64 encoded as CrawlerService does)
+    image_bytes = b"binary image data..."
+    image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+
     mock_http_data = {
         "http://example.com/logo.png": {
             "request": {"method": "GET"},
             "response": {
                 "status": 200,
                 "headers": {"Content-Type": "image/png"},
-                "body": b"binary image data..."  # Should be excluded
+                "body": image_base64  # Base64 encoded string
             }
         }
     }
 
-    # Should FAIL: Worker doesn't filter image responses yet
+    # Should PASS: Worker encodes image responses as Base64
     with patch("app.worker.CrawlerService") as MockCrawler:
         mock_crawler_instance = MockCrawler.return_value
         mock_crawler_instance.crawl = AsyncMock(
@@ -250,16 +254,19 @@ async def test_worker_excludes_image_responses(db_session: AsyncSession):
         from app.worker import process_task
         await process_task(task.id, db_session)
 
-    # Verify image response body is excluded or empty
+    # Verify image response body is Base64 encoded
     result = await db_session.exec(select(Asset).where(Asset.target_id == target.id))
     assets = result.all()
 
-    if len(assets) > 0:
-        asset = assets[0]
-        if asset.response_spec and "body" in asset.response_spec:
-            # Image bodies should be excluded/null
-            body = asset.response_spec["body"]
-            assert body is None or body == "", "Image response bodies should be excluded"
+    assert len(assets) > 0, "Should have created asset for image"
+    asset = assets[0]
+    assert asset.response_spec is not None, "Asset should have response_spec"
+    assert "body" in asset.response_spec, "Response should have body"
+
+    # Image body should be Base64 encoded string
+    body = asset.response_spec["body"]
+    assert isinstance(body, str), "Image body should be Base64 string"
+    assert body == image_base64, "Image body should match Base64 encoding"
 
 
 @pytest.mark.asyncio
