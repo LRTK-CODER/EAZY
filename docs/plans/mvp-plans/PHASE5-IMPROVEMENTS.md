@@ -135,13 +135,14 @@
     - **완료**: 2026-01-08
     - 테스트 결과: ✅ PASS (Work Package A 포함)
 
-- [ ] **Task 5-Imp.10**: Worker 취소 로직 추가 (Backend)
+- [x] **Task 5-Imp.10**: Worker 취소 로직 추가 (Backend)
     - 파일: `backend/app/worker.py`
     - 10개 링크마다 Redis 취소 플래그 체크
     - 취소 시 Task status = CANCELLED, completed_at = NOW()
     - started_at, completed_at 자동 기록
-    - **완료**: (날짜 기록)
-    - 수동 테스트: ✅ 취소 10초 내 반응
+    - **완료**: 2026-01-08
+    - 테스트 결과: ✅ 기존 테스트 통과 (test_worker.py 1/1)
+    - 수동 테스트: ⏳ 수동 검증 필요 (취소 10초 내 반응)
 
 - [x] **Task 5-Imp.11**: Task API 엔드포인트 추가 (Backend)
     - 파일: `backend/app/api/v1/endpoints/task.py`
@@ -564,9 +565,10 @@ uv run pytest tests/integration/test_worker_params.py -v
 - ✅ Task 5-Imp.7: Task 모델 수정 (started_at, completed_at, CANCELLED)
 - ✅ Task 5-Imp.8: Alembic Migration 생성 및 적용
 - ✅ Task 5-Imp.9: TaskService 확장 (cancel_task, get_latest_task_for_target)
+- ✅ Task 5-Imp.10: Worker 취소 로직 추가 (Redis 플래그 체크, 타이밍 기록)
 - ✅ Task 5-Imp.11: Task API 엔드포인트 (POST /cancel, GET /latest-task)
-- **테스트**: 13/13 통과 ✅
-- **커밋**: 7d38631 (feat: real-time crawling status)
+- **테스트**: 13/13 통과 ✅ + Worker 1/1 통과 ✅
+- **커밋**: 7d38631 (feat: real-time crawling status), 7d3dcd3 (feat: worker cancellation)
 
 **Step 2: HTTP 패킷 조회 (Backend)**
 - ✅ Task 5-Imp.24: CrawlerService HTTP 인터셉션 (Playwright listeners)
@@ -584,7 +586,7 @@ uv run pytest tests/integration/test_worker_params.py -v
 ### ⏳ 남은 작업
 
 **Step 1: Worker 통합**
-- ⏳ Task 5-Imp.10: Worker 취소 로직 추가 (Redis 플래그 체크)
+- ✅ Task 5-Imp.10: Worker 취소 로직 추가 (완료 - 2026-01-08)
 
 **Step 2: Worker 통합**
 - ⏳ Task 5-Imp.26: Worker HTTP 통합
@@ -600,10 +602,10 @@ uv run pytest tests/integration/test_worker_params.py -v
 
 | 단계 | Backend | Frontend | 전체 |
 |------|---------|----------|------|
-| Step 1 | 75% (3/4) | 0% (0/4) | 37.5% (3/8) |
+| Step 1 | 100% (4/4) | 0% (0/4) | 50% (4/8) |
 | Step 2 | 66% (2/3) | 0% (0/4) | 28.6% (2/7) |
 | Step 3 | 100% (3/3) | 0% (0/2) | 60% (3/5) |
-| **전체** | **70%** (8/10) | **0%** (0/10) | **40%** (8/18) |
+| **전체** | **80%** (9/10) | **0%** (0/10) | **45%** (9/18) |
 
 ### 🎯 다음 단계
 
