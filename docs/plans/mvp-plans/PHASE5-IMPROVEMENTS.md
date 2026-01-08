@@ -4,8 +4,8 @@
 
 ---
 
-**상태**: ⏳ 계획 수립 완료, 구현 대기
-**예상 시작일**: 2026-01-08
+**상태**: 🔴 RED Phase 완료 (2026-01-08), GREEN Phase 진행 중
+**실제 시작일**: 2026-01-08
 **예상 소요 시간**: 14-18시간
 **예상 완료일**: 2026-01-10
 
@@ -15,7 +15,7 @@
 
 **목표**: Phase 5 Step 3 완료 후 발견된 3가지 문제 해결
 **예상 시간**: 14-18시간 (~2일)
-**상태**: ⏳ 대기 중 (Phase 5 Step 3 완료 후 시작)
+**상태**: 🔴 RED Phase 완료 (2026-01-08)
 
 > **참고**: Phase 5 Step 3에서 발견된 문제점을 체계적으로 개선하는 단계입니다.
 
@@ -57,54 +57,54 @@
 
 **🔴 RED: 실패하는 테스트 먼저 작성**
 
-- [ ] **Test 5-Imp.1**: Task 타임스탬프 모델 테스트 (6개)
+- [x] **Test 5-Imp.1**: Task 타임스탬프 모델 테스트 (6개)
     - 파일: `backend/tests/models/test_task_timestamps.py`
     - started_at, completed_at 필드 존재 확인
     - CANCELLED 상태 추가 확인
     - 타임스탬프 자동 설정 로직
     - 상태 전이 유효성 검사
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase)
 
-- [ ] **Test 5-Imp.2**: Task 취소 API 테스트 (4개)
+- [x] **Test 5-Imp.2**: Task 취소 API 테스트 (4개)
     - 파일: `backend/tests/api/test_task_cancel.py`
     - POST /tasks/{id}/cancel 엔드포인트 (200 OK)
     - RUNNING 상태 Task 취소
     - PENDING 상태 Task 취소
     - COMPLETED Task 취소 불가 (400 Bad Request)
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase)
 
-- [ ] **Test 5-Imp.3**: Latest Task API 테스트 (3개)
+- [x] **Test 5-Imp.3**: Latest Task API 테스트 (3개)
     - 파일: `backend/tests/api/test_latest_task.py`
     - GET /targets/{id}/latest-task 엔드포인트 (200 OK)
     - 가장 최근 Task 반환 (created_at DESC)
     - Target에 Task 없을 때 404 에러
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase)
 
-- [ ] **Test 5-Imp.4**: ScanStatusBadge 테스트 (4개)
+- [x] **Test 5-Imp.4**: ScanStatusBadge 테스트 (14개)
     - 파일: `frontend/src/components/features/target/ScanStatusBadge.test.tsx`
     - latest-task API 호출 확인
     - Elapsed time 표시 ("Running (3m)")
     - 상태별 Badge variant (PENDING/RUNNING/COMPLETED/FAILED/CANCELLED)
     - Stop 버튼 표시 (RUNNING/PENDING 상태)
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase)
 
-- [ ] **Test 5-Imp.5**: Task 타입 정의 테스트 (2개)
+- [x] **Test 5-Imp.5**: Task 타입 정의 테스트 (4개)
     - 파일: `frontend/src/types/task.test.ts`
     - started_at, completed_at 필드 포함 확인
     - CANCELLED 상태 상수 확인
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase)
 
-- [ ] **Test 5-Imp.6**: Task Hooks 테스트 (3개)
+- [x] **Test 5-Imp.6**: Task Hooks 테스트 (7개)
     - 파일: `frontend/src/hooks/useTasks.test.tsx` (확장)
     - useCancelTask 훅 추가
     - useLatestTask 훅 추가
     - Cancel 후 Task 목록 자동 갱신 확인
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase)
 
 **🟢 GREEN: 테스트를 통과하도록 구현**
@@ -224,42 +224,42 @@ npm run test -- ScanStatusBadge task
 
 **🔴 RED: 실패하는 테스트 먼저 작성**
 
-- [ ] **Test 5-Imp.18**: CrawlerService HTTP 인터셉션 테스트 (5개)
+- [x] **Test 5-Imp.18**: CrawlerService HTTP 인터셉션 테스트 (5개)
     - 파일: `backend/tests/services/test_crawler_http.py`
     - page.on("request") 이벤트 리스너 등록
     - page.on("response") 이벤트 리스너 등록
     - HTTP 요청 데이터 수집 (method, headers, body)
     - HTTP 응답 데이터 수집 (status, headers, body)
     - Body 크기 10KB 제한 적용
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase)
 
-- [ ] **Test 5-Imp.19**: AssetService HTTP 저장 테스트 (4개)
+- [x] **Test 5-Imp.19**: AssetService HTTP 저장 테스트 (4개)
     - 파일: `backend/tests/services/test_asset_http.py`
     - request_spec JSONB 저장
     - response_spec JSONB 저장
     - NULL 값 허용 (네트워크 인터셉션 실패 시)
     - 10KB 초과 시 truncate
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase)
 
-- [ ] **Test 5-Imp.20**: Worker HTTP 통합 테스트 (5개)
+- [x] **Test 5-Imp.20**: Worker HTTP 통합 테스트 (5개)
     - 파일: `backend/tests/integration/test_worker_http.py`
     - 크롤링 시 HTTP 데이터 자동 수집
     - Asset 저장 시 request_spec, response_spec 포함
     - API 응답 body JSON 파싱
     - 이미지 응답 body 제외 (Content-Type: image/*)
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase)
 
-- [ ] **Test 5-Imp.21**: Asset 타입 확장 테스트 (2개)
+- [x] **Test 5-Imp.21**: Asset 타입 확장 테스트 (6개)
     - 파일: `frontend/src/types/asset.test.ts`
     - request_spec, response_spec 필드 확인
     - HttpRequestSpec, HttpResponseSpec 인터페이스 확인
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase)
 
-- [ ] **Test 5-Imp.22**: AssetDetailDialog 테스트 (8개)
+- [x] **Test 5-Imp.22**: AssetDetailDialog 테스트 (14개)
     - 파일: `frontend/src/components/features/asset/AssetDetailDialog.test.tsx`
     - Tabs 컴포넌트 (Request/Response/Metadata)
     - Request 탭: method, headers, body 표시
@@ -269,15 +269,15 @@ npm run test -- ScanStatusBadge task
     - "View Details" 버튼 클릭 → Dialog 열림
     - Close 버튼 동작
     - request_spec/response_spec NULL 시 "No data" 표시
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase)
 
-- [ ] **Test 5-Imp.23**: AssetTable "View Details" 버튼 테스트 (3개)
+- [x] **Test 5-Imp.23**: AssetTable "View Details" 버튼 테스트 (3개)
     - 파일: `frontend/src/components/features/asset/AssetTable.test.tsx` (확장)
     - Actions 컬럼에 "View Details" 버튼 표시
     - 버튼 클릭 → AssetDetailDialog 열림
     - Dialog에 선택된 Asset 데이터 전달
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase)
 
 **🟢 GREEN: 테스트를 통과하도록 구현**
@@ -377,29 +377,29 @@ npm run test -- AssetDetailDialog AssetTable
 
 **🔴 RED: 실패하는 테스트 먼저 작성**
 
-- [ ] **Test 5-Imp.32**: URL 파라미터 파싱 테스트 (5개)
+- [x] **Test 5-Imp.32**: URL 파라미터 파싱 테스트 (5개)
     - 파일: `backend/tests/utils/test_url_parser.py`
     - parse_query_params(url) 함수 테스트
     - 쿼리 파라미터 추출 (key-value 딕셔너리)
     - 복수 값 처리 (key=val1&key=val2 → [val1, val2])
     - URL 디코딩 (%20 → 공백)
     - 쿼리 없는 URL → 빈 딕셔너리
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase)
 
-- [ ] **Test 5-Imp.33**: AssetService 파라미터 저장 테스트 (3개)
+- [x] **Test 5-Imp.33**: AssetService 파라미터 저장 테스트 (3개)
     - 파일: `backend/tests/services/test_asset_params.py`
     - parameters JSONB 저장
     - NULL 값 허용 (쿼리 파라미터 없을 때)
     - 중복 파라미터 병합 (리스트 형태)
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase)
 
-- [ ] **Test 5-Imp.34**: Worker 파라미터 통합 테스트 (2개)
+- [x] **Test 5-Imp.34**: Worker 파라미터 통합 테스트 (2개)
     - 파일: `backend/tests/integration/test_worker_params.py`
     - 크롤링 시 URL 파라미터 자동 추출
     - Asset 저장 시 parameters 포함
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ❌ FAIL (예상대로 - RED Phase)
 
 **🟢 GREEN: 테스트를 통과하도록 구현**
