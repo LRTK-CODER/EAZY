@@ -10,13 +10,28 @@ from app.core.config import settings
 from app.core.queue import TaskManager
 from app.models.project import Project  # Import all models for SQLAlchemy metadata
 from app.models.target import Target
-from app.models.task import Task, TaskStatus, TaskType
+from app.models.task import Task, TaskStatus, TaskType, utc_now
 from app.models.asset import Asset, AssetDiscovery, AssetType, AssetSource
 from app.services.crawler_service import CrawlerService
 from app.services.asset_service import AssetService
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+async def check_cancellation(task_manager: TaskManager, task_id: int) -> bool:
+    """
+    Check if task has been cancelled via Redis flag.
+
+    Args:
+        task_manager: TaskManager instance
+        task_id: Database Task ID
+
+    Returns:
+        True if task should be cancelled, False otherwise
+    """
+    cancel_key = f"task:{task_id}:cancel"
+    cancel_flag = await task_manager.redis.get(cancel_key)
+    return cancel_flag is not None
 
 async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> bool:
     """
@@ -53,6 +68,7 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
         return True
         
     task_record.status = TaskStatus.RUNNING
+    task_record.started_at = utc_now()
     session.add(task_record)
     await session.commit()
     
@@ -75,7 +91,32 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
             # 4. Save Assets
             asset_service = AssetService(session)
             saved_count = 0
-            for link in links:
+            for index, link in enumerate(links, start=1):
+                # Check cancellation every 10 links
+                if index % 10 == 0:
+                    is_cancelled = await check_cancellation(task_manager, db_task_id)
+                    if is_cancelled:
+                        logger.info(f"Task {db_task_id} cancelled by user at link {index}/{len(links)}")
+
+                        # Update status to CANCELLED
+                        import json
+                        task_record.status = TaskStatus.CANCELLED
+                        task_record.completed_at = utc_now()
+                        task_record.result = json.dumps({
+                            "cancelled": True,
+                            "processed_links": saved_count,
+                            "total_links": len(links),
+                            "message": "Task cancelled by user"
+                        })
+                        session.add(task_record)
+                        await session.commit()
+
+                        # Clean up Redis flag
+                        cancel_key = f"task:{db_task_id}:cancel"
+                        await task_manager.redis.delete(cancel_key)
+
+                        return True
+
                 await asset_service.process_asset(
                     target_id=target_id,
                     task_id=db_task_id,
@@ -89,6 +130,7 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
             # 5. Update Status -> COMPLETED
             import json
             task_record.status = TaskStatus.COMPLETED
+            task_record.completed_at = utc_now()
             task_record.result = json.dumps({"found_links": len(links), "saved_assets": saved_count})
             session.add(task_record)
             await session.commit()
@@ -100,6 +142,7 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
         logger.error(f"Task execution failed: {e}")
         import json
         task_record.status = TaskStatus.FAILED
+        task_record.completed_at = utc_now()
         task_record.result = json.dumps({"error": str(e)})
         session.add(task_record)
         await session.commit()
