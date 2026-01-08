@@ -4,11 +4,11 @@
 
 ---
 
-**상태**: 🟢 GREEN Phase 진행 중 (Step 1-3 Frontend 100% 완료, Backend 90% - Worker HTTP 통합 대기)
+**상태**: ✅ GREEN Phase 완료 (2026-01-08)
 **실제 시작일**: 2026-01-08
-**예상 소요 시간**: 14-18시간
-**예상 완료일**: 2026-01-10
-**진행률**: 전체 95.5% (21/22 tasks) | Frontend 100% (124/124 tests) | Backend 90% (Worker 통합 1개 남음)
+**실제 소요 시간**: ~6시간 (병렬 처리로 단축)
+**완료일**: 2026-01-08
+**진행률**: 전체 100% (22/22 tasks) | Frontend 100% (124/124 tests) | Backend 100% (모든 통합 완료)
 
 ---
 
@@ -305,11 +305,12 @@ npm run test -- ScanStatusBadge task
     - **완료**: 2026-01-08
     - 테스트 결과: ✅ PASS (Work Package B, 4/4 tests passed)
 
-- [ ] **Task 5-Imp.26**: Worker HTTP 통합 (Backend)
-    - 파일: `backend/app/worker.py`
-    - CrawlerService.crawl() 반환값에 HTTP 데이터 포함
-    - AssetService.process_asset() 호출 시 HTTP 데이터 전달
-    - **완료**: (날짜 기록)
+- [x] **Task 5-Imp.26**: Worker HTTP 통합 (Backend)
+    - 파일: `backend/app/worker.py`, `backend/app/services/crawler_service.py`
+    - CrawlerService.crawl() 반환값에 tuple (links, http_data) 포함
+    - AssetService.process_asset() 호출 시 HTTP 데이터 전달 (request_spec, response_spec, parameters)
+    - CrawlerService 확장: JSON, HTML, CSS, JS (plain text), 이미지 (Base64)
+    - **완료**: 2026-01-08
     - 통합 테스트: ✅ PASS (5/5 tests passed)
 
 - [x] **Task 5-Imp.27**: Asset 타입 확장 (Frontend)
@@ -434,12 +435,12 @@ npm run test -- AssetDetailDialog AssetTable
     - **완료**: 2026-01-08 (Task 5-Imp.25에서 완료됨)
     - 테스트 결과: ✅ PASS (Work Package B/C 통합)
 
-- [ ] **Task 5-Imp.38**: Worker 파라미터 통합 (Backend)
+- [x] **Task 5-Imp.38**: Worker 파라미터 통합 (Backend)
     - 파일: `backend/app/worker.py`
     - CrawlerService.crawl() 반환값에 parameters 포함
     - AssetService.process_asset() 호출 시 parameters 전달
-    - **완료**: (날짜 기록)
-    - 통합 테스트: ✅ PASS (2/2 tests passed)
+    - **완료**: 2026-01-08 (Task 5-Imp.26에 포함됨)
+    - 통합 테스트: ✅ PASS (Task 5-Imp.26 통합 테스트 포함)
 
 **🔵 REFACTOR: 코드 품질 개선**
 
@@ -604,39 +605,34 @@ uv run pytest tests/integration/test_worker_params.py -v
 - **테스트**: 37/37 통과 ✅ (AssetDetailDialog 14 + AssetTable 23)
 - **커밋**: 3671542, 8c843a1
 
+**Step 2 & 3: Worker 통합 (Backend)**
+- ✅ Task 5-Imp.26: Worker HTTP 통합 (request_spec, response_spec, parameters)
+- ✅ Task 5-Imp.38: Worker 파라미터 통합 (Task 5-Imp.26에 포함)
+- ✅ CrawlerService 확장: JSON, HTML, CSS, JS, 이미지 모두 캡처
+- **테스트**: CrawlerService 5/5, Worker 5/5 통과 ✅
+- **커밋**: 419d73c
+
 ### ⏳ 남은 작업
 
-**Step 2: Worker 통합 (Backend)**
-- ⏳ Task 5-Imp.26: Worker HTTP 통합 (예상 1-2시간)
-  - worker.py에서 CrawlerService.crawl() 반환값에 HTTP 데이터 포함
-  - AssetService.process_asset() 호출 시 HTTP 데이터 전달
-
-**Step 3: Worker 통합 (Backend)**
-- ⏳ Task 5-Imp.38: Worker 파라미터 통합 (Task 5-Imp.26에 포함)
-  - parameters는 HTTP 데이터에 이미 포함됨
+**없음** - Phase 5-Improvements 100% 완료 ✅
 
 ### 📈 진행률
 
 | 단계 | Backend | Frontend | 전체 |
 |------|---------|----------|------|
 | Step 1 | 100% (5/5) | 100% (5/5) | 100% (10/10) |
-| Step 2 | 66% (2/3) | 100% (4/4) | 85.7% (6/7) |
+| Step 2 | 100% (3/3) | 100% (4/4) | 100% (7/7) |
 | Step 3 | 100% (3/3) | 100% (2/2) | 100% (5/5) |
-| **전체** | **90%** (10/11) | **100%** (11/11) | **95.5%** (21/22) |
+| **전체** | **100%** (11/11) | **100%** (11/11) | **100%** (22/22) |
 
 ### 🎯 다음 단계
 
-1. **Worker 통합 (Phase 2)** - 예상 2-3시간
-   - Task 5-Imp.10, 5-Imp.26, 5-Imp.38 통합
-   - worker.py에서 started_at/completed_at 업데이트
-   - HTTP 데이터 및 파라미터 전달
+**Phase 5-Improvements 완료!** 🎉
 
-2. **Frontend 구현 (Step 1-3)** - 예상 6-8시간
-   - Task 타입 확장
-   - ScanStatusBadge 리팩토링
-   - AssetDetailDialog 구현
-
-3. **통합 테스트 및 정제** - 예상 2-3시간
+다음 작업:
+1. **Phase 5.5**: Form 태그 파싱, XHR/Fetch 캡처 (계획 단계)
+2. **Phase 5 Step 4**: Asset Table 필터링/정렬 (선택 사항)
+3. **Phase 6**: React Flow 비즈니스 로직 맵 시각화
 
 ---
 
