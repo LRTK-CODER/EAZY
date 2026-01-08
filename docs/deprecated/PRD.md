@@ -1,4 +1,10 @@
-# Product Requirements Document (PRD) - MVP
+# ⚠️ DEPRECATED - 이 문서는 더 이상 유지되지 않습니다
+
+> **이 문서는 2026-01-09부로 [docs/reference/PROJECT_OVERVIEW.md](../reference/PROJECT_OVERVIEW.md)로 통합되었습니다.**
+
+---
+
+# Product Requirements Document (PRD) - MVP (아카이브)
 
 ## 1. 프로젝트 개요 (Overview)
 **EAZY**는 AI 기반의 지능형 DAST 도구입니다. 이번 MVP 단계에서는 기본적인 **프로젝트 관리** 기능과, 보안 진단의 기초가 되는 **공격 표면 식별(Attack Surface Identification)** 기능을 API 서버로 구현하는 것을 목표로 합니다.
