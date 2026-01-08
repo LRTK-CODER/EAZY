@@ -190,10 +190,13 @@
     - **완료**: 2026-01-08
     - 테스트 결과: ✅ PASS (11/11 tests passed)
 
-- [ ] **Task 5-Imp.17**: Worker 취소 체크 간격 최적화
-    - 파일: `backend/app/worker.py`
+- [x] **Task 5-Imp.17**: Worker 취소 체크 간격 최적화
+    - 파일: `backend/app/worker.py`, `backend/tests/core/test_worker.py`
     - 10개 링크 → 5초마다 체크로 변경 (응답성 향상)
-    - **완료**: (날짜 기록)
+    - process_task(), process_one_task() 모두 적용
+    - 테스트 Mock 수정 (튜플 반환)
+    - **완료**: 2026-01-08
+    - 테스트 결과: ✅ PASS (1/1 tests)
 
 #### ✅ 체크포인트 1
 
