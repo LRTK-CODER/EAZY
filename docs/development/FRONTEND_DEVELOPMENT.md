@@ -9,17 +9,82 @@
 
 ## 목차
 
-- [코딩 스타일](#코딩-스타일)
-- [파일 명명 규칙](#파일-명명-규칙)
-- [컴포넌트 구조 (Atomic Design)](#컴포넌트-구조-atomic-design)
-- [Presentation & Container 패턴](#presentation--container-패턴)
-- [주요 기능 구현 가이드](#주요-기능-구현-가이드)
-  - [프로젝트 관리](#프로젝트-관리)
-  - [Target 관리](#target-관리)
-  - [스캔 결과 추적 (TanStack Query 폴링)](#스캔-결과-추적-tanstack-query-폴링)
-- [보안 규칙](#보안-규칙)
-- [성능 최적화](#성능-최적화)
-- [접근성 (Accessibility)](#접근성-accessibility)
+1. [개발 환경 설정](#개발-환경-설정)
+2. [코딩 스타일](#코딩-스타일)
+3. [파일 명명 규칙](#파일-명명-규칙)
+4. [컴포넌트 구조 (Atomic Design)](#컴포넌트-구조-atomic-design)
+5. [Presentation & Container 패턴](#presentation--container-패턴)
+6. [상태 관리](#상태-관리)
+7. [주요 기능 구현 가이드](#주요-기능-구현-가이드)
+   - [프로젝트 관리](#프로젝트-관리)
+   - [Target 관리](#target-관리)
+   - [스캔 결과 추적 (TanStack Query 폴링)](#스캔-결과-추적-tanstack-query-폴링)
+8. [폼 처리](#폼-처리)
+9. [스타일링](#스타일링)
+10. [테스트 작성](#테스트-작성)
+11. [보안 규칙](#보안-규칙)
+12. [성능 최적화](#성능-최적화)
+13. [접근성 (Accessibility)](#접근성-accessibility)
+
+---
+
+## 개발 환경 설정
+
+### 필수 도구
+
+```bash
+# Node.js 18+ (권장: 20 LTS)
+node --version
+
+# npm 9+
+npm --version
+```
+
+### 프로젝트 설정
+
+```bash
+# 의존성 설치
+cd frontend
+npm install
+
+# 개발 서버 시작 (http://localhost:5173)
+npm run dev
+
+# 테스트 실행
+npm run test
+
+# 테스트 Watch 모드
+npm run test:watch
+
+# 빌드
+npm run build
+
+# Storybook 실행 (http://localhost:6006)
+npm run storybook
+```
+
+### 환경 변수
+
+`.env` 파일 생성 (frontend 루트).
+
+```bash
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+```
+
+### 핵심 기술 스택
+
+| 기술 | 버전 | 용도 |
+|------|------|------|
+| **React** | 19.2.0 | UI 라이브러리 |
+| **TypeScript** | 5.9.3 | 정적 타입 시스템 |
+| **Vite** | 7.2.4 | 빌드 도구 (빠른 HMR) |
+| **TailwindCSS** | 4.1.18 | 유틸리티 CSS 프레임워크 |
+| **shadcn/ui** | - | Radix UI 기반 컴포넌트 라이브러리 |
+| **TanStack Query** | 5.90.16 | 서버 상태 관리 (캐싱, 폴링) |
+| **React Router** | 7.11.0 | 클라이언트 라우팅 |
+| **React Hook Form** | 7.69.0 | 폼 상태 관리 |
+| **Zod** | 4.2.1 | 스키마 유효성 검증 |
+| **Vitest** | 4.0.16 | 테스트 러너 |
 
 ---
 
@@ -576,6 +641,188 @@ export function CreateTargetForm({ projectId }: CreateTargetFormProps) {
 
 ---
 
+## 상태 관리
+
+EAZY Frontend는 **TanStack Query**를 사용하여 서버 상태를 관리하고, **React Hook Form**을 사용하여 폼 상태를 관리합니다.
+
+### TanStack Query (서버 상태)
+
+#### Query Key Factory 패턴
+
+```typescript
+// hooks/useProjects.ts
+export const projectKeys = {
+  all: ['projects'] as const,
+  lists: () => [...projectKeys.all, 'list'] as const,
+  list: (params?: ProjectListParams) => [...projectKeys.lists(), params] as const,
+  details: () => [...projectKeys.all, 'detail'] as const,
+  detail: (id: number) => [...projectKeys.details(), id] as const,
+};
+```
+
+**장점**:
+- 일관된 Query Key 관리
+- 타입 안전 (TypeScript `as const`)
+- Invalidation 패턴 간소화
+
+#### useQuery (데이터 조회)
+
+```typescript
+// 프로젝트 목록 조회
+export const useProjects = (params?: ProjectListParams, enabled = true) => {
+  return useQuery({
+    queryKey: projectKeys.list(params),
+    queryFn: () => projectService.getProjects(params),
+    enabled,
+  });
+};
+
+// 단일 프로젝트 조회
+export const useProject = (id: number) => {
+  return useQuery({
+    queryKey: projectKeys.detail(id),
+    queryFn: () => projectService.getProject(id),
+    enabled: !!id, // id가 있을 때만 실행
+  });
+};
+```
+
+**사용 예시**:
+
+```typescript
+function ProjectList() {
+  const { data: projects, isLoading, error } = useProjects({ archived: false });
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <ul>
+      {projects?.map((project) => (
+        <li key={project.id}>{project.name}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+#### useMutation (데이터 변경)
+
+```typescript
+export const useCreateProject = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: ProjectCreate) => projectService.createProject(data),
+    onSuccess: () => {
+      // 모든 프로젝트 목록 캐시 무효화 (자동 refetch)
+      queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
+    },
+  });
+};
+```
+
+**사용 예시**:
+
+```typescript
+function CreateProjectButton() {
+  const createProject = useCreateProject();
+
+  const handleCreate = async () => {
+    try {
+      await createProject.mutateAsync({
+        name: 'New Project',
+        description: 'Test',
+      });
+      toast.success('Project created');
+    } catch (error) {
+      toast.error('Failed to create project');
+    }
+  };
+
+  return (
+    <Button onClick={handleCreate} disabled={createProject.isPending}>
+      {createProject.isPending ? 'Creating...' : 'Create Project'}
+    </Button>
+  );
+}
+```
+
+#### Polling (자동 갱신)
+
+```typescript
+// hooks/useTasks.ts
+export const useTaskStatus = (taskId: number) => {
+  return useQuery({
+    queryKey: taskKeys.detail(taskId),
+    queryFn: () => taskService.getTaskStatus(taskId),
+    refetchInterval: (query) => {
+      // 데이터 없음 → 5초 간격 폴링
+      if (!query.state.data) return 5000;
+
+      // 완료/실패 → 폴링 중지
+      if (
+        query.state.data.status === TaskStatus.COMPLETED ||
+        query.state.data.status === TaskStatus.FAILED
+      ) {
+        return false;
+      }
+
+      // 진행 중 → 5초 간격 폴링
+      return 5000;
+    },
+    enabled: !!taskId,
+  });
+};
+```
+
+### React Hook Form (폼 상태)
+
+**React Hook Form**과 **Zod**를 조합하여 폼 유효성 검증을 처리합니다.
+
+```typescript
+// schemas/targetSchema.ts
+import { z } from 'zod';
+
+export const targetFormSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(255, 'Name must be at most 255 characters'),
+  url: z
+    .string()
+    .min(1, 'URL is required')
+    .refine(
+      (value) => {
+        try {
+          const url = new URL(value);
+          return url.protocol === 'http:' || url.protocol === 'https:';
+        } catch {
+          return false;
+        }
+      },
+      { message: 'URL must be valid' }
+    ),
+  description: z.string().optional(),
+  scope: z.enum(['DOMAIN', 'SUBDOMAIN', 'URL_ONLY']),
+});
+
+export type TargetFormValues = z.infer<typeof targetFormSchema>;
+```
+
+**폼 초기화**:
+
+```typescript
+const form = useForm<TargetFormValues>({
+  resolver: zodResolver(targetFormSchema), // Zod 스키마 연동
+  defaultValues: {
+    name: '',
+    url: '',
+    description: '',
+    scope: 'DOMAIN',
+  },
+});
+```
+
+---
+
 ## 주요 기능 구현 가이드
 
 ### 프로젝트 관리
@@ -856,6 +1103,382 @@ export function TargetList({ projectId }: TargetListProps) {
     </Table>
   )
 }
+```
+
+---
+
+## 폼 처리
+
+### React Hook Form + Zod
+
+EAZY Frontend는 **React Hook Form**과 **Zod**를 조합하여 타입 안전한 폼 처리를 제공합니다.
+
+#### 1. 스키마 정의 (Zod)
+
+```typescript
+// schemas/targetSchema.ts
+import { z } from 'zod';
+
+export const targetFormSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(255, 'Name must be at most 255 characters'),
+  url: z
+    .string()
+    .min(1, 'URL is required')
+    .refine(
+      (value) => {
+        try {
+          const url = new URL(value);
+          return url.protocol === 'http:' || url.protocol === 'https:';
+        } catch {
+          return false;
+        }
+      },
+      { message: 'URL must be valid' }
+    ),
+  description: z.string().optional(),
+  scope: z.enum(['DOMAIN', 'SUBDOMAIN', 'URL_ONLY']),
+});
+
+export type TargetFormValues = z.infer<typeof targetFormSchema>;
+```
+
+#### 2. 폼 초기화
+
+```typescript
+const form = useForm<TargetFormValues>({
+  resolver: zodResolver(targetFormSchema), // Zod 연동
+  defaultValues: {
+    name: '',
+    url: '',
+    description: '',
+    scope: 'DOMAIN',
+  },
+});
+```
+
+#### 3. 폼 필드 렌더링
+
+```typescript
+<FormField
+  control={form.control}
+  name="name"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Name</FormLabel>
+      <FormControl>
+        <Input placeholder="Enter name" {...field} />
+      </FormControl>
+      <FormMessage /> {/* 유효성 검증 에러 표시 */}
+    </FormItem>
+  )}
+/>
+```
+
+#### 4. Submit 처리
+
+```typescript
+const onSubmit = async (data: TargetFormValues) => {
+  try {
+    await createTarget.mutateAsync({ projectId, data });
+    toast.success('Target created successfully');
+    onOpenChange(false);
+    form.reset(); // 폼 초기화
+  } catch {
+    toast.error('Failed to create target');
+  }
+};
+
+<form onSubmit={form.handleSubmit(onSubmit)}>
+  {/* 폼 필드 */}
+  <Button type="submit" disabled={createTarget.isPending}>
+    Create
+  </Button>
+</form>;
+```
+
+#### 5. 에러 처리
+
+```typescript
+// 수동 에러 설정
+form.setError('name', {
+  type: 'manual',
+  message: 'Name already exists',
+});
+
+// 모든 에러 초기화
+form.clearErrors();
+
+// 특정 필드 에러 확인
+const nameError = form.formState.errors.name;
+```
+
+---
+
+## 스타일링
+
+### TailwindCSS 사용법
+
+EAZY Frontend는 **TailwindCSS v4**를 사용합니다.
+
+```typescript
+// 기본 스타일링
+<div className="flex items-center gap-4 p-4 bg-white rounded-lg shadow">
+  <h1 className="text-2xl font-bold text-gray-900">Title</h1>
+  <Button className="bg-blue-500 hover:bg-blue-600 text-white">
+    Click me
+  </Button>
+</div>
+```
+
+### cn() 유틸리티 (조건부 스타일)
+
+```typescript
+// lib/utils.ts
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+```
+
+**사용 예시**:
+
+```typescript
+import { cn } from '@/lib/utils';
+
+<div
+  className={cn(
+    'px-4 py-2 rounded', // 기본 스타일
+    isActive && 'bg-blue-500 text-white', // 조건부
+    disabled && 'opacity-50 cursor-not-allowed' // 조건부
+  )}
+>
+  Content
+</div>;
+```
+
+### shadcn/ui 컴포넌트 커스터마이징
+
+```typescript
+// Button Variants
+<Button variant="default">Default</Button>
+<Button variant="destructive">Delete</Button>
+<Button variant="outline">Cancel</Button>
+<Button variant="ghost">Ghost</Button>
+<Button variant="link">Link</Button>
+
+// Button Sizes
+<Button size="default">Default</Button>
+<Button size="sm">Small</Button>
+<Button size="lg">Large</Button>
+<Button size="icon">🔍</Button>
+```
+
+**커스텀 Variant 추가**:
+
+```typescript
+// components/ui/button.tsx
+const buttonVariants = cva('inline-flex items-center justify-center rounded-md', {
+  variants: {
+    variant: {
+      default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+      // 커스텀 Variant 추가
+      success: 'bg-green-500 text-white hover:bg-green-600',
+    },
+  },
+});
+
+// 사용
+<Button variant="success">Success</Button>;
+```
+
+### 다크 모드 지원
+
+EAZY Frontend는 **next-themes**를 사용합니다.
+
+```typescript
+// components/theme/theme-toggle.tsx
+import { useTheme } from 'next-themes';
+
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <Button variant="ghost" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+      {theme === 'dark' ? '🌙' : '☀️'}
+    </Button>
+  );
+}
+```
+
+**TailwindCSS 다크 모드 클래스**:
+
+```typescript
+<div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">Content</div>
+```
+
+---
+
+## 테스트 작성
+
+### Vitest + React Testing Library
+
+EAZY Frontend는 **TDD (Test-Driven Development)** 방식을 따릅니다.
+
+**RED → GREEN → REFACTOR**.
+
+```bash
+# 테스트 실행
+npm run test
+
+# Watch 모드
+npm run test:watch
+
+# 커버리지
+npm run test:coverage
+```
+
+### 테스트 구조
+
+```typescript
+// CreateTargetForm.test.tsx
+import { render, screen, waitFor } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
+import { CreateTargetForm } from './CreateTargetForm';
+import * as targetService from '@/services/targetService';
+import { toast } from 'sonner';
+
+// Mock 설정
+vi.mock('@/services/targetService');
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+// Helper: Provider 래핑
+const renderWithProviders = (ui: React.ReactElement) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      mutations: { retry: false },
+    },
+  });
+
+  return {
+    user: userEvent.setup(),
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>{ui}</MemoryRouter>
+      </QueryClientProvider>
+    ),
+  };
+};
+
+describe('CreateTargetForm', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders form fields', () => {
+    renderWithProviders(<CreateTargetForm open={true} onOpenChange={vi.fn()} projectId={1} />);
+
+    expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/url/i)).toBeInTheDocument();
+  });
+
+  it('shows validation error when name is empty', async () => {
+    const { user } = renderWithProviders(
+      <CreateTargetForm open={true} onOpenChange={vi.fn()} projectId={1} />
+    );
+
+    const submitButton = screen.getByRole('button', { name: /create/i });
+    await user.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/name.*required/i)).toBeInTheDocument();
+    });
+  });
+
+  it('calls createTarget API when submitted', async () => {
+    const mockCreateTarget = vi.mocked(targetService.createTarget).mockResolvedValue({
+      id: 1,
+      name: 'Test',
+      url: 'https://example.com',
+    });
+
+    const { user } = renderWithProviders(
+      <CreateTargetForm open={true} onOpenChange={vi.fn()} projectId={1} />
+    );
+
+    await user.type(screen.getByLabelText(/name/i), 'Test Target');
+    await user.type(screen.getByLabelText(/url/i), 'https://example.com');
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(mockCreateTarget).toHaveBeenCalled();
+      expect(toast.success).toHaveBeenCalledWith('Target created successfully');
+    });
+  });
+});
+```
+
+### Mock 설정
+
+```typescript
+// vitest.setup.ts
+import { beforeAll, afterEach, vi } from 'vitest';
+import { cleanup } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+
+// ResizeObserver Mock
+global.ResizeObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}));
+
+// 각 테스트 후 정리
+afterEach(() => {
+  cleanup();
+});
+```
+
+### 테스트 Best Practices
+
+1. **사용자 중심 쿼리 사용**.
+
+```typescript
+// ✅ Good: getByRole (접근성 고려)
+screen.getByRole('button', { name: /submit/i });
+
+// ❌ Bad: getByTestId
+screen.getByTestId('submit-button');
+```
+
+2. **userEvent 사용 (fireEvent 대신)**.
+
+```typescript
+// ✅ Good: userEvent
+const user = userEvent.setup();
+await user.click(button);
+await user.type(input, 'text');
+
+// ❌ Bad: fireEvent
+fireEvent.click(button);
+```
+
+3. **waitFor로 비동기 처리**.
+
+```typescript
+await waitFor(() => {
+  expect(mockAPI).toHaveBeenCalled();
+  expect(toast.success).toHaveBeenCalled();
+});
 ```
 
 ---
