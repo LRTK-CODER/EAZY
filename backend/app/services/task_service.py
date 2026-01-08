@@ -8,6 +8,7 @@ from app.core.queue import TaskManager
 class TaskService:
     def __init__(self, session: AsyncSession, redis: Redis):
         self.session = session
+        self.redis = redis
         self.task_manager = TaskManager(redis)
 
     async def create_scan_task(self, project_id: int, target_id: int) -> Task:
@@ -59,7 +60,7 @@ class TaskService:
         # AssetDiscovery table stores exactly this.
         from app.models.asset import Asset, AssetDiscovery
         from sqlmodel import select
-        
+
         statement = (
             select(Asset)
             .join(AssetDiscovery, Asset.id == AssetDiscovery.asset_id)
@@ -67,3 +68,67 @@ class TaskService:
         )
         result = await self.session.exec(statement)
         return result.all()
+
+    async def cancel_task(self, task_id: int) -> Task:
+        """
+        Cancel a running or pending task.
+
+        Args:
+            task_id: Database Task ID
+
+        Returns:
+            Updated Task object with CANCELLED status
+
+        Raises:
+            ValueError: If task not found or already completed/failed/cancelled
+        """
+        from datetime import datetime, timezone
+
+        # 1. Fetch task
+        task = await self.session.get(Task, task_id)
+        if not task:
+            raise ValueError(f"Task {task_id} not found")
+
+        # 2. Validate state
+        if task.status in [TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED]:
+            raise ValueError(
+                f"Cannot cancel task in {task.status} state. "
+                f"Only PENDING or RUNNING tasks can be cancelled."
+            )
+
+        # 3. Set Redis cancellation flag (Worker will check this)
+        cancel_key = f"task:{task_id}:cancel"
+        await self.redis.set(cancel_key, "1", ex=3600)  # 1-hour TTL
+
+        # 4. Update DB status
+        task.status = TaskStatus.CANCELLED
+        if not task.completed_at:
+            task.completed_at = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        self.session.add(task)
+        await self.session.commit()
+        await self.session.refresh(task)
+
+        return task
+
+    async def get_latest_task_for_target(self, target_id: int) -> Optional[Task]:
+        """
+        Get the most recent task for a target.
+
+        Args:
+            target_id: Target ID
+
+        Returns:
+            Latest Task (sorted by created_at DESC) or None if no tasks exist
+        """
+        from sqlmodel import select
+
+        statement = (
+            select(Task)
+            .where(Task.target_id == target_id)
+            .order_by(Task.created_at.desc())
+            .limit(1)
+        )
+
+        result = await self.session.exec(statement)
+        return result.first()

@@ -4,7 +4,7 @@ from sqlmodel import Field, SQLModel, Column
 from sqlalchemy import ForeignKey
 from enum import Enum
 
-def utc_now():
+def utc_now() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class TaskStatus(str, Enum):
@@ -12,6 +12,7 @@ class TaskStatus(str, Enum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 class TaskType(str, Enum):
     CRAWL = "crawl"
@@ -29,12 +30,16 @@ class TaskBase(SQLModel):
 
 class Task(TaskBase, table=True):
     __tablename__ = "tasks"
-    
+
     id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
+    started_at: Optional[datetime] = Field(default=None)
+    completed_at: Optional[datetime] = Field(default=None)
 
 class TaskRead(TaskBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None

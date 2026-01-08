@@ -49,3 +49,65 @@ async def get_task_assets(
     service = TaskService(session, redis)
     assets = await service.get_task_assets(task_id)
     return assets
+
+
+@router.post("/tasks/{task_id}/cancel", status_code=200, response_model=TaskRead)
+async def cancel_task(
+    task_id: int,
+    session: AsyncSession = Depends(get_session),
+    redis: Redis = Depends(get_redis)
+) -> Task:
+    """
+    Cancel a running or pending task.
+
+    Args:
+        task_id: Database Task ID
+
+    Returns:
+        Updated task with CANCELLED status
+
+    Raises:
+        400 Bad Request: If task is already completed/failed/cancelled
+        404 Not Found: If task doesn't exist
+    """
+    service = TaskService(session, redis)
+
+    try:
+        task = await service.cancel_task(task_id)
+        return task
+    except ValueError as e:
+        # Distinguish between not found and invalid state
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        else:
+            raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/targets/{target_id}/latest-task", response_model=TaskRead)
+async def get_latest_task(
+    target_id: int,
+    session: AsyncSession = Depends(get_session),
+    redis: Redis = Depends(get_redis)
+) -> Task:
+    """
+    Get the most recent task for a target.
+
+    Args:
+        target_id: Target ID
+
+    Returns:
+        Latest task (sorted by created_at DESC)
+
+    Raises:
+        404 Not Found: If no tasks exist for this target
+    """
+    service = TaskService(session, redis)
+    task = await service.get_latest_task_for_target(target_id)
+
+    if not task:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No tasks found for target {target_id}"
+        )
+
+    return task
