@@ -492,21 +492,23 @@ uv run pytest tests/integration/test_worker_params.py -v
 
 **🔵 REFACTOR: 통합 코드 품질 개선** (1-2시간)
 
-- [ ] **Task 5-Imp.41**: Backend 타입 힌트 완성도 검증
+- [x] **Task 5-Imp.41**: Backend 타입 힌트 완성도 검증
     - `uv run mypy app/services/crawler_service.py`
     - `uv run mypy app/worker.py`
-    - **완료**: (날짜 기록)
+    - 수정 사항: worker.py line 82 (db_task_id → task_id), sessionmaker → async_sessionmaker, type assertions 추가
+    - **완료**: 2026-01-08
 
-- [ ] **Task 5-Imp.42**: Frontend 타입 안전성 검증
+- [x] **Task 5-Imp.42**: Frontend 타입 안전성 검증
     - `npm run build` (TypeScript strict mode)
     - 모든 타입 에러 해결
-    - **완료**: (날짜 기록)
+    - 빌드 성공: 2341 modules transformed, 0 TypeScript errors
+    - **완료**: 2026-01-08
 
-- [ ] **Task 5-Imp.43**: API 문서 업데이트
+- [x] **Task 5-Imp.43**: API 문서 업데이트
     - 파일: `docs/api_spec.md`
-    - POST /tasks/{id}/cancel 문서화
-    - GET /targets/{id}/latest-task 문서화
-    - **완료**: (날짜 기록)
+    - POST /tasks/{id}/cancel 문서화 (Section 3.3.1)
+    - GET /targets/{id}/latest-task 문서화 (Section 3.3.2)
+    - **완료**: 2026-01-08
 
 ---
 

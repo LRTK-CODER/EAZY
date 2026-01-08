@@ -85,6 +85,65 @@ uv run uvicorn app.main:app --reload
 비동기 작업 상태 및 결과 조회.
 *   `GET /{id}`: 작업 상태 조회 (Pending, Running, Completed, Failed)
 *   `GET /{id}/assets`: 작업 결과(식별된 자산) 조회
+*   `POST /{id}/cancel`: 실행 중이거나 대기 중인 작업 취소
+*   `GET /targets/{target_id}/latest-task`: Target의 최근 작업 조회
+
+#### 3.3.1. Task Cancellation
+
+**엔드포인트**: `POST /tasks/{task_id}/cancel`
+
+**목적**: 실행 중이거나 대기 중인 Task를 취소
+
+**Path Parameters**:
+- `task_id` (integer, required): Task ID
+
+**응답 예시** (200 OK):
+```json
+{
+  "id": 123,
+  "project_id": 1,
+  "target_id": 1,
+  "type": "CRAWL",
+  "status": "CANCELLED",
+  "result": null,
+  "started_at": "2026-01-08T10:00:00Z",
+  "completed_at": "2026-01-08T10:05:00Z",
+  "created_at": "2026-01-08T09:55:00Z",
+  "updated_at": "2026-01-08T10:05:00Z"
+}
+```
+
+**에러 케이스**:
+- `400 Bad Request`: Task가 이미 완료/실패/취소 상태인 경우
+- `404 Not Found`: Task가 존재하지 않는 경우
+
+#### 3.3.2. Latest Task Query
+
+**엔드포인트**: `GET /targets/{target_id}/latest-task`
+
+**목적**: 특정 Target의 가장 최근 Task 조회 (created_at 기준 내림차순)
+
+**Path Parameters**:
+- `target_id` (integer, required): Target ID
+
+**응답 예시** (200 OK):
+```json
+{
+  "id": 125,
+  "project_id": 1,
+  "target_id": 5,
+  "type": "CRAWL",
+  "status": "RUNNING",
+  "result": null,
+  "started_at": "2026-01-08T11:00:00Z",
+  "completed_at": null,
+  "created_at": "2026-01-08T10:55:00Z",
+  "updated_at": "2026-01-08T11:00:00Z"
+}
+```
+
+**에러 케이스**:
+- `404 Not Found`: Target에 Task가 하나도 없는 경우
 
 ### 3.4. System
 *   `GET /health`: 서버 상태 확인

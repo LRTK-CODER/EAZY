@@ -3,8 +3,7 @@ import logging
 from redis.asyncio import Redis
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from app.core.config import settings
 from app.core.queue import TaskManager
@@ -68,6 +67,9 @@ async def process_task(task_id: int, session: AsyncSession, task_manager: TaskMa
             if not target:
                 raise ValueError(f"Target {task_record.target_id} not found")
 
+            # Type assertion: target_id is guaranteed non-None after successful get
+            assert task_record.target_id is not None
+
             crawler = CrawlerService()
             links, http_data = await crawler.crawl(target.url)
 
@@ -79,7 +81,7 @@ async def process_task(task_id: int, session: AsyncSession, task_manager: TaskMa
                 # Check cancellation every 5 seconds
                 current_time = asyncio.get_event_loop().time()
                 if current_time - last_check_time >= 5.0:
-                    is_cancelled = await check_cancellation(task_manager, db_task_id)
+                    is_cancelled = await check_cancellation(task_manager, task_id)
                     if is_cancelled:
                         logger.info(f"Task {task_id} cancelled by user")
 
@@ -276,7 +278,7 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
         
     return True
 
-async def run_worker():
+async def run_worker() -> None:
     """
     Main loop for the worker.
     """
@@ -284,7 +286,7 @@ async def run_worker():
     task_manager = TaskManager(redis)
     
     engine = create_async_engine(settings.DATABASE_URL, echo=False, future=True)
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     
     logger.info("Worker started. Waiting for tasks...")
     
