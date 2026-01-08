@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Asset } from './asset';
+import type { Asset } from './asset';
 
 describe('Asset Type Definitions', () => {
   describe('Asset Interface - HTTP Specification Fields', () => {

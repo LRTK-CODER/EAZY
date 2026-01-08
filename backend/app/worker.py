@@ -74,7 +74,36 @@ async def process_task(task_id: int, session: AsyncSession, task_manager: TaskMa
             # Save Assets
             asset_service = AssetService(session)
             saved_count = 0
+            last_check_time = asyncio.get_event_loop().time()
             for link in links:
+                # Check cancellation every 5 seconds
+                current_time = asyncio.get_event_loop().time()
+                if current_time - last_check_time >= 5.0:
+                    is_cancelled = await check_cancellation(task_manager, db_task_id)
+                    if is_cancelled:
+                        logger.info(f"Task {task_id} cancelled by user")
+
+                        # Update status to CANCELLED
+                        import json
+                        task_record.status = TaskStatus.CANCELLED
+                        task_record.completed_at = utc_now()
+                        task_record.result = json.dumps({
+                            "cancelled": True,
+                            "processed_links": saved_count,
+                            "total_links": len(links),
+                            "message": "Task cancelled by user"
+                        })
+                        session.add(task_record)
+                        await session.commit()
+
+                        # Clean up Redis flag
+                        cancel_key = f"task:{task_id}:cancel"
+                        await task_manager.redis.delete(cancel_key)
+
+                        return
+
+                    last_check_time = current_time
+
                 # Extract HTTP data for this link
                 link_http_data = http_data.get(link, {})
                 request_data = link_http_data.get("request")
@@ -173,9 +202,11 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
             # 4. Save Assets
             asset_service = AssetService(session)
             saved_count = 0
+            last_check_time = asyncio.get_event_loop().time()
             for index, link in enumerate(links, start=1):
-                # Check cancellation every 10 links
-                if index % 10 == 0:
+                # Check cancellation every 5 seconds
+                current_time = asyncio.get_event_loop().time()
+                if current_time - last_check_time >= 5.0:
                     is_cancelled = await check_cancellation(task_manager, db_task_id)
                     if is_cancelled:
                         logger.info(f"Task {db_task_id} cancelled by user at link {index}/{len(links)}")
@@ -198,6 +229,8 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
                         await task_manager.redis.delete(cancel_key)
 
                         return True
+
+                    last_check_time = current_time
 
                 # Extract HTTP data for this link (if available)
                 link_http_data = http_data.get(link, {})
