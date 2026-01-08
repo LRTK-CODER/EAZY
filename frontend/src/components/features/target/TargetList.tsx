@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Edit, Trash2, Play, CheckCircle2, XCircle, BarChart } from 'lucide-react';
+import { Loader2, Edit, Trash2, Play, BarChart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTargets, useTriggerScan, targetKeys } from '@/hooks/useTargets';
-import * as taskService from '@/services/taskService';
 import type { Target } from '@/types/target';
-import { TaskStatus } from '@/types/task';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -26,70 +24,10 @@ import {
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { EditTargetForm } from './EditTargetForm';
 import { DeleteTargetDialog } from './DeleteTargetDialog';
+import { ScanStatusBadge } from './ScanStatusBadge';
 
 interface TargetListProps {
   projectId: number;
-}
-
-/**
- * Component to display scan status badge for a target
- * Uses task service to fetch and display the latest task status
- * Handles errors gracefully by not showing a badge when task data is unavailable
- */
-function ScanStatusBadge({ targetId }: { targetId: number }) {
-  // Use useQuery directly with error handling to avoid undefined return issues
-  const { data: task } = useQuery({
-    queryKey: ['tasks', 'detail', targetId],
-    queryFn: async () => {
-      try {
-        const result = await taskService.getTaskStatus(targetId);
-        // If result is undefined (from unmocked service), return null instead
-        return result ?? null;
-      } catch {
-        // Return null on error instead of undefined to satisfy React Query
-        return null;
-      }
-    },
-    enabled: !!targetId,
-    retry: false,
-  });
-
-  // Don't show badge if there's no task data
-  if (!task) {
-    return null;
-  }
-
-  switch (task.status) {
-    case TaskStatus.PENDING:
-      return (
-        <Badge variant="secondary" className="text-muted-foreground">
-          Pending
-        </Badge>
-      );
-    case TaskStatus.RUNNING:
-      return (
-        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
-          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-          Running
-        </Badge>
-      );
-    case TaskStatus.COMPLETED:
-      return (
-        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800">
-          <CheckCircle2 className="h-3 w-3 mr-1" />
-          Completed
-        </Badge>
-      );
-    case TaskStatus.FAILED:
-      return (
-        <Badge variant="destructive" className="border border-destructive/50">
-          <XCircle className="h-3 w-3 mr-1" />
-          Failed
-        </Badge>
-      );
-    default:
-      return null;
-  }
 }
 
 /**

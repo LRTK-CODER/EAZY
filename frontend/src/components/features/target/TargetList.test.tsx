@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { TargetList } from './TargetList';
 import * as targetService from '@/services/targetService';
-import * as taskService from '@/services/taskService';
+import * as useTasks from '@/hooks/useTasks';
 import { toast } from 'sonner';
 import type { Target, TargetScope } from '@/types/target';
 import type { Task, TaskStatus } from '@/types/task';
@@ -13,8 +13,8 @@ import type { Task, TaskStatus } from '@/types/task';
 // Mock the target service
 vi.mock('@/services/targetService');
 
-// Mock the task service
-vi.mock('@/services/taskService');
+// Mock the useTasks hooks
+vi.mock('@/hooks/useTasks');
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -132,6 +132,19 @@ const mockFailedTask: Task = {
 describe('TargetList Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Mock useLatestTask to return null (no task) by default
+    vi.mocked(useTasks.useLatestTask).mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: null,
+    } as any);
+
+    // Mock useCancelTask by default
+    vi.mocked(useTasks.useCancelTask).mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+    } as any);
   });
 
   describe('Table Rendering', () => {
@@ -357,7 +370,11 @@ describe('TargetList Component', () => {
   describe('Scan Status Badge', () => {
     it('displays PENDING status badge correctly', async () => {
       vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
-      vi.mocked(taskService.getTaskStatus).mockResolvedValue(mockPendingTask);
+      vi.mocked(useTasks.useLatestTask).mockReturnValue({
+        data: mockPendingTask,
+        isLoading: false,
+        error: null,
+      } as any);
 
       renderWithProviders(<TargetList projectId={1} />);
 
@@ -368,7 +385,11 @@ describe('TargetList Component', () => {
 
     it('displays RUNNING status badge with loading icon', async () => {
       vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[1]]);
-      vi.mocked(taskService.getTaskStatus).mockResolvedValue(mockRunningTask);
+      vi.mocked(useTasks.useLatestTask).mockReturnValue({
+        data: mockRunningTask,
+        isLoading: false,
+        error: null,
+      } as any);
 
       renderWithProviders(<TargetList projectId={1} />);
 
@@ -384,7 +405,11 @@ describe('TargetList Component', () => {
 
     it('displays COMPLETED status badge with success indicator', async () => {
       vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[2]]);
-      vi.mocked(taskService.getTaskStatus).mockResolvedValue(mockCompletedTask);
+      vi.mocked(useTasks.useLatestTask).mockReturnValue({
+        data: mockCompletedTask,
+        isLoading: false,
+        error: null,
+      } as any);
 
       renderWithProviders(<TargetList projectId={1} />);
 
@@ -396,7 +421,11 @@ describe('TargetList Component', () => {
 
     it('displays FAILED status badge with error indicator', async () => {
       vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
-      vi.mocked(taskService.getTaskStatus).mockResolvedValue(mockFailedTask);
+      vi.mocked(useTasks.useLatestTask).mockReturnValue({
+        data: mockFailedTask,
+        isLoading: false,
+        error: null,
+      } as any);
 
       renderWithProviders(<TargetList projectId={1} />);
 
@@ -408,9 +437,11 @@ describe('TargetList Component', () => {
 
     it('shows no badge when no scan exists', async () => {
       vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
-      vi.mocked(taskService.getTaskStatus).mockRejectedValue(
-        new Error('No task found')
-      );
+      vi.mocked(useTasks.useLatestTask).mockReturnValue({
+        data: null,
+        isLoading: false,
+        error: null,
+      } as any);
 
       renderWithProviders(<TargetList projectId={1} />);
 
@@ -418,11 +449,8 @@ describe('TargetList Component', () => {
         expect(screen.getByText('Target DOMAIN')).toBeInTheDocument();
       });
 
-      // Should not display any status badge
-      expect(screen.queryByText(/pending/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/running/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/completed/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/failed/i)).not.toBeInTheDocument();
+      // Should display "No scan" badge
+      expect(screen.getByText(/no scan/i)).toBeInTheDocument();
     });
   });
 
