@@ -9,6 +9,7 @@
 
 import { formatDistanceToNow } from 'date-fns';
 import type { Asset } from '@/types/asset';
+import { parseJsonBody } from '@/utils/http';
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,21 @@ interface AssetDetailDialogProps {
   open: boolean;
   /** Callback when dialog open state changes */
   onOpenChange: (open: boolean) => void;
+}
+
+/**
+ * Format HTTP body for display in code block
+ * Parses JSON strings and pretty-prints objects
+ *
+ * @param body - HTTP body content (string, object, or null)
+ * @returns Formatted string for display
+ */
+function formatHttpBody(body: unknown): string {
+  const parsed = parseJsonBody(body as string | null);
+
+  if (parsed === null) return '';
+  if (typeof parsed === 'string') return parsed;
+  return JSON.stringify(parsed, null, 2);
 }
 
 /**
@@ -127,9 +143,7 @@ export function AssetDetailDialog({
                     <h3 className="text-sm font-semibold mb-2">Body</h3>
                     <pre className="bg-muted p-4 rounded-md max-h-96 overflow-auto">
                       <code className="text-sm">
-                        {typeof asset.request_spec.body === 'string'
-                          ? asset.request_spec.body
-                          : JSON.stringify(asset.request_spec.body, null, 2)}
+                        {formatHttpBody(asset.request_spec.body)}
                       </code>
                     </pre>
                   </div>
@@ -206,9 +220,7 @@ export function AssetDetailDialog({
                     <h3 className="text-sm font-semibold mb-2">Body</h3>
                     <pre className="bg-muted p-4 rounded-md max-h-96 overflow-auto">
                       <code className="text-sm">
-                        {typeof asset.response_spec.body === 'string'
-                          ? asset.response_spec.body
-                          : JSON.stringify(asset.response_spec.body, null, 2)}
+                        {formatHttpBody(asset.response_spec.body)}
                       </code>
                     </pre>
                   </div>
