@@ -9,7 +9,9 @@ export const TaskStatus = {
   /** Task has completed successfully */
   COMPLETED: "completed",
   /** Task has failed during execution */
-  FAILED: "failed"
+  FAILED: "failed",
+  /** Task was cancelled by user or system */
+  CANCELLED: "cancelled"
 } as const;
 
 /**
@@ -53,4 +55,8 @@ export interface Task {
   created_at: string;
   /** ISO 8601 timestamp when the task was last updated */
   updated_at: string;
+  /** ISO 8601 timestamp when the task started execution (optional - set when status changes to RUNNING) */
+  started_at?: string;
+  /** ISO 8601 timestamp when the task completed execution (optional - set when status changes to COMPLETED/FAILED/CANCELLED) */
+  completed_at?: string;
 }

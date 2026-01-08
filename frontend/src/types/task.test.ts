@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { Task, TaskStatus } from './task';
+import type { Task, TaskStatus } from './task';
+import { TaskStatus as TaskStatusEnum } from './task';
 
 describe('Task Type Definitions', () => {
   describe('Task Interface', () => {
-    it('should fail because started_at field does not exist', () => {
-      // RED Phase: started_at field not added to Task interface yet
+    it('should support started_at field (GREEN phase)', () => {
+      // GREEN Phase: started_at field now exists in Task interface
       const mockTask: Task = {
         id: 1,
         project_id: 1,
@@ -14,16 +15,15 @@ describe('Task Type Definitions', () => {
         result: null,
         created_at: '2026-01-08T10:00:00Z',
         updated_at: '2026-01-08T10:00:00Z',
-        // @ts-expect-error - started_at field doesn't exist yet (RED phase)
         started_at: '2026-01-08T10:00:00Z',
       };
 
-      // Will FAIL: Type error - started_at property does not exist on type Task
-      expect(mockTask.started_at).toBeDefined();
+      // Should PASS: started_at is now a valid optional field
+      expect(mockTask.started_at).toBe('2026-01-08T10:00:00Z');
     });
 
-    it('should fail because completed_at field does not exist', () => {
-      // RED Phase: completed_at field not added to Task interface yet
+    it('should support completed_at field (GREEN phase)', () => {
+      // GREEN Phase: completed_at field now exists in Task interface
       const mockTask: Task = {
         id: 1,
         project_id: 1,
@@ -33,31 +33,28 @@ describe('Task Type Definitions', () => {
         result: '{"success": true}',
         created_at: '2026-01-08T10:00:00Z',
         updated_at: '2026-01-08T10:05:00Z',
-        // @ts-expect-error - completed_at field doesn't exist yet (RED phase)
         completed_at: '2026-01-08T10:05:00Z',
       };
 
-      // Will FAIL: Type error - completed_at property does not exist on type Task
-      expect(mockTask.completed_at).toBeDefined();
+      // Should PASS: completed_at is now a valid optional field
+      expect(mockTask.completed_at).toBe('2026-01-08T10:05:00Z');
     });
   });
 
   describe('TaskStatus Enum', () => {
-    it('should fail because CANCELLED status does not exist', () => {
-      // RED Phase: CANCELLED status not added to TaskStatus enum yet
-      // @ts-expect-error - CANCELLED status doesn't exist yet (RED phase)
-      const cancelledStatus: TaskStatus = TaskStatus.CANCELLED;
+    it('should support CANCELLED status (GREEN phase)', () => {
+      // GREEN Phase: CANCELLED status now exists in TaskStatus enum
+      const cancelledStatus: TaskStatus = TaskStatusEnum.CANCELLED;
 
-      // Will FAIL: Property 'CANCELLED' does not exist on type 'TaskStatus'
+      // Should PASS: CANCELLED is now a valid status
       expect(cancelledStatus).toBe('cancelled');
     });
 
     it('should have CANCELLED status value equal to "cancelled"', () => {
-      // RED Phase: Verify constant value
-      // @ts-expect-error - CANCELLED status doesn't exist yet (RED phase)
-      const cancelledValue = TaskStatus.CANCELLED;
+      // GREEN Phase: Verify CANCELLED constant value
+      const cancelledValue = TaskStatusEnum.CANCELLED;
 
-      // Will FAIL: CANCELLED doesn't exist
+      // Should PASS: CANCELLED value is 'cancelled'
       expect(cancelledValue).toBe('cancelled');
     });
   });

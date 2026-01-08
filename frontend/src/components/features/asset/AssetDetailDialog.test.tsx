@@ -59,340 +59,273 @@ describe('AssetDetailDialog Component', () => {
   });
 
   describe('Component Existence', () => {
-    it('should fail because AssetDetailDialog component does not exist', () => {
-      // RED Phase: AssetDetailDialog component not implemented yet
-      // Will FAIL: AssetDetailDialog is not defined
-      expect(() =>
-        render(
-          <AssetDetailDialog
-            asset={mockAssetWithHttpData}
-            open={true}
-            onOpenChange={() => {}}
-          />
-        )
-      ).toThrow();
+    it('should render AssetDetailDialog component successfully', () => {
+      // GREEN Phase: AssetDetailDialog component is now implemented
+      render(
+        <AssetDetailDialog
+          asset={mockAssetWithHttpData}
+          open={true}
+          onOpenChange={() => {}}
+        />
+      );
+
+      // Verify dialog renders
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByText('Asset Details')).toBeInTheDocument();
     });
   });
 
   describe('Tabs Component', () => {
     it('should render Tabs with Request/Response/Metadata tabs', async () => {
-      // RED Phase: Verify Tabs structure
-      try {
-        render(
-          <AssetDetailDialog
-            asset={mockAssetWithHttpData}
-            open={true}
-            onOpenChange={() => {}}
-          />
-        );
+      // GREEN Phase: Verify Tabs structure
+      render(
+        <AssetDetailDialog
+          asset={mockAssetWithHttpData}
+          open={true}
+          onOpenChange={() => {}}
+        />
+      );
 
-        // Will FAIL: Component doesn't exist
-        await waitFor(() => {
-          expect(screen.getByRole('tab', { name: /request/i })).toBeInTheDocument();
-          expect(screen.getByRole('tab', { name: /response/i })).toBeInTheDocument();
-          expect(screen.getByRole('tab', { name: /metadata/i })).toBeInTheDocument();
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: /request/i })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /response/i })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /metadata/i })).toBeInTheDocument();
+      });
     });
   });
 
   describe('Request Tab', () => {
     it('should display HTTP method badge in Request tab', async () => {
-      // RED Phase: Verify method Badge display
-      try {
-        render(
-          <AssetDetailDialog
-            asset={mockAssetWithHttpData}
-            open={true}
-            onOpenChange={() => {}}
-          />
-        );
+      // GREEN Phase: Verify method Badge display
+      render(
+        <AssetDetailDialog
+          asset={mockAssetWithHttpData}
+          open={true}
+          onOpenChange={() => {}}
+        />
+      );
 
-        // Will FAIL: Component doesn't exist
-        await waitFor(() => {
-          expect(screen.getByText('POST')).toBeInTheDocument();
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      await waitFor(() => {
+        expect(screen.getByText('POST')).toBeInTheDocument();
+      });
     });
 
     it('should display request headers in Table format', async () => {
-      // RED Phase: Verify headers Table
-      try {
-        render(
-          <AssetDetailDialog
-            asset={mockAssetWithHttpData}
-            open={true}
-            onOpenChange={() => {}}
-          />
-        );
+      // GREEN Phase: Verify headers Table
+      render(
+        <AssetDetailDialog
+          asset={mockAssetWithHttpData}
+          open={true}
+          onOpenChange={() => {}}
+        />
+      );
 
-        // Will FAIL: Component doesn't exist
-        await waitFor(() => {
-          expect(screen.getByText('Content-Type')).toBeInTheDocument();
-          expect(screen.getByText('application/json')).toBeInTheDocument();
-          expect(screen.getByText('Authorization')).toBeInTheDocument();
-          expect(screen.getByText('Bearer token123')).toBeInTheDocument();
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      await waitFor(() => {
+        expect(screen.getByText('Content-Type')).toBeInTheDocument();
+        expect(screen.getByText('application/json')).toBeInTheDocument();
+        expect(screen.getByText('Authorization')).toBeInTheDocument();
+        expect(screen.getByText('Bearer token123')).toBeInTheDocument();
+      });
     });
 
     it('should display request body in CodeBlock with JSON formatting', async () => {
-      // RED Phase: Verify body CodeBlock with pretty-print
-      try {
-        render(
-          <AssetDetailDialog
-            asset={mockAssetWithHttpData}
-            open={true}
-            onOpenChange={() => {}}
-          />
-        );
+      // GREEN Phase: Verify body CodeBlock with pretty-print
+      render(
+        <AssetDetailDialog
+          asset={mockAssetWithHttpData}
+          open={true}
+          onOpenChange={() => {}}
+        />
+      );
 
-        // Will FAIL: Component doesn't exist
-        await waitFor(() => {
-          // JSON.stringify(body, null, 2) should format with 2-space indent
-          expect(screen.getByText(/"username": "testuser"/)).toBeInTheDocument();
-          expect(screen.getByText(/"password": "secret"/)).toBeInTheDocument();
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      await waitFor(() => {
+        // JSON.stringify(body, null, 2) should format with 2-space indent
+        expect(screen.getByText(/"username": "testuser"/)).toBeInTheDocument();
+        expect(screen.getByText(/"password": "secret"/)).toBeInTheDocument();
+      });
     });
 
     it('should show "No request data" when request_spec is null', async () => {
-      // RED Phase: Verify null handling
-      try {
-        render(
-          <AssetDetailDialog
-            asset={mockAssetWithoutHttpData}
-            open={true}
-            onOpenChange={() => {}}
-          />
-        );
+      // GREEN Phase: Verify null handling
+      render(
+        <AssetDetailDialog
+          asset={mockAssetWithoutHttpData}
+          open={true}
+          onOpenChange={() => {}}
+        />
+      );
 
-        // Will FAIL: Component doesn't exist
-        await waitFor(() => {
-          expect(screen.getByText(/no.*request.*data/i)).toBeInTheDocument();
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      await waitFor(() => {
+        expect(screen.getByText(/no.*request.*data/i)).toBeInTheDocument();
+      });
     });
   });
 
   describe('Response Tab', () => {
     it('should display HTTP status badge in Response tab', async () => {
-      // RED Phase: Verify status Badge
-      try {
-        render(
-          <AssetDetailDialog
-            asset={mockAssetWithHttpData}
-            open={true}
-            onOpenChange={() => {}}
-          />
-        );
+      // GREEN Phase: Verify status Badge
+      render(
+        <AssetDetailDialog
+          asset={mockAssetWithHttpData}
+          open={true}
+          onOpenChange={() => {}}
+        />
+      );
 
-        // Click Response tab
-        const responseTab = screen.getByRole('tab', { name: /response/i });
-        await userEvent.setup().click(responseTab);
+      // Click Response tab
+      const responseTab = screen.getByRole('tab', { name: /response/i });
+      await userEvent.setup().click(responseTab);
 
-        // Will FAIL: Component doesn't exist
-        await waitFor(() => {
-          expect(screen.getByText('200')).toBeInTheDocument();
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      await waitFor(() => {
+        expect(screen.getByText('200')).toBeInTheDocument();
+      });
     });
 
     it('should display response headers in Table format', async () => {
-      // RED Phase: Verify headers Table
-      try {
-        render(
-          <AssetDetailDialog
-            asset={mockAssetWithHttpData}
-            open={true}
-            onOpenChange={() => {}}
-          />
-        );
+      // GREEN Phase: Verify headers Table
+      render(
+        <AssetDetailDialog
+          asset={mockAssetWithHttpData}
+          open={true}
+          onOpenChange={() => {}}
+        />
+      );
 
-        // Click Response tab
-        const responseTab = screen.getByRole('tab', { name: /response/i });
-        await userEvent.setup().click(responseTab);
+      // Click Response tab
+      const responseTab = screen.getByRole('tab', { name: /response/i });
+      await userEvent.setup().click(responseTab);
 
-        // Will FAIL: Component doesn't exist
-        await waitFor(() => {
-          expect(screen.getByText('Content-Type')).toBeInTheDocument();
-          expect(screen.getByText('application/json')).toBeInTheDocument();
-          expect(screen.getByText('Set-Cookie')).toBeInTheDocument();
-          expect(screen.getByText('session=xyz')).toBeInTheDocument();
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      await waitFor(() => {
+        expect(screen.getByText('Content-Type')).toBeInTheDocument();
+        expect(screen.getByText('application/json')).toBeInTheDocument();
+        expect(screen.getByText('Set-Cookie')).toBeInTheDocument();
+        expect(screen.getByText('session=xyz')).toBeInTheDocument();
+      });
     });
 
     it('should display response body in CodeBlock with JSON formatting', async () => {
-      // RED Phase: Verify body CodeBlock with pretty-print
-      try {
-        render(
-          <AssetDetailDialog
-            asset={mockAssetWithHttpData}
-            open={true}
-            onOpenChange={() => {}}
-          />
-        );
+      // GREEN Phase: Verify body CodeBlock with pretty-print
+      render(
+        <AssetDetailDialog
+          asset={mockAssetWithHttpData}
+          open={true}
+          onOpenChange={() => {}}
+        />
+      );
 
-        // Click Response tab
-        const responseTab = screen.getByRole('tab', { name: /response/i });
-        await userEvent.setup().click(responseTab);
+      // Click Response tab
+      const responseTab = screen.getByRole('tab', { name: /response/i });
+      await userEvent.setup().click(responseTab);
 
-        // Will FAIL: Component doesn't exist
-        await waitFor(() => {
-          expect(screen.getByText(/"success": true/)).toBeInTheDocument();
-          expect(screen.getByText(/"token": "jwt123"/)).toBeInTheDocument();
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      await waitFor(() => {
+        expect(screen.getByText(/"success": true/)).toBeInTheDocument();
+        expect(screen.getByText(/"token": "jwt123"/)).toBeInTheDocument();
+      });
     });
 
     it('should show "No response data" when response_spec is null', async () => {
-      // RED Phase: Verify null handling
-      try {
-        render(
-          <AssetDetailDialog
-            asset={mockAssetWithoutHttpData}
-            open={true}
-            onOpenChange={() => {}}
-          />
-        );
+      // GREEN Phase: Verify null handling
+      render(
+        <AssetDetailDialog
+          asset={mockAssetWithoutHttpData}
+          open={true}
+          onOpenChange={() => {}}
+        />
+      );
 
-        // Click Response tab
-        const responseTab = screen.getByRole('tab', { name: /response/i });
-        await userEvent.setup().click(responseTab);
+      // Click Response tab
+      const responseTab = screen.getByRole('tab', { name: /response/i });
+      await userEvent.setup().click(responseTab);
 
-        // Will FAIL: Component doesn't exist
-        await waitFor(() => {
-          expect(screen.getByText(/no.*response.*data/i)).toBeInTheDocument();
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      await waitFor(() => {
+        expect(screen.getByText(/no.*response.*data/i)).toBeInTheDocument();
+      });
     });
   });
 
   describe('Metadata Tab', () => {
     it('should display first_seen_at and last_seen_at timestamps', async () => {
-      // RED Phase: Verify metadata display
-      try {
-        render(
-          <AssetDetailDialog
-            asset={mockAssetWithHttpData}
-            open={true}
-            onOpenChange={() => {}}
-          />
-        );
+      // GREEN Phase: Verify metadata display
+      render(
+        <AssetDetailDialog
+          asset={mockAssetWithHttpData}
+          open={true}
+          onOpenChange={() => {}}
+        />
+      );
 
-        // Click Metadata tab
-        const metadataTab = screen.getByRole('tab', { name: /metadata/i });
-        await userEvent.setup().click(metadataTab);
+      // Click Metadata tab
+      const metadataTab = screen.getByRole('tab', { name: /metadata/i });
+      await userEvent.setup().click(metadataTab);
 
-        // Will FAIL: Component doesn't exist
-        await waitFor(() => {
-          expect(screen.getByText(/first.*seen/i)).toBeInTheDocument();
-          expect(screen.getByText(/last.*seen/i)).toBeInTheDocument();
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      await waitFor(() => {
+        expect(screen.getByText(/first.*seen/i)).toBeInTheDocument();
+        expect(screen.getByText(/last.*seen/i)).toBeInTheDocument();
+      });
     });
 
     it('should display parameters in table format', async () => {
-      // RED Phase: Verify parameters Table
-      try {
-        render(
-          <AssetDetailDialog
-            asset={mockAssetWithHttpData}
-            open={true}
-            onOpenChange={() => {}}
-          />
-        );
+      // GREEN Phase: Verify parameters Table
+      render(
+        <AssetDetailDialog
+          asset={mockAssetWithHttpData}
+          open={true}
+          onOpenChange={() => {}}
+        />
+      );
 
-        // Click Metadata tab
-        const metadataTab = screen.getByRole('tab', { name: /metadata/i });
-        await userEvent.setup().click(metadataTab);
+      // Click Metadata tab
+      const metadataTab = screen.getByRole('tab', { name: /metadata/i });
+      await userEvent.setup().click(metadataTab);
 
-        // Will FAIL: Component doesn't exist
-        await waitFor(() => {
-          expect(screen.getByText('username')).toBeInTheDocument();
-          expect(screen.getByText('string')).toBeInTheDocument();
-          expect(screen.getByText('password')).toBeInTheDocument();
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      // Wait for parameters heading
+      await waitFor(() => {
+        expect(screen.getByText('Parameters')).toBeInTheDocument();
+      });
+
+      // Verify parameter entries
+      expect(screen.getByText('username')).toBeInTheDocument();
+      expect(screen.getAllByText('string').length).toBeGreaterThan(0);
+      expect(screen.getByText('password')).toBeInTheDocument();
     });
   });
 
   describe('Dialog Controls', () => {
-    it('should open Dialog when "View Details" button is clicked', async () => {
-      // RED Phase: Verify dialog open behavior
-      try {
-        const onOpenChange = vi.fn();
+    it('should not render Dialog when open is false', async () => {
+      // GREEN Phase: Verify dialog open behavior
+      const onOpenChange = vi.fn();
 
-        render(
-          <AssetDetailDialog
-            asset={mockAssetWithHttpData}
-            open={false}
-            onOpenChange={onOpenChange}
-          />
-        );
+      render(
+        <AssetDetailDialog
+          asset={mockAssetWithHttpData}
+          open={false}
+          onOpenChange={onOpenChange}
+        />
+      );
 
-        // Will FAIL: Component doesn't exist
-        await waitFor(() => {
-          expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-        });
-
-        // Trigger open
-        onOpenChange(true);
-
-        await waitFor(() => {
-          expect(screen.getByRole('dialog')).toBeInTheDocument();
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
     });
 
     it('should close Dialog when Close button is clicked', async () => {
-      // RED Phase: Verify dialog close behavior
-      try {
-        const onOpenChange = vi.fn();
+      // GREEN Phase: Verify dialog close behavior
+      const onOpenChange = vi.fn();
 
-        render(
-          <AssetDetailDialog
-            asset={mockAssetWithHttpData}
-            open={true}
-            onOpenChange={onOpenChange}
-          />
-        );
+      render(
+        <AssetDetailDialog
+          asset={mockAssetWithHttpData}
+          open={true}
+          onOpenChange={onOpenChange}
+        />
+      );
 
-        // Will FAIL: Component doesn't exist
-        const closeButton = screen.getByRole('button', { name: /close/i });
-        await userEvent.setup().click(closeButton);
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      await userEvent.setup().click(closeButton);
 
-        await waitFor(() => {
-          expect(onOpenChange).toHaveBeenCalledWith(false);
-        });
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+      await waitFor(() => {
+        expect(onOpenChange).toHaveBeenCalledWith(false);
+      });
     });
   });
 });
