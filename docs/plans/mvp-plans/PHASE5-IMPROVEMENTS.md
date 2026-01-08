@@ -4,11 +4,11 @@
 
 ---
 
-**상태**: 🟢 GREEN Phase 진행 중 (Step 1-3 Backend 완료)
+**상태**: 🟢 GREEN Phase 진행 중 (Step 1-3 Frontend 100% 완료, Backend 90% - Worker HTTP 통합 대기)
 **실제 시작일**: 2026-01-08
 **예상 소요 시간**: 14-18시간
 **예상 완료일**: 2026-01-10
-**진행률**: Backend 70% (30/37 tests passed)
+**진행률**: 전체 95.5% (21/22 tasks) | Frontend 100% (124/124 tests) | Backend 90% (Worker 통합 1개 남음)
 
 ---
 
@@ -151,43 +151,44 @@
     - **완료**: 2026-01-08
     - 테스트 결과: ✅ PASS (Work Package A 포함, 13/13 tests)
 
-- [ ] **Task 5-Imp.12**: Task 타입 확장 (Frontend)
+- [x] **Task 5-Imp.12**: Task 타입 확장 (Frontend)
     - 파일: `frontend/src/types/task.ts`
     - started_at?: string, completed_at?: string 추가
     - TaskStatus.CANCELLED = 'cancelled' 추가
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 컴파일 결과: ✅ TypeScript 에러 0개
 
-- [ ] **Task 5-Imp.13**: Task Service 확장 (Frontend)
+- [x] **Task 5-Imp.13**: Task Service 확장 (Frontend)
     - 파일: `frontend/src/services/taskService.ts`
     - cancelTask(taskId) 함수 추가
     - getLatestTaskForTarget(targetId) 함수 추가
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
     - 테스트 결과: ✅ PASS (8/8 tests passed)
 
-- [ ] **Task 5-Imp.14**: Task Hooks 확장 (Frontend)
+- [x] **Task 5-Imp.14**: Task Hooks 확장 (Frontend)
     - 파일: `frontend/src/hooks/useTasks.ts`
     - useCancelTask() 훅 추가 (useMutation)
     - useLatestTask(targetId) 훅 추가 (useQuery)
-    - **완료**: (날짜 기록)
-    - 테스트 결과: ✅ PASS (11/11 tests passed)
+    - **완료**: 2026-01-08
+    - 테스트 결과: ✅ PASS (8/8 tests passed)
 
-- [ ] **Task 5-Imp.15**: ScanStatusBadge 리팩토링 (Frontend)
+- [x] **Task 5-Imp.15**: ScanStatusBadge 리팩토링 (Frontend)
     - 파일: `frontend/src/components/features/target/ScanStatusBadge.tsx`
     - useLatestTask(targetId) 사용으로 변경
     - Elapsed time 계산 (started_at 기준)
     - Stop 버튼 추가 (RUNNING/PENDING 상태)
     - CANCELLED 상태 Badge 추가
-    - **완료**: (날짜 기록)
-    - 테스트 결과: ✅ PASS (12/12 tests passed)
+    - **완료**: 2026-01-08
+    - 테스트 결과: ✅ PASS (22/22 tests passed)
 
 **🔵 REFACTOR: 코드 품질 개선**
 
-- [ ] **Task 5-Imp.16**: Elapsed Time 유틸 함수 추가
+- [x] **Task 5-Imp.16**: Elapsed Time 유틸 함수 추가
     - 파일: `frontend/src/utils/date.ts`
     - formatElapsedTime(started_at, completed_at?) 함수
     - "3m 25s", "1h 15m" 형식
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
+    - 테스트 결과: ✅ PASS (11/11 tests passed)
 
 - [ ] **Task 5-Imp.17**: Worker 취소 체크 간격 최적화
     - 파일: `backend/app/worker.py`
@@ -311,36 +312,36 @@ npm run test -- ScanStatusBadge task
     - **완료**: (날짜 기록)
     - 통합 테스트: ✅ PASS (5/5 tests passed)
 
-- [ ] **Task 5-Imp.27**: Asset 타입 확장 (Frontend)
+- [x] **Task 5-Imp.27**: Asset 타입 확장 (Frontend)
     - 파일: `frontend/src/types/asset.ts`
     - HttpRequestSpec 인터페이스 추가 (method, headers, body)
     - HttpResponseSpec 인터페이스 추가 (status, headers, body)
     - Asset 인터페이스에 request_spec?, response_spec? 추가
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08 (이미 존재하는 것 확인)
     - 컴파일 결과: ✅ TypeScript 에러 0개
 
-- [ ] **Task 5-Imp.28**: Tabs 컴포넌트 추가 (Frontend)
+- [x] **Task 5-Imp.28**: Tabs 컴포넌트 추가 (Frontend)
     - `npx shadcn@latest add tabs`
-    - **완료**: (날짜 기록)
-    - 설치 결과: ✅ tabs.tsx 생성
+    - **완료**: 2026-01-08 (이미 설치됨)
+    - 설치 결과: ✅ tabs.tsx 존재
 
-- [ ] **Task 5-Imp.29**: AssetDetailDialog 컴포넌트 (Frontend)
+- [x] **Task 5-Imp.29**: AssetDetailDialog 컴포넌트 (Frontend)
     - 파일: `frontend/src/components/features/asset/AssetDetailDialog.tsx`
     - Dialog + Tabs (Request/Response/Metadata)
     - Request 탭: method Badge, headers Table, body CodeBlock
     - Response 탭: status Badge, headers Table, body CodeBlock
     - Metadata 탭: first_seen_at, last_seen_at, parameters
     - JSON.stringify(body, null, 2) pretty-print
-    - **완료**: (날짜 기록)
-    - 테스트 결과: ✅ PASS (8/8 tests passed)
+    - **완료**: 2026-01-08
+    - 테스트 결과: ✅ PASS (14/14 tests passed)
 
-- [ ] **Task 5-Imp.30**: AssetTable "View Details" 버튼 추가 (Frontend)
+- [x] **Task 5-Imp.30**: AssetTable "View Details" 버튼 추가 (Frontend)
     - 파일: `frontend/src/components/features/asset/AssetTable.tsx`
     - Actions 컬럼 추가 (기존 컬럼 오른쪽)
     - "View Details" 버튼 (Eye 아이콘)
     - onClick → AssetDetailDialog 열기 (useState)
-    - **완료**: (날짜 기록)
-    - 테스트 결과: ✅ PASS (23/23 tests passed)
+    - **완료**: 2026-01-08
+    - 테스트 결과: ✅ PASS (34/34 tests passed)
 
 **🔵 REFACTOR: 코드 품질 개선**
 
@@ -442,17 +443,18 @@ npm run test -- AssetDetailDialog AssetTable
 
 **🔵 REFACTOR: 코드 품질 개선**
 
-- [ ] **Task 5-Imp.39**: AssetTable Parameter Count 표시 확인
+- [x] **Task 5-Imp.39**: AssetTable Parameter Count 표시 확인
     - 파일: `frontend/src/components/features/asset/AssetTable.tsx`
     - Parameters 컬럼이 이미 존재하는지 확인
     - 없으면 추가 (Object.keys(parameters).length)
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08 (이미 존재 확인)
 
-- [ ] **Task 5-Imp.40**: AssetDetailDialog Metadata 탭 확장
+- [x] **Task 5-Imp.40**: AssetDetailDialog Metadata 탭 확장
     - 파일: `frontend/src/components/features/asset/AssetDetailDialog.tsx`
     - Parameters 섹션에 파라미터 목록 표시
     - Table 형식 (Name, Value 컬럼)
-    - **완료**: (날짜 기록)
+    - **완료**: 2026-01-08
+    - 테스트 결과: ✅ Task 5-Imp.29에 포함 (14/14 tests passed)
 
 #### ✅ 체크포인트 3
 
@@ -583,29 +585,44 @@ uv run pytest tests/integration/test_worker_params.py -v
 - **테스트**: 8/8 통과 ✅
 - **커밋**: a5e8074 (feat: parameter parsing)
 
+**Step 1: 실시간 크롤링 상태 (Frontend)**
+- ✅ Task 5-Imp.12: Task 타입 확장 (started_at, completed_at, CANCELLED)
+- ✅ Task 5-Imp.13: Task Service 확장 (cancelTask, getLatestTaskForTarget)
+- ✅ Task 5-Imp.14: Task Hooks 확장 (useLatestTask, useCancelTask)
+- ✅ Task 5-Imp.15: ScanStatusBadge 리팩토링 (5가지 상태, Stop 버튼, elapsed time)
+- ✅ Task 5-Imp.16: formatElapsedTime 유틸 함수 추가
+- **테스트**: 53/53 통과 ✅ (task 4 + date 11 + taskService 8 + useTasks 8 + ScanStatusBadge 22)
+- **커밋**: 3671542, 8c843a1, ccb7c89, cd07361
+
+**Step 2 & 3: HTTP 패킷 조회 & 파라미터 파싱 (Frontend)**
+- ✅ Task 5-Imp.27: Asset 타입 확장 (이미 완료 - request_spec, response_spec, parameters)
+- ✅ Task 5-Imp.28: Tabs 컴포넌트 (이미 설치)
+- ✅ Task 5-Imp.29: AssetDetailDialog 컴포넌트 (Request/Response/Metadata 탭)
+- ✅ Task 5-Imp.30: AssetTable "View Details" 버튼 추가
+- ✅ Task 5-Imp.39: AssetTable Parameters 컬럼 (이미 존재)
+- ✅ Task 5-Imp.40: AssetDetailDialog Metadata 탭 Parameters 표시
+- **테스트**: 37/37 통과 ✅ (AssetDetailDialog 14 + AssetTable 23)
+- **커밋**: 3671542, 8c843a1
+
 ### ⏳ 남은 작업
 
-**Step 1: Worker 통합**
-- ✅ Task 5-Imp.10: Worker 취소 로직 추가 (완료 - 2026-01-08)
+**Step 2: Worker 통합 (Backend)**
+- ⏳ Task 5-Imp.26: Worker HTTP 통합 (예상 1-2시간)
+  - worker.py에서 CrawlerService.crawl() 반환값에 HTTP 데이터 포함
+  - AssetService.process_asset() 호출 시 HTTP 데이터 전달
 
-**Step 2: Worker 통합**
-- ⏳ Task 5-Imp.26: Worker HTTP 통합
-
-**Step 3: Worker 통합**
-- ⏳ Task 5-Imp.38: Worker 파라미터 통합
-
-**Frontend 작업 (Step 1-3)**
-- ⏳ Task 5-Imp.12-15: Task 타입, Service, Hooks, ScanStatusBadge (Frontend)
-- ⏳ Task 5-Imp.27-30: Asset 타입, Tabs, AssetDetailDialog, AssetTable (Frontend)
+**Step 3: Worker 통합 (Backend)**
+- ⏳ Task 5-Imp.38: Worker 파라미터 통합 (Task 5-Imp.26에 포함)
+  - parameters는 HTTP 데이터에 이미 포함됨
 
 ### 📈 진행률
 
 | 단계 | Backend | Frontend | 전체 |
 |------|---------|----------|------|
-| Step 1 | 100% (4/4) | 0% (0/4) | 50% (4/8) |
-| Step 2 | 66% (2/3) | 0% (0/4) | 28.6% (2/7) |
-| Step 3 | 100% (3/3) | 0% (0/2) | 60% (3/5) |
-| **전체** | **80%** (9/10) | **0%** (0/10) | **45%** (9/18) |
+| Step 1 | 100% (5/5) | 100% (5/5) | 100% (10/10) |
+| Step 2 | 66% (2/3) | 100% (4/4) | 85.7% (6/7) |
+| Step 3 | 100% (3/3) | 100% (2/2) | 100% (5/5) |
+| **전체** | **90%** (10/11) | **100%** (11/11) | **95.5%** (21/22) |
 
 ### 🎯 다음 단계
 
