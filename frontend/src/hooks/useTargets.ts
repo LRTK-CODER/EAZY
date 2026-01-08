@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as targetService from '@/services/targetService';
 import type { Target, TargetCreate, TargetUpdate, TargetListParams } from '@/types/target';
+import { taskKeys } from './useTasks';
 
 /**
  * Query key factory for targets
@@ -103,6 +104,11 @@ export const useTriggerScan = () => {
       // Invalidate the specific target detail to refetch updated scan status
       queryClient.invalidateQueries({
         queryKey: targetKeys.detail(variables.projectId, variables.targetId)
+      });
+
+      // Invalidate latest-task query to resume polling (if it was stopped due to 404)
+      queryClient.invalidateQueries({
+        queryKey: taskKeys.latestForTarget(variables.targetId)
       });
     },
   });

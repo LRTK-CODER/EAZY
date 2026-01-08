@@ -74,6 +74,11 @@ export const useLatestTask = (targetId: number) => {
     queryKey: taskKeys.latestForTarget(targetId),
     queryFn: () => taskService.getLatestTaskForTarget(targetId),
     refetchInterval: (query) => {
+      // Stop polling if there's an error (e.g., 404 when no tasks exist)
+      if (query.state.error) {
+        return false;
+      }
+
       // If no data yet, continue polling every 5 seconds
       if (!query.state.data) return 5000;
 

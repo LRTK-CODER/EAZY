@@ -229,5 +229,76 @@ describe('useTasks Hooks', () => {
       // Polling should stop for CANCELLED status
       expect(result.current.data?.status).toBe('cancelled');
     });
+
+    it('should stop polling when 404 error occurs', async () => {
+      // RED Phase: Test that polling stops on 404 error (no tasks for target)
+      const error = new Error('404: No tasks found for target');
+      vi.mocked(taskService.getLatestTaskForTarget).mockRejectedValue(error);
+
+      const { result } = renderHook(() => useTasks.useLatestTask(999), {
+        wrapper: createWrapper(),
+      });
+
+      // Wait for first query to fail
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+
+      // Record call count after first failed attempt
+      const callCount = vi.mocked(taskService.getLatestTaskForTarget).mock.calls.length;
+
+      // Wait 2 seconds (not enough time for 5 second interval to trigger)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Call count should not increase (polling stopped due to error)
+      expect(vi.mocked(taskService.getLatestTaskForTarget).mock.calls.length).toBe(callCount);
+    });
+
+    it('should resume polling when query is invalidated after scan', async () => {
+      // RED Phase: Test that polling resumes after scan trigger
+
+      // 1. Initial state: 404 error (no tasks)
+      const error = new Error('404: No tasks found');
+      vi.mocked(taskService.getLatestTaskForTarget).mockRejectedValueOnce(error);
+
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
+      });
+
+      const { result } = renderHook(() => useTasks.useLatestTask(1), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      });
+
+      // Confirm 404 error
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+
+      // 2. Scan started → Task created
+      const mockTask: Task = {
+        id: 1,
+        project_id: 1,
+        target_id: 1,
+        type: 'scan',
+        status: 'pending' as TaskStatus,
+        result: null,
+        created_at: '2026-01-08T10:00:00Z',
+        updated_at: '2026-01-08T10:00:00Z',
+      };
+      vi.mocked(taskService.getLatestTaskForTarget).mockResolvedValue(mockTask);
+
+      // 3. Invalidate query (simulates scan trigger)
+      queryClient.invalidateQueries({ queryKey: ['tasks', 'latest', 1] });
+
+      // 4. Verify polling resumed and data fetched
+      await waitFor(() => {
+        expect(result.current.data?.status).toBe('pending');
+      });
+    });
   });
 });
