@@ -6,9 +6,9 @@
 
 **상태**: ✅ GREEN Phase 완료 (2026-01-08)
 **실제 시작일**: 2026-01-08
-**실제 소요 시간**: ~6시간 (병렬 처리로 단축)
+**실제 소요 시간**: ~6.5시간 (병렬 처리로 단축)
 **완료일**: 2026-01-08
-**진행률**: 전체 100% (22/22 tasks) | Frontend 100% (124/124 tests) | Backend 100% (모든 통합 완료)
+**진행률**: 전체 100% (23/23 tasks) | Frontend 100% (139/139 tests) | Backend 100% (모든 통합 완료)
 
 ---
 
@@ -349,11 +349,17 @@ npm run test -- ScanStatusBadge task
 
 **🔵 REFACTOR: 코드 품질 개선**
 
-- [ ] **Task 5-Imp.31**: HTTP Body 파싱 유틸 추가
-    - 파일: `frontend/src/utils/http.ts`
+- [x] **Task 5-Imp.31**: HTTP Body 파싱 유틸 추가
+    - 파일: `frontend/src/utils/http.ts`, `frontend/src/utils/http.test.ts`
     - parseJsonBody(body: string | null) 함수
     - 파싱 실패 시 원본 반환
-    - **완료**: (날짜 기록)
+    - AssetDetailDialog 리팩토링 (formatHttpBody 헬퍼 함수)
+    - **완료**: 2026-01-08
+    - 테스트 결과: ✅ PASS (15/15 tests + 14/14 regression)
+    - 커밋:
+      - 91d9a53 (test: TDD RED - http.test.ts 생성)
+      - cbb2ac8 (feat: TDD GREEN - parseJsonBody 구현)
+      - f165256 (refactor: TDD REFACTOR - AssetDetailDialog 리팩토링)
 
 #### ✅ 체크포인트 2
 
@@ -603,10 +609,11 @@ uv run pytest tests/integration/test_worker_params.py -v
 - ✅ Task 5-Imp.28: Tabs 컴포넌트 (이미 설치)
 - ✅ Task 5-Imp.29: AssetDetailDialog 컴포넌트 (Request/Response/Metadata 탭)
 - ✅ Task 5-Imp.30: AssetTable "View Details" 버튼 추가
+- ✅ Task 5-Imp.31: HTTP Body 파싱 유틸 추가 (parseJsonBody, formatHttpBody)
 - ✅ Task 5-Imp.39: AssetTable Parameters 컬럼 (이미 존재)
 - ✅ Task 5-Imp.40: AssetDetailDialog Metadata 탭 Parameters 표시
-- **테스트**: 37/37 통과 ✅ (AssetDetailDialog 14 + AssetTable 23)
-- **커밋**: 3671542, 8c843a1
+- **테스트**: 52/52 통과 ✅ (http 15 + AssetDetailDialog 14 + AssetTable 23)
+- **커밋**: 3671542, 8c843a1, 91d9a53, cbb2ac8, f165256
 
 **Step 2 & 3: Worker 통합 (Backend)**
 - ✅ Task 5-Imp.26: Worker HTTP 통합 (request_spec, response_spec, parameters)
@@ -624,9 +631,9 @@ uv run pytest tests/integration/test_worker_params.py -v
 | 단계 | Backend | Frontend | 전체 |
 |------|---------|----------|------|
 | Step 1 | 100% (5/5) | 100% (5/5) | 100% (10/10) |
-| Step 2 | 100% (3/3) | 100% (4/4) | 100% (7/7) |
+| Step 2 | 100% (3/3) | 100% (5/5) | 100% (8/8) |
 | Step 3 | 100% (3/3) | 100% (2/2) | 100% (5/5) |
-| **전체** | **100%** (11/11) | **100%** (11/11) | **100%** (22/22) |
+| **전체** | **100%** (11/11) | **100%** (12/12) | **100%** (23/23) |
 
 ### 🎯 다음 단계
 
