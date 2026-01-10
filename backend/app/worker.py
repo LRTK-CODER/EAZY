@@ -152,10 +152,11 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
     Process a single task from the queue.
     Returns True if a task was processed, False if queue was empty.
     """
-    # 1. Dequeue
-    task_data = await task_manager.dequeue_task()
-    if not task_data:
+    # 1. Dequeue (returns tuple: task_data, task_json)
+    result = await task_manager.dequeue_task()
+    if not result:
         return False
+    task_data, task_json = result
     
     logger.info(f"Processing task: {task_data}")
     
@@ -165,7 +166,9 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
     
     if not db_task_id or not target_id:
         logger.error("Invalid task data: missing db_task_id or target_id")
-        return True # Consumed but invalid
+        # ACK invalid task to prevent stuck tasks
+        await task_manager.ack_task(task_json)
+        return True  # Consumed but invalid
         
     # 2. Update Status -> RUNNING
     # We need to fetch the Task record first
@@ -179,6 +182,8 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
         # Debug: list all tasks
         all_tasks = await session.exec(select(Task))
         logger.error(f"All Tasks in DB: {all_tasks.all()}")
+        # ACK task not found in DB to prevent stuck tasks
+        await task_manager.ack_task(task_json)
         return True
         
     task_record.status = TaskStatus.RUNNING
@@ -233,6 +238,9 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
                             cancel_key = f"task:{db_task_id}:cancel"
                             await task_manager.redis.delete(cancel_key)
 
+                            # ACK: Remove from processing queue
+                            await task_manager.ack_task(task_json)
+
                             return True
 
                         last_check_time = current_time
@@ -265,10 +273,15 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
             task_record.result = json.dumps({"found_links": len(links), "saved_assets": saved_count})
             session.add(task_record)
             await session.commit()
-            
+
+            # 6. ACK: Remove from processing queue
+            await task_manager.ack_task(task_json)
+
         else:
             logger.warning(f"Unknown task type: {task_type}")
-            
+            # ACK unknown task types to prevent stuck tasks
+            await task_manager.ack_task(task_json)
+
     except Exception as e:
         logger.error(f"Task execution failed: {e}")
         task_record.status = TaskStatus.FAILED
@@ -276,7 +289,10 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
         task_record.result = json.dumps({"error": str(e)})
         session.add(task_record)
         await session.commit()
-        
+        # ACK failed tasks (they're marked as FAILED in DB)
+        await task_manager.ack_task(task_json)
+        raise
+
     return True
 
 async def run_worker() -> None:

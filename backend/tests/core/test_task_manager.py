@@ -17,34 +17,46 @@ async def test_enqueue_task(client):
     assert task_id is not None
     # Verify Redis rpush was called to add to queue
     mock_redis.rpush.assert_called_once()
-    
+
 @pytest.mark.asyncio
-async def test_dequeue_task_blpop():
-    """Test dequeuing a task using BLPOP."""
+async def test_dequeue_task_blmove():
+    """Test dequeuing a task using BLMOVE (BRPOPLPUSH replacement)."""
     mock_redis = AsyncMock()
-    # BLPOP returns (key, value) tuple
-    mock_redis.blpop.return_value = (
-        "eazy_task_queue",
-        '{"id": "123", "type": "crawl", "target_id": 1}'
-    )
+    # BLMOVE returns the moved value as string
+    task_json = '{"id": "123", "type": "crawl", "target_id": 1}'
+    mock_redis.blmove.return_value = task_json
 
     task_manager = TaskManager(redis=mock_redis)
-    task = await task_manager.dequeue_task(timeout=5)
+    result = await task_manager.dequeue_task(timeout=5)
 
-    assert task is not None
-    assert task["id"] == "123"
-    assert task["type"] == "crawl"
-    mock_redis.blpop.assert_called_once_with("eazy_task_queue", timeout=5)
+    assert result is not None
+    task_data, returned_json = result
+    assert task_data["id"] == "123"
+    assert task_data["type"] == "crawl"
+    assert returned_json == task_json
+    mock_redis.blmove.assert_called_once_with(
+        "eazy_task_queue",
+        "eazy_task_queue:processing",
+        5,
+        "RIGHT",
+        "LEFT",
+    )
 
 
 @pytest.mark.asyncio
 async def test_dequeue_task_empty_queue():
     """Test dequeue returns None when queue is empty after timeout."""
     mock_redis = AsyncMock()
-    mock_redis.blpop.return_value = None
+    mock_redis.blmove.return_value = None
 
     task_manager = TaskManager(redis=mock_redis)
-    task = await task_manager.dequeue_task(timeout=1)
+    result = await task_manager.dequeue_task(timeout=1)
 
-    assert task is None
-    mock_redis.blpop.assert_called_once_with("eazy_task_queue", timeout=1)
+    assert result is None
+    mock_redis.blmove.assert_called_once_with(
+        "eazy_task_queue",
+        "eazy_task_queue:processing",
+        1,
+        "RIGHT",
+        "LEFT",
+    )
