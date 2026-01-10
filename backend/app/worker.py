@@ -335,7 +335,7 @@ async def run_worker() -> None:
     except KeyboardInterrupt:
         logger.info("Worker stopped")
     finally:
-        await redis.close()
+        await redis.aclose()
         await engine.dispose()
 
 if __name__ == "__main__":

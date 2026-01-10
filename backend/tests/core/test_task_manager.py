@@ -20,10 +20,12 @@ async def test_enqueue_task(client):
 
 @pytest.mark.asyncio
 async def test_dequeue_task_blmove():
-    """Test dequeuing a task using BLMOVE (BRPOPLPUSH replacement)."""
+    """Test dequeuing a task using priority queue (CRITICAL first, then LOW with BLMOVE)."""
     mock_redis = AsyncMock()
-    # BLMOVE returns the moved value as string
-    task_json = '{"id": "123", "type": "crawl", "target_id": 1}'
+    # lmove returns None for higher priority queues (CRITICAL, HIGH, NORMAL)
+    mock_redis.lmove.return_value = None
+    # BLMOVE returns the moved value from LOW queue
+    task_json = '{"id": "123", "type": "crawl", "target_id": 1, "priority": 0}'
     mock_redis.blmove.return_value = task_json
 
     task_manager = TaskManager(redis=mock_redis)
@@ -34,29 +36,33 @@ async def test_dequeue_task_blmove():
     assert task_data["id"] == "123"
     assert task_data["type"] == "crawl"
     assert returned_json == task_json
+    # blmove is called for LOW priority queue (last in priority order)
     mock_redis.blmove.assert_called_once_with(
-        "eazy_task_queue",
+        "eazy_task_queue:low",
         "eazy_task_queue:processing",
         5,
-        "RIGHT",
+        "LEFT",
         "LEFT",
     )
 
 
 @pytest.mark.asyncio
 async def test_dequeue_task_empty_queue():
-    """Test dequeue returns None when queue is empty after timeout."""
+    """Test dequeue returns None when all priority queues are empty after timeout."""
     mock_redis = AsyncMock()
+    # All priority queues are empty
+    mock_redis.lmove.return_value = None
     mock_redis.blmove.return_value = None
 
     task_manager = TaskManager(redis=mock_redis)
     result = await task_manager.dequeue_task(timeout=1)
 
     assert result is None
+    # blmove is called for LOW priority queue
     mock_redis.blmove.assert_called_once_with(
-        "eazy_task_queue",
+        "eazy_task_queue:low",
         "eazy_task_queue:processing",
         1,
-        "RIGHT",
+        "LEFT",
         "LEFT",
     )

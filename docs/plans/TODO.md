@@ -589,13 +589,181 @@ services:
 
 ---
 
-### 우선순위 큐 (선택 - Phase 4.5)
+## Phase 4.5: 우선순위 큐 - TDD (3-5일) ✅
 
-> 필요시 별도 구현
+> **목표:** 우선순위 기반 태스크 처리, Starvation 방지
+> **개발 방식:** TDD (Test-Driven Development)
+> **신규 테스트:** 39개 ✅
+> **설계:** Multi-Queue 접근법 (기존 BLMOVE 패턴 유지)
+> **결과:** 350개 테스트 통과
 
-- [ ] `PriorityTaskManager` 클래스
-- [ ] 우선순위별 큐 (`high`, `normal`, `low`)
-- [ ] `blpop` 다중 큐 지원
+### 기술 결정사항
+
+| 항목 | 결정 | 근거 |
+|------|------|------|
+| 큐 구조 | Multi-Queue (4개 우선순위 큐) | 기존 blmove 패턴 유지, 하위호환 |
+| 우선순위 | CRITICAL(3) > HIGH(2) > NORMAL(1) > LOW(0) | 세분화된 제어 |
+| Starvation 방지 | Aging 메커니즘 | 대기 시간 기반 자동 승격 |
+| 하위호환 | NORMAL 큐 = 기존 `eazy_task_queue` | 기존 코드 변경 없이 동작 |
+
+### Redis 키 구조
+
+```
+eazy_task_queue:critical    ← Priority 3 (먼저 처리)
+eazy_task_queue:high        ← Priority 2
+eazy_task_queue             ← Priority 1 (normal, 하위호환)
+eazy_task_queue:low         ← Priority 0 (마지막 처리)
+eazy_task_queue:processing  ← 공용 처리 큐
+eazy_task_queue:dlq         ← 공용 DLQ
+```
+
+---
+
+### Day 1: TaskPriority Enum + Priority Enqueue ✅
+
+#### RED: 테스트 작성
+- [x] `tests/core/test_priority_queue.py` 신규 생성 (9개 테스트)
+  - [x] `test_priority_enum_exists()` - TaskPriority enum 존재 확인
+  - [x] `test_priority_has_four_levels()` - LOW, NORMAL, HIGH, CRITICAL 존재
+  - [x] `test_priority_values_are_ordered()` - LOW < NORMAL < HIGH < CRITICAL
+  - [x] `test_priority_integer_values()` - 0, 1, 2, 3 값 검증
+  - [x] `test_enqueue_with_default_priority()` - 기본값 NORMAL 확인
+  - [x] `test_enqueue_with_critical_priority()` - CRITICAL 큐 enqueue
+  - [x] `test_enqueue_with_high_priority()` - HIGH 큐 enqueue
+  - [x] `test_enqueue_with_low_priority()` - LOW 큐 enqueue
+  - [x] `test_enqueue_stores_priority_in_payload()` - payload에 priority 필드
+- [x] `uv run pytest tests/core/test_priority_queue.py -v` 실행 → 실패 확인
+
+#### GREEN: 구현
+- [x] `app/core/priority.py` 신규 생성
+  - [x] `TaskPriority` IntEnum 정의 (LOW=0, NORMAL=1, HIGH=2, CRITICAL=3)
+  - [x] `PRIORITY_QUEUE_SUFFIXES` 딕셔너리
+  - [x] `get_queue_key()` 함수
+- [x] `app/core/queue.py` 수정
+  - [x] `enqueue_crawl_task()`에 `priority` 파라미터 추가
+  - [x] payload에 `priority`, `enqueued_at` 필드 추가
+- [x] `uv run pytest tests/core/test_priority_queue.py -v` 실행 → 통과 확인 (9개)
+
+---
+
+### Day 2: Priority-Ordered Dequeue ✅
+
+#### RED: 테스트 작성
+- [x] `tests/core/test_priority_dequeue.py` 신규 생성 (7개 테스트)
+  - [x] `test_dequeue_critical_before_high()` - CRITICAL → HIGH 순서
+  - [x] `test_dequeue_high_before_normal()` - HIGH → NORMAL 순서
+  - [x] `test_dequeue_normal_before_low()` - NORMAL → LOW 순서
+  - [x] `test_dequeue_fifo_within_same_priority()` - 동일 우선순위 FIFO
+  - [x] `test_dequeue_moves_to_processing_queue()` - processing 큐 이동
+  - [x] `test_dequeue_full_priority_order()` - 전체 순서 검증
+  - [x] `test_dequeue_empty_returns_none()` - 빈 큐 None 반환
+- [x] `uv run pytest tests/core/test_priority_dequeue.py -v` 실행 → 실패 확인
+
+#### GREEN: 구현
+- [x] `app/core/queue.py` 수정
+  - [x] `PRIORITY_ORDER` 사용 (priority.py에서 import)
+  - [x] `dequeue_task()` 우선순위 순서 dequeue 구현
+  - [x] `lmove` (non-blocking) + `blmove` (blocking for LOW) 패턴
+  - [x] FIFO 유지를 위해 "LEFT" 방향 사용
+- [x] `uv run pytest tests/core/test_priority_dequeue.py -v` 실행 → 통과 확인 (7개)
+- [x] 기존 `test_task_manager.py` 테스트 업데이트 (priority queue 호환)
+
+---
+
+### Day 3: Starvation Prevention (Aging 메커니즘) ✅
+
+#### RED: 테스트 작성
+- [x] `tests/core/test_priority_aging.py` 신규 생성 (10개 테스트)
+  - [x] `test_enqueue_adds_enqueued_at()` - enqueued_at 타임스탬프
+  - [x] `test_aging_config_exists()` - AgingConfig 클래스
+  - [x] `test_default_aging_thresholds()` - 기본 임계값
+  - [x] `test_custom_aging_thresholds()` - 커스텀 임계값
+  - [x] `test_promote_aged_low_to_normal()` - LOW → NORMAL 승격
+  - [x] `test_promote_updates_priority_in_payload()` - priority 필드 업데이트
+  - [x] `test_no_promotion_for_fresh_tasks()` - 신규 태스크 미승격
+  - [x] `test_cascading_promotion_normal_to_high()` - NORMAL → HIGH 승격
+  - [x] `test_cascading_promotion_high_to_critical()` - HIGH → CRITICAL 승격
+  - [x] `test_critical_tasks_not_promoted()` - CRITICAL은 승격 안함
+- [x] `uv run pytest tests/core/test_priority_aging.py -v` 실행 → 실패 확인
+
+#### GREEN: 구현
+- [x] `app/core/priority.py` 수정
+  - [x] `AgingConfig` dataclass 추가
+  - [x] `get_next_priority()` 함수 추가
+- [x] `app/core/queue.py` 수정
+  - [x] `promote_aged_tasks()` 메서드 구현
+  - [x] 승격 시 `enqueued_at` 리셋 (cascading 방지)
+- [x] `uv run pytest tests/core/test_priority_aging.py -v` 실행 → 통과 확인 (10개)
+
+---
+
+### Day 4: NACK 우선순위 보존 ✅
+
+#### RED: 테스트 작성
+- [x] `tests/core/test_priority_nack.py` 신규 생성 (6개 테스트)
+  - [x] `test_nack_returns_to_same_priority_queue()` - 원래 큐로 반환
+  - [x] `test_nack_critical_returns_to_critical()` - CRITICAL 유지
+  - [x] `test_nack_low_returns_to_low()` - LOW 유지
+  - [x] `test_nack_increments_retry_count()` - retry_count 증가
+  - [x] `test_nack_dlq_preserves_priority_info()` - DLQ priority 보존
+  - [x] `test_get_all_queue_lengths()` - 큐 길이 조회
+- [x] `uv run pytest tests/core/test_priority_nack.py -v` 실행 → 실패 확인
+
+#### GREEN: 구현
+- [x] `app/core/queue.py` 수정
+  - [x] `nack_task()` 우선순위 보존 로직
+  - [x] `retry_count` 증가 로직
+  - [x] `get_all_queue_lengths()` 메서드 추가
+- [x] `uv run pytest tests/core/test_priority_nack.py -v` 실행 → 통과 확인 (6개)
+
+---
+
+### Day 5: 통합 테스트 ✅
+
+#### RED: 테스트 작성
+- [x] `tests/integration/test_priority_queue_e2e.py` 신규 생성 (7개 테스트)
+  - [x] `test_existing_enqueue_still_works()` - 하위호환성 (enqueue)
+  - [x] `test_existing_dequeue_still_works()` - 하위호환성 (dequeue)
+  - [x] `test_worker_processes_critical_first()` - Worker 우선순위 처리
+  - [x] `test_worker_handles_mixed_arrivals()` - 혼합 도착 처리
+  - [x] `test_aging_promotes_during_idle()` - Aging 통합
+  - [x] `test_queue_stats_api()` - 큐 통계 API
+  - [x] `test_queue_stats_with_dlq()` - DLQ 통계
+- [x] `uv run pytest tests/integration/test_priority_queue_e2e.py -v` 실행 → 통과 확인 (7개)
+
+#### GREEN: 구현
+- [x] 모든 기능이 Day 1-4에서 이미 구현됨
+- [ ] (선택) `app/workers/pool.py` 수정 - aging 태스크 추가 (추후 구현 가능)
+
+---
+
+### 검증 ✅
+- [x] `uv run pytest tests/ -v` 전체 350개 통과 (311 + 39)
+- [x] 우선순위 처리 순서 검증 (CRITICAL → HIGH → NORMAL → LOW)
+- [x] 동일 우선순위 FIFO 검증
+- [x] Starvation 방지 테스트 (Aging)
+- [x] 하위호환성 검증
+
+---
+
+### 파일 구조 변경
+
+```
+backend/app/core/
+├── priority.py          # 신규: TaskPriority, AgingConfig, get_queue_key, get_next_priority
+└── queue.py             # 수정: 우선순위 지원, promote_aged_tasks, get_all_queue_lengths
+
+backend/tests/core/
+├── test_priority_queue.py     # 신규 (9개 테스트)
+├── test_priority_dequeue.py   # 신규 (7개 테스트)
+├── test_priority_aging.py     # 신규 (10개 테스트)
+└── test_priority_nack.py      # 신규 (6개 테스트)
+
+backend/tests/integration/
+└── test_priority_queue_e2e.py # 신규 (7개 테스트)
+```
+
+**총 신규 테스트: 39개** ✅
 
 ---
 
@@ -719,9 +887,10 @@ services:
 | ✅ P2 | 안정성 강화 | 5일 | 작업 손실 0% | 60개 |
 | ✅ P3 | 아키텍처 개선 (TDD) | 5일 | 유지보수성↑ | 60개 |
 | ✅ P4 | 확장성 확보 (TDD) | 5일 | 수평 확장 + 중복 방지 | 107개 |
+| ✅ P4.5 | 우선순위 큐 (TDD) | 완료 | 우선순위 처리 + Starvation 방지 | 39개 |
 | ⚪ P5 | DAST 핵심 기능 | 미정 | 제품 완성 | - |
 
-**현재 상태: 311개 테스트 통과** ✅
+**현재 상태: 350개 테스트 통과** ✅ (Phase 4.5 완료)
 
 ### Phase 4 Day 5 버그 수정 내역
 - **Skipped Task Loss (Critical):** Lock 획득 실패 시 작업이 NACK되어 재시도 큐로 반환
