@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 from httpx import AsyncClient, ASGITransport
-from redis.asyncio import Redis
+from redis.asyncio import Redis, ConnectionPool
 
 from app.main import app
 from app.core.config import settings
@@ -48,8 +48,19 @@ async def db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
 
 @pytest.fixture(scope="function")
 async def redis_client() -> AsyncGenerator[Redis, None]:
-    # Use the same Redis URL from settings
-    redis = Redis.from_url(settings.REDIS_URL, decode_responses=True)
+    """Test Redis client with single connection to avoid timing issues.
+
+    Using single_connection_client=True ensures all Redis operations use the
+    same connection, preventing race conditions where different connections
+    might see slightly different state during tests.
+    """
+    redis = Redis(
+        host='localhost',
+        port=6379,
+        db=0,
+        decode_responses=True,
+        single_connection_client=True
+    )
     yield redis
     await redis.aclose()
 

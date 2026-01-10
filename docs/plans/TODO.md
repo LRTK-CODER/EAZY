@@ -239,45 +239,139 @@ backend/tests/integration/
 
 ---
 
-## Phase 3: 아키텍처 개선 (4-5일)
+## Phase 3: 아키텍처 개선 - TDD (5일) ✅
 
-> **목표:** 유지보수성 향상, 코드 중복 제거
+> **목표:** 유지보수성 향상, 코드 중복 제거, 확장성 확보
+> **개발 방식:** TDD (Test-Driven Development)
+> **변환:** `worker.py` (323줄) → `workers/` 모듈화 구조
+> **결과:** 204개 테스트 통과, 커버리지 78%
 
-### 디렉토리 구조
-- [ ] `backend/app/workers/` 디렉토리 생성
-- [ ] `workers/__init__.py` 생성
+### Day 1: BaseWorker + WorkerContext (기초 추상화) ✅
 
-### BaseWorker 구현
-- [ ] `workers/base.py` 생성
-- [ ] `BaseWorker` 추상 클래스 구현
-- [ ] `execute()` 추상 메서드 정의
-- [ ] `process()` 공통 로직 구현
-- [ ] `_get_task_record()` 헬퍼 메서드
-- [ ] `_update_status()` 헬퍼 메서드
-- [ ] `_complete_task()` 헬퍼 메서드
-- [ ] `_fail_task()` 헬퍼 메서드
+#### RED: 테스트 작성
+- [x] `tests/workers/test_base_worker.py` 신규 생성 (16개 테스트)
+  - [x] WorkerContext 테스트
+  - [x] TaskResult 테스트
+  - [x] BaseWorker 추상 클래스 테스트
+  - [x] process() 메서드 테스트
+- [x] `pytest tests/workers/test_base_worker.py -v` 실행 → 실패 확인
 
-### CrawlWorker 구현
-- [ ] `workers/crawl_worker.py` 생성
-- [ ] `CrawlWorker` 클래스 구현
-- [ ] 의존성 주입 지원 (CrawlerService, AssetService)
-- [ ] `execute()` 메서드 구현
-- [ ] `_check_cancellation()` 메서드
+#### GREEN: 구현
+- [x] `app/workers/__init__.py` 생성
+- [x] `app/workers/base.py` 생성
+  - [x] `WorkerContext` dataclass (의존성 주입 컨테이너)
+  - [x] `TaskResult` dataclass (실행 결과)
+  - [x] `BaseWorker` 추상 클래스
+  - [x] `process()` 공통 로직 구현
+- [x] `pytest tests/workers/test_base_worker.py -v` 실행 → 통과 확인 (16개)
 
-### Worker Runner
-- [ ] `workers/runner.py` 생성
-- [ ] `WORKER_REGISTRY` 딕셔너리
-- [ ] `process_one_task()` 함수
-- [ ] 메인 실행 로직
+---
 
-### 기존 코드 제거
-- [ ] `worker.py`의 `process_task()` 제거
-- [ ] `worker.py`의 `process_one_task()` 제거
-- [ ] 기존 `worker.py` → 새 구조로 마이그레이션
+### Day 2: CrawlWorker (크롤링 Worker 분리) ✅
 
-### 테스트
-- [ ] `BaseWorker` 단위 테스트
-- [ ] `CrawlWorker` 단위 테스트 (Mock 사용)
+#### RED: 테스트 작성
+- [x] `tests/workers/test_crawl_worker.py` 신규 생성 (15개 테스트)
+  - [x] CrawlWorker 속성 테스트
+  - [x] execute() 메서드 테스트
+  - [x] 취소 처리 테스트
+  - [x] HTTP 데이터 추출 테스트
+- [x] `pytest tests/workers/test_crawl_worker.py -v` 실행 → 실패 확인
+
+#### GREEN: 구현
+- [x] `app/workers/crawl_worker.py` 생성
+  - [x] `CrawlWorker` 클래스 구현 (BaseWorker 상속)
+  - [x] 의존성 주입 지원 (`crawler_service`, `asset_service_factory`)
+  - [x] `task_type` 속성 정의
+  - [x] `execute()` 메서드 구현
+  - [x] 취소 확인 로직 (시간 기반 + 아이템 기반)
+- [x] `pytest tests/workers/test_crawl_worker.py -v` 실행 → 통과 확인 (15개)
+
+---
+
+### Day 3: Worker Registry (확장성 확보) ✅
+
+#### RED: 테스트 작성
+- [x] `tests/workers/test_registry.py` 신규 생성 (12개 테스트)
+  - [x] WORKER_REGISTRY 테스트
+  - [x] get_worker_class() 테스트
+  - [x] @register_worker 데코레이터 테스트
+  - [x] create_worker() 팩토리 테스트
+- [x] `pytest tests/workers/test_registry.py -v` 실행 → 실패 확인
+
+#### GREEN: 구현
+- [x] `app/workers/registry.py` 생성
+  - [x] `WORKER_REGISTRY` dict 정의
+  - [x] `get_worker_class()` 함수
+  - [x] `@register_worker` 데코레이터
+  - [x] `create_worker()` 팩토리 함수
+- [x] `pytest tests/workers/test_registry.py -v` 실행 → 통과 확인 (12개)
+
+---
+
+### Day 4: Worker Runner (메인 루프) ✅
+
+#### RED: 테스트 작성
+- [x] `tests/workers/test_runner.py` 신규 생성 (9개 테스트)
+  - [x] process_one_task() 테스트
+  - [x] create_worker_context() 테스트
+  - [x] 통합 테스트
+- [x] `pytest tests/workers/test_runner.py -v` 실행 → 실패 확인
+
+#### GREEN: 구현
+- [x] `app/workers/runner.py` 생성
+  - [x] `create_worker_context()` 함수
+  - [x] `process_one_task()` 함수
+  - [x] `run_worker()` 메인 루프
+- [x] Redis 단일 연결 문제 해결 (`single_connection_client=True`)
+- [x] `pytest tests/workers/test_runner.py -v` 실행 → 통과 확인 (9개)
+
+---
+
+### Day 5: 통합 + 마이그레이션 ✅
+
+#### RED: 테스트 작성
+- [x] `tests/workers/test_runner.py`에 추가 (8개 테스트)
+  - [x] TestPackageExports 클래스 (7개 테스트)
+  - [x] TestDeprecation 클래스 (1개 테스트)
+- [x] `pytest tests/workers/ -v` 실행 → 실패 확인
+
+#### GREEN: 구현
+- [x] `app/workers/__init__.py` 공개 API 정의 완료
+- [x] `tests/workers/conftest.py` Worker 전용 fixtures
+- [x] `tests/conftest.py` Redis 단일 연결 설정 적용
+- [x] `app/worker.py` → 폐기 예정 표시 + DeprecationWarning 추가
+- [x] `pytest tests/workers/ -v` 실행 → 통과 확인 (60개)
+
+---
+
+### 검증 ✅
+- [x] `pytest tests/ -v` 전체 테스트 통과 (204개)
+- [x] `pytest tests/ --cov=app` 커버리지 확인 (78%)
+- [x] `python -c "from app.workers import run_worker; print('OK')"` import 확인
+- [x] 기존 스캔 기능 정상 동작 확인
+
+---
+
+### 파일 구조 변경 ✅
+
+```
+backend/app/workers/
+├── __init__.py      # 패키지 공개 API (47줄)
+├── base.py          # BaseWorker, WorkerContext, TaskResult (245줄)
+├── crawl_worker.py  # CrawlWorker 구현 (104줄)
+├── registry.py      # WORKER_REGISTRY, @register_worker (103줄)
+└── runner.py        # run_worker() 메인 루프 (131줄)
+
+backend/tests/workers/
+├── __init__.py              # 패키지 초기화
+├── conftest.py              # Worker 전용 fixtures (89줄)
+├── test_base_worker.py      # 16개 테스트
+├── test_crawl_worker.py     # 15개 테스트
+├── test_registry.py         # 12개 테스트
+└── test_runner.py           # 17개 테스트 (9 + 8)
+```
+
+**총 신규 테스트: 60개** ✅
 
 ---
 
@@ -425,11 +519,13 @@ backend/tests/integration/
 
 ## 우선순위 요약
 
-| 우선순위 | Phase | 예상 소요 | 효과 |
-|----------|-------|----------|------|
-| 🔴 P0 | Quick Wins | 30분 | 즉시 개선 |
-| 🔴 P1 | 배치 처리 | 2-3일 | 성능 98%↑ |
-| 🟠 P2 | 안정성 강화 | 3-4일 | 작업 손실 0% |
-| 🟡 P3 | 아키텍처 개선 | 4-5일 | 유지보수성↑ |
-| 🟢 P4 | 확장성 확보 | 3-4일 | 수평 확장 |
-| ⚪ P5 | DAST 핵심 기능 | 미정 | 제품 완성 |
+| 우선순위 | Phase | 예상 소요 | 효과 | 테스트 |
+|----------|-------|----------|------|--------|
+| ✅ P0 | Quick Wins | 30분 | 즉시 개선 | 완료 |
+| ✅ P1 | 배치 처리 | 2-3일 | 성능 98%↑ | 완료 |
+| ✅ P2 | 안정성 강화 | 5일 | 작업 손실 0% | 60개 |
+| ✅ P3 | 아키텍처 개선 (TDD) | 5일 | 유지보수성↑ | 60개 |
+| 🟢 P4 | 확장성 확보 | 3-4일 | 수평 확장 | - |
+| ⚪ P5 | DAST 핵심 기능 | 미정 | 제품 완성 | - |
+
+**현재 상태: 204개 테스트 통과, 커버리지 78%**

@@ -1,6 +1,18 @@
+"""
+DEPRECATED: This module is deprecated and will be removed in a future version.
+
+Use the new workers package instead:
+    from app.workers import run_worker
+    asyncio.run(run_worker())
+
+For custom workers:
+    from app.workers import BaseWorker, WorkerContext, TaskResult
+    from app.workers import WORKER_REGISTRY, register_worker, create_worker
+"""
 import asyncio
 import json
 import logging
+import warnings
 from redis.asyncio import Redis
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -14,6 +26,14 @@ from app.models.task import Task, TaskStatus, TaskType, utc_now
 from app.models.asset import Asset, AssetDiscovery, AssetType, AssetSource
 from app.services.crawler_service import CrawlerService
 from app.services.asset_service import AssetService
+
+# Emit deprecation warning on import
+warnings.warn(
+    "app.worker is deprecated and will be removed in a future version. "
+    "Use app.workers instead: from app.workers import run_worker",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
