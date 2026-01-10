@@ -51,7 +51,7 @@ async def test_cancel_running_task_succeeds(client: AsyncClient, db_session: Asy
 
     # Manually update task to RUNNING status
     from app.models.task import Task
-    from app.models.task import utc_now
+    from app.core.utils import utc_now
     from sqlmodel import select
 
     result = await db_session.exec(select(Task).where(Task.id == task_id))
@@ -115,7 +115,7 @@ async def test_cancel_completed_task_fails(client: AsyncClient, db_session: Asyn
 
     # Manually update task to COMPLETED status
     from app.models.task import Task
-    from app.models.task import utc_now
+    from app.core.utils import utc_now
     from sqlmodel import select
 
     result = await db_session.exec(select(Task).where(Task.id == task_id))

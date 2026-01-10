@@ -1,11 +1,10 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 from sqlmodel import Field, SQLModel, Column
 from sqlalchemy import ForeignKey
 from enum import Enum
 
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+from app.core.utils import utc_now
 
 class TaskStatus(str, Enum):
     PENDING = "pending"

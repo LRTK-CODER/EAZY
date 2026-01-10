@@ -1,9 +1,8 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 from sqlmodel import Field, SQLModel
 
-def utc_now():
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+from app.core.utils import utc_now
 
 class ProjectBase(SQLModel):
     name: str = Field(index=True, max_length=255)

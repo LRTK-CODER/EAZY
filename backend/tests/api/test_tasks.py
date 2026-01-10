@@ -79,7 +79,8 @@ async def test_get_task_assets(client: AsyncClient, db_session: AsyncSession):
     task_id = resp.json()["task_id"]
     
     # 2. Mock some assets (manually insert to DB for this task)
-    from app.models.asset import Asset, AssetType, AssetSource, AssetDiscovery, utc_now
+    from app.models.asset import Asset, AssetType, AssetSource, AssetDiscovery
+    from app.core.utils import utc_now
     
     # We need the task_id (DB ID) to link AssetDiscovery.
     # The API returns task_id (DB ID).

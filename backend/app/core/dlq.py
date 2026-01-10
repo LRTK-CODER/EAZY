@@ -9,17 +9,12 @@ Phase 2: Dead Letter Queue (DLQ) 관리자
 """
 
 import json
-from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 
 from redis.asyncio import Redis
 
 from app.core.errors import ErrorCategory
-
-
-def utc_now() -> datetime:
-    """UTC 현재 시간 반환"""
-    return datetime.now(timezone.utc)
+from app.core.utils import utc_now_tz
 
 
 class DLQManager:
@@ -56,7 +51,7 @@ class DLQManager:
             "error_message": str(error),
             "error_category": error_category.value,
             "retry_count": str(retry_count),
-            "failed_at": utc_now().isoformat(),
+            "failed_at": utc_now_tz().isoformat(),
         }
 
         meta_key = f"{self.meta_prefix}{task_id}"

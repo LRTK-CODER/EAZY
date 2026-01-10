@@ -1,11 +1,12 @@
 import hashlib
 from typing import Optional, Dict, Any, List, Tuple
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from urllib.parse import urlparse
 
-from app.models.asset import Asset, AssetDiscovery, AssetType, AssetSource, utc_now
+from app.models.asset import Asset, AssetDiscovery, AssetType, AssetSource
+from app.core.utils import utc_now
 
 
 class AssetService:

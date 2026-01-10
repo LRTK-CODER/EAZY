@@ -70,7 +70,7 @@ async def test_task_started_at_auto_set_on_running(db_session: AsyncSession):
     # Change status to RUNNING
     task.status = TaskStatus.RUNNING
     # Manually set started_at (this would be done in service layer)
-    from app.models.task import utc_now
+    from app.core.utils import utc_now
     task.started_at = utc_now()
     await db_session.commit()
     await db_session.refresh(task)
@@ -89,7 +89,7 @@ async def test_task_completed_at_auto_set_on_completion(db_session: AsyncSession
     await db_session.refresh(project)
 
     # Create task with RUNNING status
-    from app.models.task import utc_now
+    from app.core.utils import utc_now
     task = Task(
         project_id=project.id,
         type=TaskType.CRAWL,
@@ -123,7 +123,7 @@ async def test_task_completed_at_set_on_cancellation(db_session: AsyncSession):
     await db_session.refresh(project)
 
     # Create task with RUNNING status
-    from app.models.task import utc_now
+    from app.core.utils import utc_now
     task = Task(
         project_id=project.id,
         type=TaskType.CRAWL,

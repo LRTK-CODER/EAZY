@@ -22,7 +22,8 @@ from app.core.config import settings
 from app.core.queue import TaskManager
 from app.models.project import Project  # Import all models for SQLAlchemy metadata
 from app.models.target import Target
-from app.models.task import Task, TaskStatus, TaskType, utc_now
+from app.models.task import Task, TaskStatus, TaskType
+from app.core.utils import utc_now
 from app.models.asset import Asset, AssetDiscovery, AssetType, AssetSource
 from app.services.crawler_service import CrawlerService
 from app.services.asset_service import AssetService

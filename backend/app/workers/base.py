@@ -16,16 +16,11 @@ from app.core.dlq import DLQManager
 from app.core.recovery import OrphanRecovery
 from app.core.errors import classify_error, ErrorCategory
 from app.core.structured_logger import get_logger
+from app.core.utils import utc_now
 from app.models.task import Task, TaskStatus, TaskType
 
 
 logger = get_logger(__name__)
-
-
-def utc_now():
-    """Get current UTC datetime (offset-naive for DB compatibility)."""
-    from datetime import datetime, timezone
-    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 @dataclass

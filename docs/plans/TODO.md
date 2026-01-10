@@ -982,10 +982,70 @@ docker compose start worker
 - 조회 함수 → `{"_parse_error": ..., "_raw_json": ...}` 형식으로 에러 정보 반환
 - Worker 크래시 방지
 
-### 유틸리티 통합
-- [ ] `utils/datetime.py` 생성
-- [ ] `utc_now()` 함수 통합 (4개 파일에서 중복)
-- [ ] 기존 파일들의 `utc_now()` import 변경
+### 유틸리티 통합 - TDD (1-2일) ✅
+
+> **완료일:** 2026-01-11
+> **목표:** `utc_now()` 함수 중복 제거 및 통합 유틸리티 생성
+> **개발 방식:** TDD (Test-Driven Development)
+> **발견된 중복:** 7개 정의 (6개 파일), 2가지 구현 방식 불일치
+
+#### 문제 분석
+
+| Type | 구현 | 파일 | 용도 |
+|------|------|------|------|
+| Type 1 (5개) | `.replace(tzinfo=None)` | project.py, target.py, asset.py, task.py, workers/base.py | PostgreSQL (offset-naive) |
+| Type 2 (2개) | `datetime.now(timezone.utc)` | dlq.py, recovery.py | Redis/JSON (timezone-aware) |
+
+#### Step 1: RED - 테스트 작성 ✅
+- [x] `tests/core/test_datetime_utils.py` 신규 생성 (12개 테스트)
+  - [x] `TestUtcNow` (4개 테스트) - offset-naive 동작 검증
+  - [x] `TestUtcNowTz` (4개 테스트) - timezone-aware 동작 검증
+  - [x] `TestDatetimeArithmetic` (3개 테스트) - 연산 호환성
+  - [x] `TestBackwardsCompatibility` (1개 테스트) - 기존 구현 일치
+- [x] `uv run pytest tests/core/test_datetime_utils.py -v` 실행 → 실패 확인
+
+#### Step 2: GREEN - 구현 ✅
+- [x] `app/core/utils/datetime.py` 신규 생성
+  - [x] `utc_now()` 함수 (offset-naive, PostgreSQL 용)
+  - [x] `utc_now_tz()` 함수 (timezone-aware, Redis/JSON 용)
+- [x] `app/core/utils/__init__.py` 수정 - export 추가
+- [x] `uv run pytest tests/core/test_datetime_utils.py -v` 실행 → 통과 확인
+
+#### Step 3: REFACTOR - 마이그레이션 ✅
+- [x] 정의 제거 (7개 파일)
+  - [x] `app/models/project.py` - 정의 삭제, import 추가
+  - [x] `app/models/target.py` - 정의 삭제, import 추가
+  - [x] `app/models/asset.py` - 정의 삭제, import 추가
+  - [x] `app/models/task.py` - 정의 삭제, import 추가
+  - [x] `app/workers/base.py` - 정의 삭제, import 추가
+  - [x] `app/core/dlq.py` - 정의 삭제, `utc_now_tz` import
+  - [x] `app/core/recovery.py` - 정의 삭제, `utc_now_tz` import
+- [x] Import 변경 (6개 파일)
+  - [x] `app/services/asset_service.py`
+  - [x] `app/services/project_service.py`
+  - [x] `app/worker.py` (deprecated)
+  - [x] `tests/api/test_tasks.py`
+  - [x] `tests/models/test_task_timestamps.py`
+  - [x] `tests/api/test_task_cancel.py`
+
+#### 검증 ✅
+- [x] `uv run pytest tests/core/test_datetime_utils.py -v` → 12개 통과
+- [x] `uv run pytest tests/ -v` → 전체 테스트 통과 (479 passed)
+- [x] `uv run python -c "from app.core.utils import utc_now, utc_now_tz; print('OK')"`
+
+#### 파일 구조 변경
+
+```
+backend/app/core/utils/
+├── __init__.py        # 수정: utc_now, utc_now_tz export 추가
+├── json_parser.py     # 기존 유지
+└── datetime.py        # 신규: utc_now(), utc_now_tz()
+
+backend/tests/core/
+└── test_datetime_utils.py  # 신규 (12개 테스트)
+```
+
+**총 신규 테스트: 12개** ✅
 
 ### 로깅 개선 ✅
 
@@ -1098,9 +1158,10 @@ logger.error("Worker crashed", worker_id=worker_id, error=str(e))
 | ✅ P5 | 인프라 설정 (TDD) | 완료 | Docker + CI/CD | 84개 |
 | ✅ P5.5 | JSON 파싱 안정화 (TDD) | 완료 | Worker 크래시 방지 | 17개 |
 | ✅ P5.6 | 로깅 개선 (TDD) | 완료 | Structlog + 구조화 로깅 | 22개 |
+| ✅ P5.7 | 유틸리티 통합 (TDD) | 완료 | utc_now() 중복 제거 + 타입 안전성 | 12개 |
 | ⚪ P6 | DAST 핵심 기능 | 미정 | 제품 완성 | - |
 
-**현재 상태: 478개 테스트** ✅ (로깅 개선 완료)
+**현재 상태: 490개 테스트** ✅ (유틸리티 통합 완료)
 **다음 단계: Phase 6 DAST 핵심 기능** ⚪
 
 ### Phase 4 Day 5 버그 수정 내역

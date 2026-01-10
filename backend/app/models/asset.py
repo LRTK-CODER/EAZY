@@ -1,11 +1,10 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional, List, Dict, Any
 from sqlmodel import Field, SQLModel, Column, JSON
 from sqlalchemy import ForeignKey
 from enum import Enum
 
-def utc_now():
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+from app.core.utils import utc_now
 
 class AssetType(str, Enum):
     URL = "url"
