@@ -55,11 +55,13 @@ class TaskResult:
     - data: Any data to store with the result
     - error: Error message if the task failed
     - _cancelled: Whether the task was cancelled by user
+    - _skipped: Whether the task was skipped (e.g., lock unavailable)
     """
     _success: bool
     data: Dict[str, Any]
     error: Optional[str] = None
     _cancelled: bool = False
+    _skipped: bool = False
 
     @property
     def success(self) -> bool:
@@ -70,6 +72,22 @@ class TaskResult:
     def cancelled(self) -> bool:
         """Whether the task was cancelled by user."""
         return self._cancelled
+
+    @property
+    def skipped(self) -> bool:
+        """Whether the task was skipped."""
+        return self._skipped
+
+    @property
+    def status(self) -> str:
+        """Return the status string."""
+        if self._skipped:
+            return "skipped"
+        if self._cancelled:
+            return "cancelled"
+        if self._success:
+            return "success"
+        return "failed"
 
     @classmethod
     def create_success(cls, data: Dict[str, Any]) -> "TaskResult":
@@ -85,6 +103,11 @@ class TaskResult:
     def create_cancelled(cls, data: Dict[str, Any]) -> "TaskResult":
         """Create a cancelled result."""
         return cls(_success=True, data=data, _cancelled=True)
+
+    @classmethod
+    def create_skipped(cls, data: Dict[str, Any]) -> "TaskResult":
+        """Create a skipped result (e.g., lock unavailable)."""
+        return cls(_success=False, data=data, _skipped=True)
 
     def to_json(self) -> str:
         """Serialize data to JSON string."""
@@ -171,6 +194,15 @@ class BaseWorker(ABC):
 
             # Execute the task
             result = await self.execute(task_data, task_record)
+
+            # Handle skipped result (e.g., lock unavailable) - NACK for retry
+            if result.skipped:
+                logger.info(
+                    f"Task {db_task_id} skipped: {result.data.get('reason', 'unknown')}"
+                )
+                await self.task_manager.nack_task(task_json, retry=True)
+                await self.context.orphan_recovery.clear_heartbeat(task_id)
+                return True
 
             # Handle result
             if result.cancelled:

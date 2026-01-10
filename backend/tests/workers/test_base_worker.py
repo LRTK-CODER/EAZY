@@ -445,3 +445,193 @@ class TestBaseWorker:
         # Verify heartbeat was sent
         mock_orphan_recovery.send_heartbeat.assert_called_once_with("test-uuid")
         mock_orphan_recovery.clear_heartbeat.assert_called_once_with("test-uuid")
+
+
+class TestSkippedTaskHandling:
+    """Skipped task가 NACK되어 재시도 큐로 돌아가는지 검증 (Day 5 Bug Fix)"""
+
+    @pytest.mark.asyncio
+    async def test_skipped_result_calls_nack_not_ack(
+        self, db_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery
+    ):
+        """Skipped 결과는 ACK가 아닌 NACK 호출해야 함"""
+        from app.workers.base import BaseWorker, WorkerContext, TaskResult
+        from app.models.task import Task, TaskStatus, TaskType
+        from app.models.project import Project
+        from app.models.target import Target
+
+        context = WorkerContext(
+            session=db_session,
+            task_manager=mock_task_manager,
+            dlq_manager=mock_dlq_manager,
+            orphan_recovery=mock_orphan_recovery,
+        )
+
+        # Create test data
+        project = Project(name="Test Project")
+        db_session.add(project)
+        await db_session.commit()
+        await db_session.refresh(project)
+
+        target = Target(name="Test Target", project_id=project.id, url="http://example.com")
+        db_session.add(target)
+        await db_session.commit()
+        await db_session.refresh(target)
+
+        task = Task(
+            project_id=project.id,
+            target_id=target.id,
+            type=TaskType.CRAWL,
+            status=TaskStatus.PENDING,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        # Worker that returns skipped result
+        class SkippedWorker(BaseWorker):
+            @property
+            def task_type(self):
+                return TaskType.CRAWL
+
+            async def execute(self, task_data, task_record):
+                return TaskResult.create_skipped({
+                    "target_id": task_data.get("target_id"),
+                    "reason": "lock_unavailable",
+                })
+
+        worker = SkippedWorker(context)
+        task_data = {"db_task_id": task.id, "target_id": target.id, "id": "test-uuid"}
+        task_json = '{"id": "test-uuid"}'
+
+        mock_task_manager.ack_task = AsyncMock(return_value=True)
+        mock_task_manager.nack_task = AsyncMock(return_value=True)
+        mock_orphan_recovery.send_heartbeat = AsyncMock()
+        mock_orphan_recovery.clear_heartbeat = AsyncMock()
+
+        await worker.process(task_data, task_json)
+
+        # NACK should be called, NOT ACK
+        mock_task_manager.nack_task.assert_called_once_with(task_json, retry=True)
+        mock_task_manager.ack_task.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_skipped_result_does_not_update_db_status(
+        self, db_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery
+    ):
+        """Skipped 결과는 DB 상태를 FAILED로 변경하지 않아야 함"""
+        from app.workers.base import BaseWorker, WorkerContext, TaskResult
+        from app.models.task import Task, TaskStatus, TaskType
+        from app.models.project import Project
+        from app.models.target import Target
+
+        context = WorkerContext(
+            session=db_session,
+            task_manager=mock_task_manager,
+            dlq_manager=mock_dlq_manager,
+            orphan_recovery=mock_orphan_recovery,
+        )
+
+        # Create test data
+        project = Project(name="Test Project")
+        db_session.add(project)
+        await db_session.commit()
+        await db_session.refresh(project)
+
+        target = Target(name="Test Target", project_id=project.id, url="http://example.com")
+        db_session.add(target)
+        await db_session.commit()
+        await db_session.refresh(target)
+
+        task = Task(
+            project_id=project.id,
+            target_id=target.id,
+            type=TaskType.CRAWL,
+            status=TaskStatus.PENDING,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        class SkippedWorker(BaseWorker):
+            @property
+            def task_type(self):
+                return TaskType.CRAWL
+
+            async def execute(self, task_data, task_record):
+                return TaskResult.create_skipped({"reason": "lock_unavailable"})
+
+        worker = SkippedWorker(context)
+        task_data = {"db_task_id": task.id, "target_id": target.id, "id": "test-uuid"}
+        task_json = '{"id": "test-uuid"}'
+
+        mock_task_manager.ack_task = AsyncMock(return_value=True)
+        mock_task_manager.nack_task = AsyncMock(return_value=True)
+        mock_orphan_recovery.send_heartbeat = AsyncMock()
+        mock_orphan_recovery.clear_heartbeat = AsyncMock()
+
+        await worker.process(task_data, task_json)
+
+        # DB status should remain RUNNING (not FAILED)
+        await db_session.refresh(task)
+        assert task.status == TaskStatus.RUNNING
+
+    @pytest.mark.asyncio
+    async def test_skipped_result_clears_heartbeat(
+        self, db_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery
+    ):
+        """Skipped 결과에서도 heartbeat는 정리되어야 함"""
+        from app.workers.base import BaseWorker, WorkerContext, TaskResult
+        from app.models.task import Task, TaskStatus, TaskType
+        from app.models.project import Project
+        from app.models.target import Target
+
+        context = WorkerContext(
+            session=db_session,
+            task_manager=mock_task_manager,
+            dlq_manager=mock_dlq_manager,
+            orphan_recovery=mock_orphan_recovery,
+        )
+
+        # Create test data
+        project = Project(name="Test Project")
+        db_session.add(project)
+        await db_session.commit()
+        await db_session.refresh(project)
+
+        target = Target(name="Test Target", project_id=project.id, url="http://example.com")
+        db_session.add(target)
+        await db_session.commit()
+        await db_session.refresh(target)
+
+        task = Task(
+            project_id=project.id,
+            target_id=target.id,
+            type=TaskType.CRAWL,
+            status=TaskStatus.PENDING,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        class SkippedWorker(BaseWorker):
+            @property
+            def task_type(self):
+                return TaskType.CRAWL
+
+            async def execute(self, task_data, task_record):
+                return TaskResult.create_skipped({"reason": "lock_unavailable"})
+
+        worker = SkippedWorker(context)
+        task_data = {"db_task_id": task.id, "target_id": target.id, "id": "test-uuid"}
+        task_json = '{"id": "test-uuid"}'
+
+        mock_task_manager.ack_task = AsyncMock(return_value=True)
+        mock_task_manager.nack_task = AsyncMock(return_value=True)
+        mock_orphan_recovery.send_heartbeat = AsyncMock()
+        mock_orphan_recovery.clear_heartbeat = AsyncMock()
+
+        await worker.process(task_data, task_json)
+
+        # Heartbeat should still be cleared
+        mock_orphan_recovery.clear_heartbeat.assert_called_once_with("test-uuid")

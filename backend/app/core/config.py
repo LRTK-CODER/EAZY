@@ -21,7 +21,12 @@ class Settings(BaseSettings):
     # SECURITY
     SECRET_KEY: str = "CHANGE_THIS_TO_A_SECURE_KEY_IN_PRODUCTION"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
-    
+
+    # WORKER POOL (Phase 4)
+    WORKER_NUM_WORKERS: int = 4
+    WORKER_SHUTDOWN_TIMEOUT: int = 30
+    WORKER_MAX_RESTARTS: int = 5
+
     model_config = SettingsConfigDict(case_sensitive=True, env_file=".env")
 
 settings = Settings()

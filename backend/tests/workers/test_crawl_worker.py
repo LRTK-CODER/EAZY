@@ -566,3 +566,102 @@ class TestCrawlWorkerHttpData:
         assert asset is not None
         assert asset.parameters is not None
         assert "q" in asset.parameters
+
+
+class TestURLValidation:
+    """SSRF 방지를 위한 URL 검증 테스트 (Day 5 Bug Fix)"""
+
+    @pytest.mark.parametrize("unsafe_url", [
+        "http://localhost/admin",
+        "http://localhost:8080/api",
+        "http://127.0.0.1/admin",
+        "http://127.0.0.1:8080/api",
+        "http://169.254.169.254/latest/meta-data",  # AWS metadata
+        "http://[::1]/internal",  # IPv6 localhost
+        "http://10.0.0.1/internal",  # Private network (10.x.x.x)
+        "http://192.168.1.1/router",  # Private network (192.168.x.x)
+        "http://172.16.0.1/internal",  # Private network (172.16-31.x.x)
+        "file:///etc/passwd",  # File scheme
+        "gopher://localhost/",  # Gopher scheme
+        "ftp://internal-server/",  # FTP scheme
+    ])
+    def test_unsafe_urls_rejected(self, unsafe_url):
+        """내부 네트워크 및 위험한 URL 차단"""
+        from app.workers.crawl_worker import is_safe_url
+        assert not is_safe_url(unsafe_url), f"URL should be unsafe: {unsafe_url}"
+
+    @pytest.mark.parametrize("safe_url", [
+        "https://example.com/page",
+        "https://api.github.com/users",
+        "http://external-service.com/data",
+        "https://subdomain.example.org/path",
+        "http://8.8.8.8/dns",  # Public IP
+    ])
+    def test_safe_urls_allowed(self, safe_url):
+        """외부 URL은 허용"""
+        from app.workers.crawl_worker import is_safe_url
+        assert is_safe_url(safe_url), f"URL should be safe: {safe_url}"
+
+    def test_empty_url_rejected(self):
+        """빈 URL 거부"""
+        from app.workers.crawl_worker import is_safe_url
+        assert not is_safe_url("")
+        assert not is_safe_url(None)
+
+    def test_invalid_url_rejected(self):
+        """잘못된 형식의 URL 거부"""
+        from app.workers.crawl_worker import is_safe_url
+        assert not is_safe_url("not-a-url")
+        assert not is_safe_url("://missing-scheme")
+
+    @pytest.mark.asyncio
+    async def test_execute_rejects_unsafe_url(
+        self, db_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery,
+        mock_crawler_service
+    ):
+        """execute()는 안전하지 않은 URL에 대해 skipped 결과 반환"""
+        from app.workers.crawl_worker import CrawlWorker
+        from app.workers.base import WorkerContext
+
+        # Create test data with unsafe URL
+        project = Project(name="Test Project")
+        db_session.add(project)
+        await db_session.commit()
+        await db_session.refresh(project)
+
+        target = Target(
+            name="Unsafe Target",
+            project_id=project.id,
+            url="http://localhost:8080/admin"  # Unsafe internal URL
+        )
+        db_session.add(target)
+        await db_session.commit()
+        await db_session.refresh(target)
+
+        task = Task(
+            project_id=project.id,
+            target_id=target.id,
+            type=TaskType.CRAWL,
+            status=TaskStatus.PENDING,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        context = WorkerContext(
+            session=db_session,
+            task_manager=mock_task_manager,
+            dlq_manager=mock_dlq_manager,
+            orphan_recovery=mock_orphan_recovery,
+        )
+
+        worker = CrawlWorker(context, crawler_service=mock_crawler_service)
+        task_data = {"db_task_id": task.id, "target_id": target.id}
+
+        result = await worker.execute(task_data, task)
+
+        # Should return skipped result for unsafe URL
+        assert result.skipped is True
+        assert result.data.get("reason") == "unsafe_url"
+        # Crawler should NOT be called
+        mock_crawler_service.crawl.assert_not_called()

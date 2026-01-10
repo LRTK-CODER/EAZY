@@ -2,9 +2,14 @@
 CrawlWorker for EAZY crawl tasks.
 
 Phase 3: Architecture Improvement
+Phase 4: Scalability - Distributed Lock Integration
+Phase 4 Day 5: SSRF Prevention
 """
 import asyncio
+import ipaddress
+import logging
 from typing import Any, Callable, Dict, Optional
+from urllib.parse import urlparse
 
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -14,10 +19,78 @@ from app.models.target import Target
 from app.models.asset import AssetType, AssetSource
 from app.services.crawler_service import CrawlerService
 from app.services.asset_service import AssetService
+from app.core.lock import DistributedLock
 
+
+logger = logging.getLogger(__name__)
 
 # Cancellation check interval in seconds
 CANCELLATION_CHECK_INTERVAL = 5.0
+
+# Lock configuration (matching OrphanRecovery threshold)
+LOCK_TTL = 600  # 10 minutes
+LOCK_PREFIX = "eazy:lock:"
+
+# SSRF Prevention - Blocked schemes and hosts
+BLOCKED_SCHEMES = {"file", "gopher", "ftp", "data"}
+BLOCKED_HOSTS = {"localhost", "127.0.0.1", "::1", "[::1]"}
+
+
+def is_safe_url(url: Optional[str]) -> bool:
+    """
+    Validate URL for SSRF prevention.
+
+    Blocks:
+    - Internal/private IP addresses (10.x, 172.16-31.x, 192.168.x)
+    - Loopback addresses (localhost, 127.0.0.1, ::1)
+    - AWS metadata endpoint (169.254.169.254)
+    - Dangerous schemes (file://, gopher://, ftp://)
+
+    Args:
+        url: URL to validate
+
+    Returns:
+        True if URL is safe to crawl, False otherwise
+    """
+    if not url:
+        return False
+
+    try:
+        parsed = urlparse(url)
+
+        # Must have a scheme
+        if not parsed.scheme:
+            return False
+
+        # Block dangerous schemes
+        if parsed.scheme.lower() in BLOCKED_SCHEMES:
+            return False
+
+        # Must have a hostname
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+
+        # Block known dangerous hosts
+        if hostname.lower() in BLOCKED_HOSTS:
+            return False
+
+        # Check if hostname is an IP address
+        try:
+            ip = ipaddress.ip_address(hostname)
+            # Block private, reserved, loopback IPs
+            if ip.is_private or ip.is_reserved or ip.is_loopback:
+                return False
+            # Block link-local addresses (169.254.x.x - AWS metadata)
+            if ip.is_link_local:
+                return False
+        except ValueError:
+            # hostname is a domain name, not an IP - that's fine
+            pass
+
+        return True
+    except Exception:
+        return False
 
 
 class CrawlWorker(BaseWorker):
@@ -56,14 +129,14 @@ class CrawlWorker(BaseWorker):
 
     async def execute(self, task_data: Dict[str, Any], task_record: Task) -> TaskResult:
         """
-        Execute crawl task.
+        Execute crawl task with distributed lock.
 
         Args:
             task_data: Task data from queue containing target_id, db_task_id
             task_record: Task record from database
 
         Returns:
-            TaskResult indicating success, failure, or cancellation
+            TaskResult indicating success, failure, cancellation, or skipped
         """
         target_id = task_data.get("target_id")
         db_task_id = task_data.get("db_task_id")
@@ -73,6 +146,50 @@ class CrawlWorker(BaseWorker):
         if not target:
             raise ValueError(f"Target {target_id} not found")
 
+        # SSRF Prevention: Validate URL before crawling
+        if not is_safe_url(target.url):
+            logger.warning(f"Blocked unsafe URL: {target.url}")
+            return TaskResult.create_skipped({
+                "reason": "unsafe_url",
+                "target_id": target_id,
+                "url": target.url,
+                "message": f"URL {target.url} blocked for security reasons",
+            })
+
+        # Create distributed lock for target
+        lock = DistributedLock(
+            redis=self.task_manager.redis,
+            name=f"target:{target_id}",
+            ttl=LOCK_TTL,
+            prefix=LOCK_PREFIX,
+        )
+
+        # Try to acquire lock
+        if not await lock.acquire():
+            logger.warning(
+                f"Could not acquire lock for target {target_id}, "
+                f"another worker is processing"
+            )
+            return TaskResult.create_skipped({
+                "reason": "lock_unavailable",
+                "target_id": target_id,
+                "message": f"Target {target_id} is locked by another worker",
+            })
+
+        try:
+            # Crawl with lock held
+            return await self._execute_with_lock(target, target_id, db_task_id)
+        finally:
+            # Always release lock
+            await lock.release()
+
+    async def _execute_with_lock(
+        self,
+        target: Target,
+        target_id: int,
+        db_task_id: int,
+    ) -> TaskResult:
+        """Execute crawl task while holding the lock."""
         # Crawl
         links, http_data = await self.crawler.crawl(target.url)
 

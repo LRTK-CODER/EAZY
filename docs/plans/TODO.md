@@ -375,31 +375,224 @@ backend/tests/workers/
 
 ---
 
-## Phase 4: 확장성 확보 (3-4일)
+## Phase 4: 확장성 확보 - TDD (5일) ✅
 
-> **목표:** 수평 확장 가능
+> **목표:** 수평 확장 가능, Target 중복 스캔 방지
+> **개발 방식:** TDD (Test-Driven Development)
+> **신규 테스트:** 84개 (33 + 18 + 13 + 20)
+> **결과:** 288개 테스트 통과
 
-### WorkerPool 구현
-- [ ] `WorkerPool` 클래스 생성
-- [ ] `num_workers` 설정 (환경변수 지원)
-- [ ] `start()` 메서드
-- [ ] `_run_worker()` 메서드
-- [ ] Graceful Shutdown 핸들러 (`SIGTERM`, `SIGINT`)
-- [ ] `shutdown_event` 구현
+### 기술 결정사항
 
-### 분산 잠금
-- [ ] `core/lock.py` 생성
-- [ ] `DistributedLock` 클래스 구현
-- [ ] `acquire()` 메서드 (Redis SET NX)
-- [ ] `release()` 메서드 (Lua 스크립트)
-- [ ] Context Manager 지원
-- [ ] `LockAcquisitionError` 예외
+| 항목 | 결정 | 근거 |
+|-----|------|------|
+| 동시성 패턴 | `asyncio.wait` + `FIRST_COMPLETED` | 구조적 동시성, shutdown 대응 |
+| 시그널 핸들링 | `loop.add_signal_handler` | 비동기 안전, asyncio 통합 |
+| Redis 연결 | 워커별 독립 연결 | `BLMOVE` 블로킹 격리 |
+| DB 세션 | 태스크별 생성 (현재 유지) | 트랜잭션 격리 |
+| 분산 잠금 | 단순 SETNX + Lua | Redlock 불필요 (단일 Redis) |
+| 잠금 TTL | 600초 | OrphanRecovery와 일치 |
 
-### Target 중복 스캔 방지
-- [ ] CrawlWorker에 분산 잠금 적용
-- [ ] 잠금 실패 시 재큐잉 로직
+---
 
-### 우선순위 큐 (선택)
+### Day 1-2: WorkerPool + Graceful Shutdown (TDD) ✅
+
+#### RED: 테스트 작성
+- [x] `tests/workers/test_pool.py` 신규 생성 (33개 테스트)
+  - [x] `TestWorkerPoolConfig` (4개 테스트)
+  - [x] `TestWorkerPoolInit` (5개 테스트)
+  - [x] `TestWorkerPoolStart` (6개 테스트)
+  - [x] `TestWorkerPoolStop` (6개 테스트)
+  - [x] `TestSignalHandling` (4개 테스트)
+  - [x] `TestWorkerRestart` (4개 테스트)
+  - [x] `TestResourceManagement` (2개 테스트)
+  - [x] `TestWorkerPoolProperties` (2개 테스트)
+- [x] `uv run pytest tests/workers/test_pool.py -v` 실행 → 통과 확인 (33개)
+
+#### GREEN: 구현
+- [x] `app/core/config.py` 수정
+  - [x] `WORKER_NUM_WORKERS: int = 4` 추가
+  - [x] `WORKER_SHUTDOWN_TIMEOUT: int = 30` 추가
+  - [x] `WORKER_MAX_RESTARTS: int = 5` 추가
+- [x] `app/workers/pool.py` 신규 생성 (342줄)
+  - [x] `WorkerPoolConfig` dataclass + `from_env()` 메서드
+  - [x] `WorkerPool` 클래스
+  - [x] `start()` 메서드 (asyncio.wait + FIRST_COMPLETED 패턴)
+  - [x] `stop()` 메서드
+  - [x] `_setup_signal_handlers()` 메서드
+  - [x] `_run_single_worker()` 메서드
+  - [x] `_run_worker_supervised()` 메서드 (재시작 래퍼)
+  - [x] `_cleanup()` 메서드
+
+---
+
+### Day 3: 분산 잠금 시스템 (TDD) ✅
+
+#### RED: 테스트 작성
+- [x] `tests/core/test_distributed_lock.py` 신규 생성 (18개 테스트)
+  - [x] `TestLockAcquisition` (3개 테스트)
+  - [x] `TestLockRelease` (3개 테스트)
+  - [x] `TestContextManager` (3개 테스트)
+  - [x] `TestLockExtension` (2개 테스트)
+  - [x] `TestConcurrency` (2개 테스트)
+  - [x] `TestIsOwned` (2개 테스트)
+  - [x] `TestLockInfo` (3개 테스트)
+- [x] `uv run pytest tests/core/test_distributed_lock.py -v` 실행 → 통과 확인 (18개)
+
+#### GREEN: 구현
+- [x] `app/core/lock.py` 신규 생성 (162줄)
+  - [x] `RELEASE_SCRIPT` Lua 스크립트 (토큰 검증 후 삭제)
+  - [x] `EXTEND_SCRIPT` Lua 스크립트 (토큰 검증 후 TTL 연장)
+  - [x] `LockAcquisitionError` 예외 클래스
+  - [x] `DistributedLock` 클래스
+    - [x] `__init__(redis, name, ttl, prefix)` 메서드
+    - [x] `acquire()` 메서드 (SET NX EX)
+    - [x] `release()` 메서드 (Lua 스크립트)
+    - [x] `extend()` 메서드 (Lua 스크립트)
+    - [x] `is_owned()` 메서드
+    - [x] `__aenter__()` / `__aexit__()` (Context Manager)
+
+---
+
+### Day 4: CrawlWorker 잠금 통합 (TDD) ✅
+
+#### RED: 테스트 작성
+- [x] `tests/workers/test_crawl_worker_lock.py` 신규 생성 (13개 테스트)
+  - [x] `TestCrawlWorkerLockIntegration` (5개 테스트)
+  - [x] `TestLockFailureHandling` (3개 테스트)
+  - [x] `TestLockTTL` (2개 테스트)
+  - [x] `TestConcurrentLocks` (1개 테스트)
+  - [x] `TestLockKey` (2개 테스트)
+- [x] `uv run pytest tests/workers/test_crawl_worker_lock.py -v` 실행 → 통과 확인 (13개)
+
+#### GREEN: 구현
+- [x] `app/workers/base.py` 수정
+  - [x] `TaskResult`에 `_skipped` 필드 추가
+  - [x] `status` property 추가 ("success", "cancelled", "skipped", "failed")
+  - [x] `create_skipped()` class method 추가
+- [x] `app/workers/crawl_worker.py` 수정
+  - [x] 상수 추가: `LOCK_TTL = 600`, `LOCK_PREFIX = "eazy:lock:"`
+  - [x] `execute()` 메서드에 잠금 통합
+  - [x] `_execute_with_lock()` 메서드 분리
+
+---
+
+### Day 5: 통합 테스트 + 마무리 (TDD) ✅
+
+#### RED: 테스트 작성
+- [x] `tests/integration/test_worker_pool_e2e.py` 신규 생성 (20개 테스트)
+  - [x] `TestWorkerPoolConfiguration` (3개 테스트)
+  - [x] `TestDistributedLockIntegration` (4개 테스트)
+  - [x] `TestCrawlWorkerLockIntegration` (2개 테스트)
+  - [x] `TestTaskResultIntegration` (4개 테스트)
+  - [x] `TestPoolLifecycle` (2개 테스트)
+  - [x] `TestErrorHandlingIntegration` (2개 테스트)
+  - [x] `TestComponentExports` (3개 테스트)
+- [x] `uv run pytest tests/integration/test_worker_pool_e2e.py -v` 실행 → 통과 확인 (20개)
+
+#### GREEN: 구현
+- [x] 통합 테스트 통과
+- [x] 모든 컴포넌트 정상 동작 확인
+
+---
+
+### Day 5 버그 수정 (TDD) ✅
+
+> **발견 일자:** 2026-01-10
+> **수정 방식:** TDD (Red → Green → Refactor)
+
+#### Bug Fix #1: Skipped Task Loss (CRITICAL)
+- [x] **RED:** `TestSkippedTaskHandling` 테스트 작성 (3개)
+  - [x] `test_skipped_result_calls_nack_not_ack()`
+  - [x] `test_skipped_result_does_not_update_db_status()`
+  - [x] `test_skipped_result_clears_heartbeat()`
+- [x] **GREEN:** `base.py` process() 메서드에 skipped 처리 추가
+- [x] **REFACTOR:** 코드 정리
+
+#### Bug Fix #2: SSRF 취약점 (HIGH)
+- [x] **RED:** `TestURLValidation` 테스트 작성 (20개)
+  - [x] `test_unsafe_urls_rejected` (12개 parametrize)
+  - [x] `test_safe_urls_allowed` (5개 parametrize)
+  - [x] `test_empty_url_rejected`
+  - [x] `test_invalid_url_rejected`
+  - [x] `test_execute_rejects_unsafe_url`
+- [x] **GREEN:** `crawl_worker.py`에 `is_safe_url()` 함수 구현
+- [x] **GREEN:** `execute()` 메서드에 URL 검증 추가
+- [x] **REFACTOR:** 코드 정리
+
+---
+
+### 검증 ✅
+- [x] `uv run pytest tests/ -v` 전체 테스트 통과 (311개)
+- [x] WorkerPool 다중 워커 동작 확인
+- [x] Graceful Shutdown 테스트 (SIGTERM 전송)
+- [x] Target 중복 스캔 방지 테스트 (분산 잠금)
+- [x] Skipped Task Loss 버그 수정 검증
+- [x] SSRF 취약점 수정 검증
+
+---
+
+### 파일 구조 변경 ✅
+
+```
+backend/app/
+├── core/
+│   ├── config.py       # 수정: WORKER_NUM_WORKERS, WORKER_SHUTDOWN_TIMEOUT, WORKER_MAX_RESTARTS
+│   └── lock.py         # 신규: DistributedLock, LockAcquisitionError (162줄)
+└── workers/
+    ├── base.py         # 수정: TaskResult skipped 상태, process() skipped 처리 (Day 5 Bug Fix)
+    ├── pool.py         # 신규: WorkerPool, WorkerPoolConfig (342줄)
+    └── crawl_worker.py # 수정: 분산 잠금 통합, is_safe_url() SSRF 방지 (Day 5 Bug Fix)
+
+backend/tests/
+├── core/
+│   └── test_distributed_lock.py   # 신규 (18개 테스트)
+├── workers/
+│   ├── test_pool.py               # 신규 (33개 테스트)
+│   ├── test_crawl_worker_lock.py  # 신규 (13개 테스트)
+│   ├── test_base_worker.py        # 추가: TestSkippedTaskHandling (3개 테스트) - Day 5 Bug Fix
+│   └── test_crawl_worker.py       # 추가: TestURLValidation (20개 테스트) - Day 5 Bug Fix
+└── integration/
+    └── test_worker_pool_e2e.py    # 신규 (20개 테스트)
+```
+
+**총 신규 테스트: 107개** (84 + 23) ✅
+**전체 테스트: 311개** ✅
+
+---
+
+### 실행 방법
+
+```bash
+# 워커 풀 실행 (권장)
+uv run python -m app.workers.pool
+
+# 환경변수로 워커 수 조절
+WORKER_NUM_WORKERS=8 uv run python -m app.workers.pool
+
+# 기존 단일 워커 (하위 호환)
+uv run python -m app.workers.runner
+```
+
+### Docker Compose 설정 예시
+
+```yaml
+services:
+  worker:
+    build: ./backend
+    command: uv run python -m app.workers.pool
+    environment:
+      - WORKER_NUM_WORKERS=4
+      - WORKER_SHUTDOWN_TIMEOUT=30
+    stop_grace_period: 35s
+```
+
+---
+
+### 우선순위 큐 (선택 - Phase 4.5)
+
+> 필요시 별도 구현
+
 - [ ] `PriorityTaskManager` 클래스
 - [ ] 우선순위별 큐 (`high`, `normal`, `low`)
 - [ ] `blpop` 다중 큐 지원
@@ -525,7 +718,11 @@ backend/tests/workers/
 | ✅ P1 | 배치 처리 | 2-3일 | 성능 98%↑ | 완료 |
 | ✅ P2 | 안정성 강화 | 5일 | 작업 손실 0% | 60개 |
 | ✅ P3 | 아키텍처 개선 (TDD) | 5일 | 유지보수성↑ | 60개 |
-| 🟢 P4 | 확장성 확보 | 3-4일 | 수평 확장 | - |
+| ✅ P4 | 확장성 확보 (TDD) | 5일 | 수평 확장 + 중복 방지 | 107개 |
 | ⚪ P5 | DAST 핵심 기능 | 미정 | 제품 완성 | - |
 
-**현재 상태: 204개 테스트 통과, 커버리지 78%**
+**현재 상태: 311개 테스트 통과** ✅
+
+### Phase 4 Day 5 버그 수정 내역
+- **Skipped Task Loss (Critical):** Lock 획득 실패 시 작업이 NACK되어 재시도 큐로 반환
+- **SSRF 취약점 (High):** 내부 네트워크/메타데이터 엔드포인트 접근 차단
