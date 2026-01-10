@@ -1,5 +1,5 @@
 import hashlib
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, timezone
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -9,10 +9,48 @@ from app.models.asset import Asset, AssetDiscovery, AssetType, AssetSource, utc_
 
 
 class AssetService:
+    BATCH_SIZE = 50
     MAX_BODY_SIZE = 10 * 1024  # 10KB limit
 
     def __init__(self, session: AsyncSession):
         self.session = session
+        self._pending_assets: List[Asset] = []
+        self._pending_discoveries: List[Tuple[int, Asset, Optional[int]]] = []
+
+    async def __aenter__(self) -> "AssetService":
+        """Enter async context manager."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Exit async context manager, flush pending data."""
+        await self.flush()
+
+    async def flush(self) -> None:
+        """Flush pending assets and discoveries to database."""
+        if not self._pending_assets:
+            return
+
+        # 1. Assets 저장
+        self.session.add_all(self._pending_assets)
+        await self.session.flush()  # ID 생성됨
+
+        # 2. Discoveries 생성 (이제 asset.id 접근 가능)
+        discoveries = []
+        for task_id, asset, parent_id in self._pending_discoveries:
+            discovery = AssetDiscovery(
+                task_id=task_id,
+                asset_id=asset.id,
+                parent_asset_id=parent_id,
+                discovered_at=utc_now()
+            )
+            discoveries.append(discovery)
+
+        self.session.add_all(discoveries)
+        await self.session.commit()
+
+        # 3. 버퍼 초기화
+        self._pending_assets.clear()
+        self._pending_discoveries.clear()
 
     def _generate_content_hash(self, method: str, url: str) -> str:
         """
@@ -112,8 +150,6 @@ class AssetService:
                 asset.response_spec = response_spec
             if parameters is not None:
                 asset.parameters = parameters
-
-            self.session.add(asset)
         else:
             # Create new asset
             asset = Asset(
@@ -132,20 +168,13 @@ class AssetService:
                 response_spec=response_spec,
                 parameters=parameters
             )
-            self.session.add(asset)
 
-        # Commit to get Asset ID
-        await self.session.commit()
-        await self.session.refresh(asset)
+        # Buffer asset and discovery info (defer commit)
+        self._pending_assets.append(asset)
+        self._pending_discoveries.append((task_id, asset, parent_asset_id))
 
-        # Create History Record (Always)
-        discovery = AssetDiscovery(
-            task_id=task_id,
-            asset_id=asset.id,
-            parent_asset_id=parent_asset_id,
-            discovered_at=current_time
-        )
-        self.session.add(discovery)
-        await self.session.commit()
+        # Flush when batch size reached
+        if len(self._pending_assets) >= self.BATCH_SIZE:
+            await self.flush()
 
         return asset

@@ -50,8 +50,12 @@ async def test_full_scan_flow(client: AsyncClient, db_session: AsyncSession, red
     from unittest.mock import patch
     
     with patch("app.services.crawler_service.CrawlerService.crawl") as mock_crawl:
-        mock_crawl.return_value = ["http://example.com/page1", "http://example.com/page2"]
-        
+        # Return tuple (links, http_data) as per crawler interface
+        mock_crawl.return_value = (
+            ["http://example.com/page1", "http://example.com/page2"],
+            {}  # Empty http_data
+        )
+
         # Process the task
         await process_one_task(db_session, task_manager)
     

@@ -54,25 +54,29 @@
 
 ---
 
-## Phase 1: 배치 처리 (2-3일)
+## Phase 1: 배치 처리 (2-3일) ✅
 
 > **목표:** DB 부하 98% 감소
+> **개발 방식:** TDD (Test-Driven Development)
 
 ### AssetService 리팩토링
-- [ ] `BATCH_SIZE` 상수 추가 (50개)
-- [ ] `_pending_assets` 리스트 추가
-- [ ] `_pending_discoveries` 리스트 추가
-- [ ] `flush()` 메서드 구현
-- [ ] `__aenter__` / `__aexit__` 구현 (Context Manager)
-- [ ] `process_asset()` 수정 - 즉시 커밋 제거
+- [x] `BATCH_SIZE` 상수 추가 (50개)
+- [x] `_pending_assets` 리스트 추가
+- [x] `_pending_discoveries` 리스트 추가
+- [x] `flush()` 메서드 구현
+- [x] `__aenter__` / `__aexit__` 구현 (Context Manager)
+- [x] `process_asset()` 수정 - 즉시 커밋 제거
 
 ### Worker 수정
-- [ ] `AssetService`를 Context Manager로 사용하도록 변경
-- [ ] 배치 처리 로직 적용
+- [x] `AssetService`를 Context Manager로 사용하도록 변경
+- [x] 배치 처리 로직 적용
+- [x] 취소 시 flush 보장
 
 ### 테스트
-- [ ] 배치 저장 단위 테스트 작성
-- [ ] 성능 비교 테스트 (Before/After COMMIT 횟수)
+- [x] 배치 저장 단위 테스트 작성 (`test_asset_service_batch.py`)
+- [x] Context Manager 테스트
+- [x] flush 테스트
+- [x] Context Exit flush 테스트
 
 ---
 

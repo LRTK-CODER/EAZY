@@ -37,28 +37,31 @@ async def test_create_asset_deduplication(db_session: AsyncSession):
     await db_session.commit()
     await db_session.refresh(task2)
 
-    service = AssetService(db_session)
-    
     # Mock data
     target_id = target.id
     task_id = task1.id
     method = "GET"
     url = "https://example.com/login"
-    
-    # 1. First Discovery (New)
-    asset1 = await service.process_asset(
-        target_id=target_id,
-        task_id=task_id,
-        url=url,
-        method=method,
-        type=AssetType.URL,
-        source=AssetSource.HTML
-    )
-    
+
+    # Use Context Manager for batch processing
+    async with AssetService(db_session) as service:
+        # 1. First Discovery (New)
+        asset1 = await service.process_asset(
+            target_id=target_id,
+            task_id=task_id,
+            url=url,
+            method=method,
+            type=AssetType.URL,
+            source=AssetSource.HTML
+        )
+
+    # After context exit, assets are flushed
+    await db_session.refresh(asset1)
+
     assert asset1.id is not None
     assert asset1.first_seen_at is not None
     first_seen = asset1.first_seen_at
-    
+
     # Verify AssetDiscovery created
     result = await db_session.exec(select(AssetDiscovery).where(AssetDiscovery.asset_id == asset1.id))
     discoveries = result.all()
@@ -68,22 +71,26 @@ async def test_create_asset_deduplication(db_session: AsyncSession):
     # 2. Second Discovery (Duplicate) - Same content (method+url implied hash)
     # Different task_id to simulate a later scan
     task_id_2 = task2.id
-    
-    asset2 = await service.process_asset(
-        target_id=target_id,
-        task_id=task_id_2,
-        url=url,
-        method=method, # Same method + url -> Same hash
-        type=AssetType.URL,
-        source=AssetSource.HTML
-    )
-    
+
+    async with AssetService(db_session) as service:
+        asset2 = await service.process_asset(
+            target_id=target_id,
+            task_id=task_id_2,
+            url=url,
+            method=method, # Same method + url -> Same hash
+            type=AssetType.URL,
+            source=AssetSource.HTML
+        )
+
+    # After context exit, assets are flushed
+    await db_session.refresh(asset2)
+
     # Should stay the same record
     assert asset2.id == asset1.id
     assert asset2.last_seen_at >= asset1.last_seen_at
     assert asset2.first_seen_at == first_seen  # First seen should not change
     assert asset2.last_task_id == task_id_2
-    
+
     # Verify NEW AssetDiscovery created
     result = await db_session.exec(select(AssetDiscovery).where(AssetDiscovery.asset_id == asset1.id))
     discoveries = result.all()

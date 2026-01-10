@@ -46,11 +46,20 @@ async def test_worker_auto_extracts_url_parameters(db_session: AsyncSession):
         "http://example.com/search?q=test&page=1",
         "http://example.com/filter?category=books&sort=recent"
     ]
+    # http_data with parameters for each URL
+    http_data = {
+        "http://example.com/search?q=test&page=1": {
+            "parameters": {"q": "test", "page": "1"}
+        },
+        "http://example.com/filter?category=books&sort=recent": {
+            "parameters": {"category": "books", "sort": "recent"}
+        }
+    }
 
-    # Should FAIL: Worker doesn't extract parameters from URLs yet
+    # Mock crawler to return tuple (links, http_data)
     with patch("app.worker.CrawlerService") as MockCrawler:
         mock_crawler_instance = MockCrawler.return_value
-        mock_crawler_instance.crawl = AsyncMock(return_value=urls_with_params)
+        mock_crawler_instance.crawl = AsyncMock(return_value=(urls_with_params, http_data))
 
         from app.worker import process_task
         await process_task(task.id, db_session)
@@ -110,11 +119,17 @@ async def test_worker_includes_parameters_in_asset_storage(db_session: AsyncSess
 
     # Mock crawler with URL containing multiple parameters
     url_with_many_params = "http://example.com/api/users?status=active&role=admin&limit=50&offset=0"
+    # http_data with parameters
+    http_data = {
+        url_with_many_params: {
+            "parameters": {"status": "active", "role": "admin", "limit": "50", "offset": "0"}
+        }
+    }
 
-    # Should FAIL: Worker doesn't parse and store parameters
+    # Mock crawler to return tuple (links, http_data)
     with patch("app.worker.CrawlerService") as MockCrawler:
         mock_crawler_instance = MockCrawler.return_value
-        mock_crawler_instance.crawl = AsyncMock(return_value=[url_with_many_params])
+        mock_crawler_instance.crawl = AsyncMock(return_value=([url_with_many_params], http_data))
 
         from app.worker import process_task
         await process_task(task.id, db_session)

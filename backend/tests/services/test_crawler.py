@@ -21,9 +21,12 @@ async def test_crawl_page_extracts_links():
         
         mock_browser = AsyncMock()
         mock_p.chromium.launch.return_value = mock_browser
-        
+
+        mock_context = AsyncMock()
+        mock_browser.new_context.return_value = mock_context
+
         mock_page = AsyncMock()
-        mock_browser.new_page.return_value = mock_page
+        mock_context.new_page.return_value = mock_page
         
         # Setup page.locator("a").all() return
         # page.locator is SYNC, so use MagicMock
@@ -35,11 +38,11 @@ async def test_crawl_page_extracts_links():
         
         # Run Code
         crawler = CrawlerService()
-        links = await crawler.crawl("https://example.com")
-        
+        links, http_data = await crawler.crawl("https://example.com")
+
         # Verify
         assert "https://example.com/page1" in links
         assert "/about" in links
         assert len(links) == 2
-        
-        mock_page.goto.assert_called_with("https://example.com", wait_until="networkidle")
+
+        mock_page.goto.assert_called_with("https://example.com", wait_until="networkidle", timeout=30000)
