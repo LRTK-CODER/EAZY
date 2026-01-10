@@ -12,7 +12,6 @@ Provides multi-worker management with:
 from __future__ import annotations
 
 import asyncio
-import logging
 import os
 import signal
 from dataclasses import dataclass, field
@@ -24,12 +23,18 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
 from app.core.errors import classify_error, ErrorCategory
+from app.core.structured_logger import get_logger
+
+# Import all models to register them with SQLAlchemy metadata
+# This is required for foreign key relationships to work correctly
+import app.models  # noqa: F401
+
 from app.workers.runner import create_worker_context, process_one_task
 
 if TYPE_CHECKING:
     pass
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -101,7 +106,7 @@ class WorkerPool:
         if self._started:
             raise RuntimeError("WorkerPool already started")
 
-        logger.info(f"Starting WorkerPool with {self.config.num_workers} workers")
+        logger.info("Starting WorkerPool", num_workers=self.config.num_workers)
 
         # DB 엔진 초기화 (모든 워커 공유)
         self._engine = create_async_engine(
@@ -148,7 +153,7 @@ class WorkerPool:
 
                 # shutdown_event가 설정됨
                 if shutdown_wait in done:
-                    logger.info("Shutdown event received, cancelling workers...")
+                    logger.info("Shutdown event received, cancelling workers")
                     for task in self._tasks:
                         if not task.done():
                             task.cancel()
@@ -170,7 +175,7 @@ class WorkerPool:
                 wait_tasks = [t for t in wait_tasks if not t.done()]
 
         except Exception as e:
-            logger.error(f"Worker pool error: {e}")
+            logger.error("Worker pool error", error=str(e))
         finally:
             await self._cleanup()
 
@@ -179,7 +184,7 @@ class WorkerPool:
         if self._shutdown_event.is_set():
             return  # 이미 종료 중
 
-        logger.info("Stopping WorkerPool...")
+        logger.info("Stopping WorkerPool")
         self._shutdown_event.set()
 
     def _setup_signal_handlers(self) -> None:
@@ -220,7 +225,7 @@ class WorkerPool:
                 break  # 정상 종료
 
             except asyncio.CancelledError:
-                logger.info(f"Worker {worker_id} cancelled")
+                logger.info("Worker cancelled", worker_id=worker_id)
                 raise
 
             except Exception as e:
@@ -230,9 +235,12 @@ class WorkerPool:
                     self.config.restart_delay_max,
                 )
                 logger.error(
-                    f"Worker {worker_id} crashed "
-                    f"({restart_count}/{self.config.max_restarts_per_worker}), "
-                    f"restarting in {delay:.1f}s: {e}"
+                    "Worker crashed, restarting",
+                    worker_id=worker_id,
+                    restart_count=restart_count,
+                    max_restarts=self.config.max_restarts_per_worker,
+                    restart_delay=delay,
+                    error=str(e),
                 )
 
                 if restart_count < self.config.max_restarts_per_worker:
@@ -246,7 +254,11 @@ class WorkerPool:
                         pass  # 대기 완료, 재시작 진행
 
         if restart_count >= self.config.max_restarts_per_worker:
-            logger.critical(f"Worker {worker_id} exceeded max restarts")
+            logger.critical(
+                "Worker exceeded max restarts",
+                worker_id=worker_id,
+                max_restarts=self.config.max_restarts_per_worker,
+            )
 
     async def _run_single_worker(
         self,
@@ -262,7 +274,7 @@ class WorkerPool:
         )
 
         consecutive_errors = 0
-        logger.info(f"Worker {worker_id} started")
+        logger.info("Worker started", worker_id=worker_id)
 
         try:
             while not self._shutdown_event.is_set():
@@ -291,13 +303,17 @@ class WorkerPool:
 
                     delay = self._calculate_error_delay(category, consecutive_errors)
                     logger.warning(
-                        f"Worker {worker_id} error ({category.name}): {e}, "
-                        f"waiting {delay:.1f}s"
+                        "Worker error",
+                        worker_id=worker_id,
+                        error_category=category.name,
+                        consecutive_errors=consecutive_errors,
+                        wait_delay=delay,
+                        error=str(e),
                     )
                     await asyncio.sleep(delay)
         finally:
             await redis.aclose()
-            logger.info(f"Worker {worker_id} stopped")
+            logger.info("Worker stopped", worker_id=worker_id)
 
     def _calculate_error_delay(
         self,
@@ -316,7 +332,7 @@ class WorkerPool:
 
     async def _cleanup(self) -> None:
         """리소스 정리."""
-        logger.info("Cleaning up WorkerPool resources...")
+        logger.info("Cleaning up WorkerPool resources")
 
         if self._engine:
             await self._engine.dispose()
@@ -334,8 +350,6 @@ async def run_worker_pool() -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
+    from app.core.structured_logger import configure_logging
+    configure_logging()
     asyncio.run(run_worker_pool())

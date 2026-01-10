@@ -1,0 +1,108 @@
+# EAZY Docker Compose Configuration
+# Complete stack: PostgreSQL, Redis, Backend API, Worker, Frontend
+
+services:
+  # ==========================================================================
+  # Database - PostgreSQL
+  # ==========================================================================
+  db:
+    image: postgres:15-alpine
+    container_name: eazy-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: eazy
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # Cache/Queue - Redis
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: eazy-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # Backend API - FastAPI
+  # ==========================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: eazy-backend
+    restart: unless-stopped
+    environment:
+      - POSTGRES_SERVER=db
+      - POSTGRES_DB=eazy
+      - REDIS_URL=redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+
+  # ==========================================================================
+  # Worker - Background Task Processor
+  # ==========================================================================
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: eazy-worker
+    restart: unless-stopped
+    command: ["python", "-m", "app.workers.pool"]
+    environment:
+      - POSTGRES_SERVER=db
+      - POSTGRES_DB=eazy
+      - REDIS_URL=redis://redis:6379/0
+      - WORKER_NUM_WORKERS=4
+      - WORKER_SHUTDOWN_TIMEOUT=30
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ==========================================================================
+  # Frontend - React with Nginx
+  # ==========================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: eazy-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  postgres_data:

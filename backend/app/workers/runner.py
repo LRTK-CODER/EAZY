@@ -6,7 +6,6 @@ Phase 3: Architecture Improvement
 Provides the main worker loop and utilities for processing tasks.
 """
 import asyncio
-import logging
 import json
 from typing import Optional
 
@@ -18,12 +17,16 @@ from app.core.config import settings
 from app.core.queue import TaskManager
 from app.core.dlq import DLQManager
 from app.core.recovery import OrphanRecovery
+from app.core.structured_logger import configure_logging, get_logger
 from app.workers.base import WorkerContext
+
+# Import all models to register them with SQLAlchemy metadata
+# This is required for foreign key relationships to work correctly
+import app.models  # noqa: F401
 from app.workers.registry import get_worker_class, create_worker
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def create_worker_context(
@@ -70,22 +73,25 @@ async def process_one_task(context: WorkerContext) -> bool:
         return False
 
     task_data, task_json = result
-    logger.info(f"Processing task: {task_data}")
-
-    # Validate task data
     db_task_id = task_data.get("db_task_id")
     target_id = task_data.get("target_id")
     task_type = task_data.get("type", "crawl")
+    task_id = task_data.get("id")
 
+    # Bind context for this task
+    log = logger.bind(task_id=task_id, db_task_id=db_task_id, target_id=target_id)
+    log.info("Processing task", task_type=task_type)
+
+    # Validate task data
     if not db_task_id or not target_id:
-        logger.error("Invalid task data: missing db_task_id or target_id")
+        log.error("Invalid task data: missing db_task_id or target_id")
         await task_manager.ack_task(task_json)
         return True
 
     # Get worker class
     worker_class = get_worker_class(task_type)
     if worker_class is None:
-        logger.warning(f"Unknown task type: {task_type}")
+        log.warning("Unknown task type", task_type=task_type)
         await task_manager.ack_task(task_json)
         return True
 
@@ -94,7 +100,7 @@ async def process_one_task(context: WorkerContext) -> bool:
         worker = create_worker(task_type, context)
         await worker.process(task_data, task_json)
     except Exception as e:
-        logger.error(f"Task processing failed: {e}")
+        log.error("Task processing failed", error=str(e))
         # Task is already ACKed in worker.process() on failure
 
     return True

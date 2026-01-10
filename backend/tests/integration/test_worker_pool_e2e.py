@@ -40,6 +40,8 @@ async def redis_client():
         decode_responses=True,
         single_connection_client=True
     )
+    # Initialize connection (required for single_connection_client in redis-py 7.x)
+    await redis.ping()
     yield redis
     await redis.aclose()
 

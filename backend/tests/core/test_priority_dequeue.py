@@ -26,6 +26,8 @@ async def redis_client() -> Redis:
         decode_responses=True,
         single_connection_client=True,
     )
+    # Initialize connection (required for single_connection_client in redis-py 7.x)
+    await redis.ping()
     yield redis
     await redis.aclose()
 
@@ -231,3 +233,148 @@ class TestPriorityDequeue:
         """Empty queues should return None after timeout."""
         result = await task_manager.dequeue_task(timeout=1)
         assert result is None
+
+
+class TestDequeueInvalidJson:
+    """Tests for handling invalid JSON data in queues.
+
+    Sprint 1.2: dequeue_task JSON 보호
+    These tests verify that invalid JSON data is handled gracefully
+    without crashing the worker.
+    """
+
+    @pytest.mark.asyncio
+    async def test_dequeue_empty_json_string_skips_and_continues(
+        self, task_manager: TaskManager, redis_client: Redis, clean_priority_queues
+    ):
+        """
+        Empty JSON string should be skipped and moved to DLQ.
+
+        This tests the fix for 'Expecting value: line 1 column 1 (char 0)' error.
+        """
+        # Directly push empty string to HIGH priority queue
+        await redis_client.rpush("eazy_task_queue:high", "")
+
+        # Push valid task to NORMAL queue
+        await task_manager.enqueue_crawl_task(
+            project_id=1,
+            target_id=1,
+            db_task_id=100,
+            priority=TaskPriority.NORMAL,
+        )
+
+        # First dequeue should handle empty string gracefully and get the valid task
+        result = await task_manager.dequeue_task(timeout=1)
+
+        # Should get the valid NORMAL task (empty string was skipped)
+        assert result is not None
+        task_data, _ = result
+        assert task_data["db_task_id"] == 100
+
+        # Empty string should be moved to DLQ
+        dlq_len = await redis_client.llen("eazy_task_queue:dlq")
+        assert dlq_len == 1
+
+    @pytest.mark.asyncio
+    async def test_dequeue_invalid_json_string_skips_and_continues(
+        self, task_manager: TaskManager, redis_client: Redis, clean_priority_queues
+    ):
+        """
+        Invalid JSON string should be skipped and moved to DLQ.
+        """
+        # Directly push invalid JSON to CRITICAL queue
+        await redis_client.rpush("eazy_task_queue:critical", '{"invalid: json')
+
+        # Push valid task
+        await task_manager.enqueue_crawl_task(
+            project_id=1,
+            target_id=1,
+            db_task_id=200,
+            priority=TaskPriority.HIGH,
+        )
+
+        # Should handle invalid JSON gracefully
+        result = await task_manager.dequeue_task(timeout=1)
+
+        assert result is not None
+        task_data, _ = result
+        assert task_data["db_task_id"] == 200
+
+        # Invalid JSON should be in DLQ
+        dlq_len = await redis_client.llen("eazy_task_queue:dlq")
+        assert dlq_len == 1
+
+    @pytest.mark.asyncio
+    async def test_dequeue_whitespace_only_string_skips(
+        self, task_manager: TaskManager, redis_client: Redis, clean_priority_queues
+    ):
+        """
+        Whitespace-only string should be skipped.
+        """
+        # Push whitespace-only string
+        await redis_client.rpush("eazy_task_queue:critical", "   \n\t  ")
+
+        # Push valid task
+        await task_manager.enqueue_crawl_task(
+            project_id=1,
+            target_id=1,
+            db_task_id=300,
+            priority=TaskPriority.NORMAL,
+        )
+
+        result = await task_manager.dequeue_task(timeout=1)
+
+        assert result is not None
+        task_data, _ = result
+        assert task_data["db_task_id"] == 300
+
+    @pytest.mark.asyncio
+    async def test_dequeue_test_data_skips(
+        self, task_manager: TaskManager, redis_client: Redis, clean_priority_queues
+    ):
+        """
+        Test data like '{"test": "data"}' (missing required fields) should be
+        parsed but handled by runner validation, not here.
+
+        This test ensures JSON parsing works even for incomplete task data.
+        """
+        # Push test data (valid JSON but invalid task)
+        await redis_client.rpush("eazy_task_queue:critical", '{"test": "data"}')
+
+        # Should parse successfully (validation happens in runner)
+        result = await task_manager.dequeue_task(timeout=1)
+
+        assert result is not None
+        task_data, _ = result
+        assert task_data == {"test": "data"}  # Parsed successfully
+
+    @pytest.mark.asyncio
+    async def test_dequeue_multiple_invalid_json_processes_valid(
+        self, task_manager: TaskManager, redis_client: Redis, clean_priority_queues
+    ):
+        """
+        Multiple invalid JSON strings should all be skipped until valid one found.
+        """
+        # Push multiple invalid entries to CRITICAL queue
+        await redis_client.rpush("eazy_task_queue:critical", "")
+        await redis_client.rpush("eazy_task_queue:critical", "not json at all")
+        await redis_client.rpush("eazy_task_queue:critical", '{"broken":')
+
+        # Push valid task to HIGH queue
+        await task_manager.enqueue_crawl_task(
+            project_id=1,
+            target_id=1,
+            db_task_id=400,
+            priority=TaskPriority.HIGH,
+        )
+
+        # Should skip all invalid and get valid task
+        result = await task_manager.dequeue_task(timeout=1)
+
+        assert result is not None
+        task_data, _ = result
+        assert task_data["db_task_id"] == 400
+
+        # All 3 invalid entries should be in DLQ
+        dlq_len = await redis_client.llen("eazy_task_queue:dlq")
+        assert dlq_len == 3

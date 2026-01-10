@@ -767,53 +767,260 @@ backend/tests/integration/
 
 ---
 
-## 인프라 설정
+## Phase 5: 인프라 설정 - TDD (5일) ✅
 
-### Docker
-- [ ] `Dockerfile` (Backend) 생성
-- [ ] `Dockerfile` (Frontend) 생성
-- [ ] `docker-compose.yml` 생성
-- [ ] `docker-compose.prod.yml` 생성
-
-### 환경 설정
-- [ ] `.env.example` 생성
-- [ ] `Makefile` 생성 (개발 명령어)
-
-### CI/CD
-- [ ] GitHub Actions 워크플로우 설정
-- [ ] 테스트 자동화
-- [ ] 린트 자동화
+> **목표:** 로컬 개발 환경 완성 + CI 파이프라인 구축
+> **개발 방식:** TDD (Test-Driven Development)
+> **완료 테스트:** 84개 신규 ✅
 
 ---
 
-## 테스트 강화
+### Day 1: 환경 설정 + Makefile ✅
 
-### Backend 테스트
-- [ ] 테스트 현황 파악
-- [ ] `pytest.ini` 설정 확인
-- [ ] 테스트 커버리지 측정 설정
-- [ ] Quick Wins 테스트 작성
-- [ ] 배치 처리 테스트 작성
-- [ ] Queue ACK 패턴 테스트 작성
-- [ ] Worker 단위 테스트 작성
+#### RED: 테스트 작성
+- [x] `tests/infra/test_env_config.py` 신규 생성 (14개 테스트)
+- [x] `uv run pytest tests/infra/test_env_config.py -v` 실행 → 실패 확인
 
-### 통합 테스트
-- [ ] 스캔 End-to-End 테스트
-- [ ] 취소 기능 테스트
-- [ ] 에러 복구 테스트
+#### GREEN: 구현
+- [x] `backend/.env.example` 생성
+- [x] `frontend/.env.example` 생성
+- [x] `Makefile` 생성 (dev, worker, test, lint, build, up, down, clean)
+- [x] `uv run pytest tests/infra/test_env_config.py -v` 실행 → 통과 확인 (14개)
+
+---
+
+### Day 2: Backend Dockerfile ✅
+
+#### RED: 테스트 작성
+- [x] `tests/infra/test_docker_backend.py` 신규 생성 (13개 테스트)
+- [x] 테스트 실행 → 실패 확인
+
+#### GREEN: 구현
+- [x] `backend/Dockerfile` 생성 (Multi-stage, uv 사용)
+- [x] Playwright 브라우저 설치 포함
+- [x] 테스트 실행 → 통과 확인 (13개)
+
+---
+
+### Day 3: Frontend Dockerfile + Nginx ✅
+
+#### RED: 테스트 작성
+- [x] `tests/infra/test_docker_frontend.py` 신규 생성 (13개 테스트)
+- [x] 테스트 실행 → 실패 확인
+
+#### GREEN: 구현
+- [x] `frontend/Dockerfile` 생성 (Multi-stage, nginx)
+- [x] `frontend/nginx.conf` 생성
+- [x] 테스트 실행 → 통과 확인 (13개)
+
+---
+
+### Day 4: Docker Compose 통합 ✅
+
+#### RED: 테스트 작성
+- [x] `tests/infra/test_docker_compose.py` 신규 생성 (23개 테스트)
+- [x] 테스트 실행 → 실패 확인
+
+#### GREEN: 구현
+- [x] `docker-compose.yml` 생성 (backend, worker, frontend, db, redis)
+- [x] Health check 설정 추가
+- [x] 테스트 실행 → 통과 확인 (23개)
+
+---
+
+### Day 5: CI Pipeline (GitHub Actions) ✅
+
+#### RED: 테스트 작성
+- [x] `tests/infra/test_ci_workflow.py` 신규 생성 (21개 테스트)
+- [x] 테스트 실행 → 실패 확인
+
+#### GREEN: 구현
+- [x] `.github/workflows/ci.yml` 생성
+  - [x] lint job (ruff, black, hadolint)
+  - [x] test job (pytest + PostgreSQL + Redis services)
+  - [x] build job (docker build)
+- [x] 테스트 실행 → 통과 확인 (21개)
+- [ ] GitHub Push → 실제 CI 검증 (추후)
+
+---
+
+### 검증 체크리스트 ✅
+- [x] `uv run pytest tests/infra/ -v` → 84개 테스트 통과
+- [x] `make build` → Docker 이미지 빌드 완료
+- [x] `docker compose up -d` → 전체 스택 실행 완료
+- [x] Health check 확인 → Backend, Frontend, DB, Redis 모두 healthy
+- [x] DB 마이그레이션 → `alembic upgrade head` 성공
+- [x] API 프록시 → Nginx → Backend 정상 동작
+- [ ] GitHub PR → CI 파이프라인 통과 (추후)
+
+---
+
+### 파일 구조 변경 ✅
+
+```
+EAZY/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                 # 신규: CI 파이프라인
+├── backend/
+│   ├── Dockerfile                 # 신규: Backend 컨테이너
+│   ├── .env.example               # 신규: 환경변수 예제
+│   ├── app/
+│   │   ├── models/
+│   │   │   └── __init__.py        # 신규: 모델 패키지 (Bug Fix #1)
+│   │   └── workers/
+│   │       ├── pool.py            # 수정: import app.models 추가
+│   │       └── runner.py          # 수정: import app.models 추가
+│   └── tests/
+│       ├── conftest.py            # 수정: redis.ping() 추가 (Bug Fix #2)
+│       └── infra/                 # 신규: 인프라 테스트 (5개 파일)
+│           ├── __init__.py
+│           ├── test_env_config.py      (14개 테스트)
+│           ├── test_docker_backend.py  (13개 테스트)
+│           ├── test_docker_frontend.py (13개 테스트)
+│           ├── test_docker_compose.py  (23개 테스트)
+│           └── test_ci_workflow.py     (21개 테스트)
+├── frontend/
+│   ├── Dockerfile                 # 신규: Frontend 컨테이너
+│   ├── nginx.conf                 # 신규: Nginx 설정
+│   └── .env.example               # 신규: 환경변수 예제
+├── docker-compose.yml             # 신규: 전체 스택 통합
+└── Makefile                       # 신규: 개발 명령어
+```
+
+**총 신규 테스트: 84개** ✅
+
+---
+
+### Phase 5 버그 수정 (2026-01-11) ✅
+
+> **발견 일자:** 2026-01-11 (Docker 스택 검증 중)
+
+#### Bug Fix #1: Worker 모델 로딩 에러 (CRITICAL)
+- **증상:** Worker 컨테이너에서 `Foreign key associated with column 'tasks.project_id' could not find table 'projects'` 에러
+- **원인:** `app/models/__init__.py` 없어서 SQLAlchemy 메타데이터에 모든 모델이 등록되지 않음
+- **해결:**
+  - [x] `app/models/__init__.py` 생성 - 모든 모델 export
+  - [x] `app/workers/pool.py`, `app/workers/runner.py`에 `import app.models` 추가
+
+#### Bug Fix #2: Redis single_connection_client 초기화 이슈 (HIGH)
+- **증상:** Priority queue 테스트 실패 - `rpush` 성공하지만 `llen` 0 반환
+- **원인:** redis-py 7.x에서 `single_connection_client=True` 사용 시 첫 명령 전 연결 초기화 필요
+- **해결:**
+  - [x] 모든 테스트 fixture에 `await redis.ping()` 추가 (9개 파일)
+
+#### Bug Fix #3: 테스트 DB 미생성 (MEDIUM)
+- **증상:** 테스트 실행 시 `database "eazy_db" does not exist` 에러
+- **원인:** Docker에서 `eazy` DB만 생성, 로컬 테스트용 `eazy_db` 미생성
+- **해결:**
+  - [x] `CREATE DATABASE eazy_db` 실행
+  - [x] `alembic upgrade head` 로 스키마 적용
+
+#### Bug Fix #4: docker-compose 테스트 환경변수 검증 (LOW)
+- **증상:** `test_backend_has_database_url` 테스트 실패
+- **원인:** `DATABASE_URL` 대신 `POSTGRES_SERVER` 사용하도록 변경
+- **해결:**
+  - [x] 테스트 수정 - `DATABASE_URL` 또는 `POSTGRES_SERVER` 둘 다 허용
+
+---
+
+### 테스트 실행 시 주의사항
+
+```bash
+# Worker가 실행 중이면 priority queue 테스트가 실패할 수 있음
+# 테스트 전 Worker 중지 권장
+docker compose stop worker
+
+# 전체 테스트 실행
+uv run pytest tests/ -v
+
+# 테스트 후 Worker 재시작
+docker compose start worker
+```
+
+---
+
+## 테스트 강화 (완료됨)
+
+> Phase 0-4.5에서 테스트 인프라가 이미 구축됨 (350개 테스트, 78% 커버리지)
+
+### 완료된 Backend 테스트
+- [x] pytest.ini 설정 (pyproject.toml에 포함)
+- [x] 테스트 커버리지 측정 설정 (pytest-cov)
+- [x] Quick Wins 테스트 작성
+- [x] 배치 처리 테스트 작성
+- [x] Queue ACK 패턴 테스트 작성
+- [x] Worker 단위 테스트 작성
+
+### 완료된 통합 테스트
+- [x] 스캔 End-to-End 테스트 (`test_full_flow.py`)
+- [x] 취소 기능 테스트 (`test_task_cancel.py`)
+- [x] 에러 복구 테스트 (`test_worker_reliability.py`)
 
 ---
 
 ## 코드 품질
+
+### JSON 파싱 안정화 ✅
+
+> **완료일:** 2026-01-11
+> **개발 방식:** TDD (Test-Driven Development)
+
+#### Sprint 1: SafeJsonParser 유틸리티 ✅
+- [x] `app/core/utils/__init__.py` 신규 생성
+- [x] `app/core/utils/json_parser.py` 신규 생성
+  - [x] `JsonParseResult` dataclass (success, data, error, raw_input)
+  - [x] `SafeJsonParser.parse()` 정적 메서드
+- [x] `tests/core/test_json_parser.py` 신규 생성 (17개 테스트)
+
+#### 적용 파일
+- [x] `app/core/queue.py` - `dequeue_task()`, `nack_task()`, `get_processing_tasks()`, `get_dlq_tasks()`
+- [x] `app/core/recovery.py` - `find_orphan_tasks()`, `recover_orphan_tasks()`
+
+#### 동작 방식
+- 잘못된 JSON → DLQ(Dead Letter Queue)로 자동 이동
+- 조회 함수 → `{"_parse_error": ..., "_raw_json": ...}` 형식으로 에러 정보 반환
+- Worker 크래시 방지
 
 ### 유틸리티 통합
 - [ ] `utils/datetime.py` 생성
 - [ ] `utc_now()` 함수 통합 (4개 파일에서 중복)
 - [ ] 기존 파일들의 `utc_now()` import 변경
 
-### 로깅 개선
+### 로깅 개선 ✅
+
+> **완료일:** 2026-01-11
+> **개발 방식:** TDD (Test-Driven Development)
+
+#### Sprint 2.2: Structlog 로깅 시스템 ✅
+- [x] `app/core/structured_logger.py` 신규 생성
+  - [x] `LogFormat` Enum (CONSOLE, JSON)
+  - [x] `configure_logging()` 함수 (환경변수 기반 포맷 전환)
+  - [x] `get_logger()` 함수 (컨텍스트 바인딩 지원)
+- [x] `tests/core/test_structured_logger.py` 신규 생성 (22개 테스트)
+- [x] 의존성 추가: `structlog`
+
+#### Sprint 2.3: 워커 로깅 마이그레이션 ✅
+- [x] `app/workers/runner.py` - Structlog 마이그레이션
+- [x] `app/workers/pool.py` - Structlog 마이그레이션
+- [x] `app/workers/base.py` - Structlog 마이그레이션
+- [x] `app/workers/crawl_worker.py` - Structlog 마이그레이션
+
+#### 변경 패턴
+```python
+# Before (f-string)
+logger.error(f"Worker {worker_id} crashed: {e}")
+
+# After (구조화된 키워드 인자)
+logger.error("Worker crashed", worker_id=worker_id, error=str(e))
+```
+
+#### 환경변수
+- `LOG_FORMAT=console` - 개발 환경 (컬러 출력)
+- `LOG_FORMAT=json` - 프로덕션 환경 (JSON 포맷)
+
+#### 미완료 항목
 - [ ] `crawler_service.py`의 `print()` → `logger` 변경
-- [ ] 로깅 포맷 통일
 
 ### CORS 설정
 - [ ] 프로덕션용 CORS 화이트리스트 설정
@@ -888,9 +1095,13 @@ backend/tests/integration/
 | ✅ P3 | 아키텍처 개선 (TDD) | 5일 | 유지보수성↑ | 60개 |
 | ✅ P4 | 확장성 확보 (TDD) | 5일 | 수평 확장 + 중복 방지 | 107개 |
 | ✅ P4.5 | 우선순위 큐 (TDD) | 완료 | 우선순위 처리 + Starvation 방지 | 39개 |
-| ⚪ P5 | DAST 핵심 기능 | 미정 | 제품 완성 | - |
+| ✅ P5 | 인프라 설정 (TDD) | 완료 | Docker + CI/CD | 84개 |
+| ✅ P5.5 | JSON 파싱 안정화 (TDD) | 완료 | Worker 크래시 방지 | 17개 |
+| ✅ P5.6 | 로깅 개선 (TDD) | 완료 | Structlog + 구조화 로깅 | 22개 |
+| ⚪ P6 | DAST 핵심 기능 | 미정 | 제품 완성 | - |
 
-**현재 상태: 350개 테스트 통과** ✅ (Phase 4.5 완료)
+**현재 상태: 478개 테스트** ✅ (로깅 개선 완료)
+**다음 단계: Phase 6 DAST 핵심 기능** ⚪
 
 ### Phase 4 Day 5 버그 수정 내역
 - **Skipped Task Loss (Critical):** Lock 획득 실패 시 작업이 NACK되어 재시도 큐로 반환

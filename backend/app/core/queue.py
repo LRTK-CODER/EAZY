@@ -13,6 +13,7 @@ Phase 4.5: Priority Queue Support
 """
 
 import json
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List, Tuple
@@ -27,6 +28,10 @@ from app.core.priority import (
     get_next_priority,
     PRIORITY_ORDER,
 )
+from app.core.utils.json_parser import SafeJsonParser
+
+
+logger = logging.getLogger(__name__)
 
 
 class TaskManager:
@@ -85,6 +90,8 @@ class TaskManager:
         각 우선순위 큐를 순차적으로 확인하며, 작업이 있으면 processing 큐로
         atomic하게 이동시킵니다.
 
+        잘못된 JSON 데이터는 자동으로 DLQ로 이동되고, 다음 작업을 시도합니다.
+
         Args:
             timeout: 작업 대기 시간 (초)
 
@@ -97,19 +104,36 @@ class TaskManager:
         for priority in PRIORITY_ORDER[:-1]:  # All except LOW
             queue_key = get_queue_key(self.queue_key, priority)
 
-            # Use LMOVE (non-blocking) for priority queues
-            # LEFT = take oldest (FIFO), LEFT = push to front of processing
-            result = await self.redis.lmove(
-                queue_key,
-                self.processing_key,
-                "LEFT",  # Take from left (oldest first for FIFO)
-                "LEFT",
-            )
+            # Keep trying to get valid tasks from this queue
+            while True:
+                # Use LMOVE (non-blocking) for priority queues
+                # LEFT = take oldest (FIFO), LEFT = push to front of processing
+                result = await self.redis.lmove(
+                    queue_key,
+                    self.processing_key,
+                    "LEFT",  # Take from left (oldest first for FIFO)
+                    "LEFT",
+                )
 
-            if result:
+                if result is None:
+                    # Queue is empty, move to next priority
+                    break
+
                 task_json = result
-                task_data = json.loads(task_json)
-                return task_data, task_json
+
+                # Safe JSON parsing
+                parse_result = SafeJsonParser.parse(task_json)
+                if parse_result.success:
+                    return parse_result.data, task_json
+
+                # Invalid JSON - move to DLQ and continue
+                logger.warning(
+                    f"Invalid JSON in queue {queue_key}, moving to DLQ: "
+                    f"{parse_result.error}"
+                )
+                # Remove from processing queue and add to DLQ
+                await self.redis.lrem(self.processing_key, 1, task_json)
+                await self.redis.lpush(self.dlq_key, task_json)
 
         # For lowest priority (LOW), use blocking wait with remaining timeout
         lowest_queue = get_queue_key(self.queue_key, PRIORITY_ORDER[-1])
@@ -123,8 +147,18 @@ class TaskManager:
 
         if result:
             task_json = result
-            task_data = json.loads(task_json)
-            return task_data, task_json
+
+            # Safe JSON parsing for LOW queue too
+            parse_result = SafeJsonParser.parse(task_json)
+            if parse_result.success:
+                return parse_result.data, task_json
+
+            # Invalid JSON - move to DLQ
+            logger.warning(
+                f"Invalid JSON in LOW queue, moving to DLQ: {parse_result.error}"
+            )
+            await self.redis.lrem(self.processing_key, 1, task_json)
+            await self.redis.lpush(self.dlq_key, task_json)
 
         return None
 
@@ -159,7 +193,16 @@ class TaskManager:
         await self.redis.lrem(self.processing_key, 1, task_json)
 
         # Parse task to get priority and update retry_count
-        task_data = json.loads(task_json)
+        parse_result = SafeJsonParser.parse(task_json)
+        if not parse_result.success:
+            # Invalid JSON - move to DLQ directly
+            logger.warning(
+                f"Invalid JSON in nack_task, moving to DLQ: {parse_result.error}"
+            )
+            await self.redis.lpush(self.dlq_key, task_json)
+            return True
+
+        task_data = parse_result.data
         priority_value = task_data.get("priority", TaskPriority.NORMAL.value)
         priority = TaskPriority(priority_value)
 
@@ -181,21 +224,47 @@ class TaskManager:
         """
         현재 processing 중인 작업 목록을 조회합니다.
 
+        파싱 실패한 항목은 {"_parse_error": error, "_raw_json": raw} 형식으로 반환됩니다.
+
         Returns:
             List[Dict]: processing 큐의 모든 작업
         """
         tasks_json = await self.redis.lrange(self.processing_key, 0, -1)
-        return [json.loads(t) for t in tasks_json]
+        results = []
+        for t in tasks_json:
+            parse_result = SafeJsonParser.parse(t)
+            if parse_result.success:
+                results.append(parse_result.data)
+            else:
+                # Include invalid entries with error info for debugging
+                results.append({
+                    "_parse_error": parse_result.error,
+                    "_raw_json": parse_result.raw_input[:500],  # Limit raw content
+                })
+        return results
 
     async def get_dlq_tasks(self) -> List[Dict[str, Any]]:
         """
         DLQ의 작업 목록을 조회합니다.
 
+        파싱 실패한 항목은 {"_parse_error": error, "_raw_json": raw} 형식으로 반환됩니다.
+
         Returns:
             List[Dict]: DLQ의 모든 작업
         """
         tasks_json = await self.redis.lrange(self.dlq_key, 0, -1)
-        return [json.loads(t) for t in tasks_json]
+        results = []
+        for t in tasks_json:
+            parse_result = SafeJsonParser.parse(t)
+            if parse_result.success:
+                results.append(parse_result.data)
+            else:
+                # Include invalid entries with error info for debugging
+                results.append({
+                    "_parse_error": parse_result.error,
+                    "_raw_json": parse_result.raw_input[:500],  # Limit raw content
+                })
+        return results
 
     async def get_queue_length(self) -> int:
         """원래 큐의 길이를 반환합니다."""

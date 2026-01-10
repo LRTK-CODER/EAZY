@@ -7,7 +7,6 @@ Phase 4 Day 5: SSRF Prevention
 """
 import asyncio
 import ipaddress
-import logging
 from typing import Any, Callable, Dict, Optional
 from urllib.parse import urlparse
 
@@ -20,9 +19,10 @@ from app.models.asset import AssetType, AssetSource
 from app.services.crawler_service import CrawlerService
 from app.services.asset_service import AssetService
 from app.core.lock import DistributedLock
+from app.core.structured_logger import get_logger
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Cancellation check interval in seconds
 CANCELLATION_CHECK_INTERVAL = 5.0
@@ -148,7 +148,7 @@ class CrawlWorker(BaseWorker):
 
         # SSRF Prevention: Validate URL before crawling
         if not is_safe_url(target.url):
-            logger.warning(f"Blocked unsafe URL: {target.url}")
+            logger.warning("Blocked unsafe URL", target_id=target_id, url=target.url)
             return TaskResult.create_skipped({
                 "reason": "unsafe_url",
                 "target_id": target_id,
@@ -167,8 +167,8 @@ class CrawlWorker(BaseWorker):
         # Try to acquire lock
         if not await lock.acquire():
             logger.warning(
-                f"Could not acquire lock for target {target_id}, "
-                f"another worker is processing"
+                "Could not acquire lock for target, another worker is processing",
+                target_id=target_id,
             )
             return TaskResult.create_skipped({
                 "reason": "lock_unavailable",

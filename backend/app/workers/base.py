@@ -7,7 +7,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 import json
-import logging
 
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select
@@ -16,10 +15,11 @@ from app.core.queue import TaskManager
 from app.core.dlq import DLQManager
 from app.core.recovery import OrphanRecovery
 from app.core.errors import classify_error, ErrorCategory
+from app.core.structured_logger import get_logger
 from app.models.task import Task, TaskStatus, TaskType
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def utc_now():
@@ -181,7 +181,7 @@ class BaseWorker(ABC):
         # Fetch task record
         task_record = await self._get_task_record(db_task_id)
         if not task_record:
-            logger.warning(f"Task {db_task_id} not found in database")
+            logger.warning("Task not found in database", db_task_id=db_task_id)
             await self.task_manager.ack_task(task_json)
             return False
 
@@ -198,7 +198,9 @@ class BaseWorker(ABC):
             # Handle skipped result (e.g., lock unavailable) - NACK for retry
             if result.skipped:
                 logger.info(
-                    f"Task {db_task_id} skipped: {result.data.get('reason', 'unknown')}"
+                    "Task skipped",
+                    db_task_id=db_task_id,
+                    reason=result.data.get("reason", "unknown"),
                 )
                 await self.task_manager.nack_task(task_json, retry=True)
                 await self.context.orphan_recovery.clear_heartbeat(task_id)
@@ -218,7 +220,12 @@ class BaseWorker(ABC):
             return True
 
         except Exception as e:
-            logger.error(f"Task {db_task_id} failed with error: {e}")
+            logger.error(
+                "Task failed with error",
+                db_task_id=db_task_id,
+                task_id=task_id,
+                error=str(e),
+            )
             await self._handle_failure(task_record, task_json, e)
             raise
 
