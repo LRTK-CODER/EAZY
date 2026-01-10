@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from redis.asyncio import Redis
 from sqlmodel import select
@@ -86,7 +87,6 @@ async def process_task(task_id: int, session: AsyncSession, task_manager: TaskMa
                         logger.info(f"Task {task_id} cancelled by user")
 
                         # Update status to CANCELLED
-                        import json
                         task_record.status = TaskStatus.CANCELLED
                         task_record.completed_at = utc_now()
                         task_record.result = json.dumps({
@@ -129,7 +129,6 @@ async def process_task(task_id: int, session: AsyncSession, task_manager: TaskMa
                 saved_count += 1
 
             # Update status to COMPLETED
-            import json
             task_record.status = TaskStatus.COMPLETED
             task_record.completed_at = utc_now()
             task_record.result = json.dumps({"found_links": len(links), "saved_assets": saved_count})
@@ -138,7 +137,6 @@ async def process_task(task_id: int, session: AsyncSession, task_manager: TaskMa
 
     except Exception as e:
         logger.error(f"Task execution failed: {e}")
-        import json
         task_record.status = TaskStatus.FAILED
         task_record.completed_at = utc_now()
         task_record.result = json.dumps({"error": str(e)})
@@ -214,7 +212,6 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
                         logger.info(f"Task {db_task_id} cancelled by user at link {index}/{len(links)}")
 
                         # Update status to CANCELLED
-                        import json
                         task_record.status = TaskStatus.CANCELLED
                         task_record.completed_at = utc_now()
                         task_record.result = json.dumps({
@@ -269,7 +266,6 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
             
     except Exception as e:
         logger.error(f"Task execution failed: {e}")
-        import json
         task_record.status = TaskStatus.FAILED
         task_record.completed_at = utc_now()
         task_record.result = json.dumps({"error": str(e)})
@@ -293,9 +289,8 @@ async def run_worker() -> None:
     try:
         while True:
             async with async_session() as session:
-                processed = await process_one_task(session, task_manager)
-                if not processed:
-                    await asyncio.sleep(1) # Sleep if queue empty
+                await process_one_task(session, task_manager)
+                # BLPOP handles blocking, no sleep needed
     except KeyboardInterrupt:
         logger.info("Worker stopped")
     finally:

@@ -137,7 +137,7 @@ class CrawlerService:
 
             try:
                 # Navigate to page
-                await page.goto(url, wait_until="networkidle")
+                await page.goto(url, wait_until="networkidle", timeout=30000)
 
                 # Extract all <a> hrefs (existing logic)
                 elements = await page.locator("a").all()

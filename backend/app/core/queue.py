@@ -27,14 +27,17 @@ class TaskManager:
         await self.redis.rpush(self.queue_key, json.dumps(payload))
         return task_id
 
-    async def dequeue_task(self) -> Optional[Dict[str, Any]]:
+    async def dequeue_task(self, timeout: int = 5) -> Optional[Dict[str, Any]]:
         """
-        Dequeue a task from Redis (Left Pop).
-        Returns None if queue is empty.
+        Dequeue a task from Redis using blocking pop.
+        Returns None if queue is empty after timeout.
+
+        Args:
+            timeout: Seconds to wait for task (default 5)
         """
-        # lpop returns the element or None
-        data = await self.redis.lpop(self.queue_key)
-        if data:
+        result = await self.redis.blpop(self.queue_key, timeout=timeout)
+        if result:
+            _, data = result
             return json.loads(data)
         return None
     
