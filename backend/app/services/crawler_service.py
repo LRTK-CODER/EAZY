@@ -4,6 +4,9 @@ import json
 import base64
 
 from app.utils.url_parser import parse_query_params
+from app.core.structured_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class CrawlerService:
@@ -63,7 +66,7 @@ class CrawlerService:
                     }
 
                 except Exception as e:
-                    print(f"Request interception error: {e}")
+                    logger.warning("Request interception error", error=str(e), url=req_url)
 
             # Response interceptor
             async def handle_response(response: Response) -> None:
@@ -129,7 +132,7 @@ class CrawlerService:
                     }
 
                 except Exception as e:
-                    print(f"Response interception error: {e}")
+                    logger.warning("Response interception error", error=str(e), url=resp_url)
 
             # Register event listeners
             page.on("request", handle_request)
@@ -155,7 +158,7 @@ class CrawlerService:
                         http_data[href]["parameters"] = params if params else None
 
             except Exception as e:
-                print(f"Crawl error: {e}")
+                logger.error("Crawl error", error=str(e), url=url)
             finally:
                 await context.close()
                 await browser.close()

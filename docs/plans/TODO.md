@@ -1079,12 +1079,160 @@ logger.error("Worker crashed", worker_id=worker_id, error=str(e))
 - `LOG_FORMAT=console` - 개발 환경 (컬러 출력)
 - `LOG_FORMAT=json` - 프로덕션 환경 (JSON 포맷)
 
-#### 미완료 항목
-- [ ] `crawler_service.py`의 `print()` → `logger` 변경
+---
 
-### CORS 설정
-- [ ] 프로덕션용 CORS 화이트리스트 설정
-- [ ] 환경별 CORS 분기
+### Sprint 2.4: Crawler Service 로깅 마이그레이션 - TDD (Day 1) ✅
+
+> **목표:** crawler_service.py의 print() 문을 구조화된 로깅으로 변환
+> **개발 방식:** TDD (Test-Driven Development)
+> **완료 테스트:** 7개 ✅
+
+#### 현재 상태 분석
+```python
+# 변환 대상 (3개 print 문)
+# Line 66: print(f"Request interception error: {e}")
+# Line 132: print(f"Response interception error: {e}")
+# Line 158: print(f"Crawl error: {e}")
+```
+
+#### RED: 테스트 작성 ✅
+- [x] `tests/services/test_crawler_logging.py` 신규 생성 (7개 테스트)
+  - [x] `test_crawler_service_has_logger()` - logger 객체 존재 확인
+  - [x] `test_logger_is_structlog_instance()` - structlog 인스턴스 확인
+  - [x] `test_request_interception_error_logged()` - 요청 인터셉션 에러 로깅 검증
+  - [x] `test_response_interception_error_logged()` - 응답 인터셉션 에러 로깅 검증
+  - [x] `test_crawl_error_logged()` - 크롤 에러 로깅 검증
+  - [x] `test_log_includes_url_context()` - 로그에 URL 컨텍스트 포함 확인
+  - [x] `test_log_includes_error_details()` - 에러 상세 정보 포함 확인
+- [x] `uv run pytest tests/services/test_crawler_logging.py -v` 실행 → 통과 확인 (7개)
+
+#### GREEN: 구현 ✅
+- [x] `app/services/crawler_service.py` 수정
+  - [x] `from app.core.structured_logger import get_logger` 추가
+  - [x] `logger = get_logger(__name__)` 추가
+  - [x] Line 66: `print()` → `logger.warning("Request interception error", error=str(e), url=req_url)`
+  - [x] Line 132: `print()` → `logger.warning("Response interception error", error=str(e), url=resp_url)`
+  - [x] Line 158: `print()` → `logger.error("Crawl error", error=str(e), url=url)`
+- [x] `uv run pytest tests/services/test_crawler_logging.py -v` 실행 → 통과 확인 (7개)
+
+#### REFACTOR ✅
+- [x] 에러 레벨 적절성 검토 (warning vs error) - 완료
+- [x] 추가 컨텍스트 바인딩 검토 (url 추가됨)
+
+---
+
+### Sprint 2.5: CORS 환경별 설정 - TDD (Day 2-3) ✅
+
+> **목표:** 프로덕션 보안을 위한 CORS 화이트리스트 설정
+> **개발 방식:** TDD (Test-Driven Development)
+> **완료 테스트:** 10개 ✅
+
+#### 현재 상태 분석
+```python
+# app/main.py (Line 12)
+origins = ["*"]  # Allow all origins for MVP. In production, restrict this.
+```
+
+#### 보안 문제점
+- `*` (와일드카드)는 모든 origin 허용 → CSRF 취약점
+- `allow_credentials=True`와 `*` 동시 사용은 브라우저가 거부
+- 환경별 분기 없음
+
+#### RED: 테스트 작성 ✅
+- [x] `tests/core/test_cors_config.py` 신규 생성 (10개 테스트)
+  - [x] `test_cors_origins_env_var_exists()` - CORS_ORIGINS 환경변수 지원 확인
+  - [x] `test_cors_origins_default_localhost()` - 기본값 localhost:3000 확인
+  - [x] `test_cors_origins_parses_comma_separated()` - 쉼표 구분 파싱 검증
+  - [x] `test_cors_origins_strips_whitespace()` - 공백 제거 확인
+  - [x] `test_cors_production_rejects_wildcard()` - 프로덕션에서 * 거부
+  - [x] `test_cors_credentials_requires_specific_origins()` - credentials 사용 시 특정 origin 필수
+  - [x] `test_get_cors_origins_returns_list()` - 리스트 반환 확인
+  - [x] `test_validate_cors_config_logs_warning()` - 프로덕션 경고 로그
+  - [x] `test_environment_setting_exists()` - ENVIRONMENT 설정 존재 확인
+  - [x] `test_environment_default_is_development()` - 기본값 development 확인
+- [x] `uv run pytest tests/core/test_cors_config.py -v` 실행 → 통과 확인 (10개)
+
+#### GREEN: 구현 ✅
+
+##### Step 1: config.py 수정 ✅
+- [x] `app/core/config.py` 수정
+  ```python
+  # CORS
+  CORS_ORIGINS: str = "http://localhost:3000"
+  CORS_ALLOW_CREDENTIALS: bool = True
+  CORS_ALLOW_METHODS: str = "*"
+  CORS_ALLOW_HEADERS: str = "*"
+
+  # ENVIRONMENT
+  ENVIRONMENT: str = "development"  # development, staging, production
+  ```
+
+##### Step 2: cors.py 신규 생성 ✅
+- [x] `app/core/cors.py` 신규 생성 (142줄)
+  - [x] `get_cors_origins()` 함수 - 환경변수 파싱하여 리스트 반환
+  - [x] `validate_cors_config()` 함수 - 프로덕션 보안 검증
+  - [x] `CORSConfig` dataclass - CORS 설정 컨테이너
+  - [x] `get_cors_config()` 함수 - 전체 설정 반환
+
+##### Step 3: main.py 수정 ✅
+- [x] `app/main.py` 수정
+  ```python
+  from app.core.cors import get_cors_origins, validate_cors_config
+
+  # CORS Configuration (Sprint 2.5)
+  origins = get_cors_origins()
+  validate_cors_config(origins, settings.ENVIRONMENT, settings.CORS_ALLOW_CREDENTIALS)
+  ```
+
+##### Step 4: 환경변수 예제 업데이트 ✅
+- [x] `backend/.env.example` 수정
+  ```bash
+  # CORS Configuration (Sprint 2.5)
+  CORS_ORIGINS=http://localhost:3000
+  CORS_ALLOW_CREDENTIALS=true
+  CORS_ALLOW_METHODS=*
+  CORS_ALLOW_HEADERS=*
+
+  # Environment
+  ENVIRONMENT=development
+  ```
+
+- [x] `uv run pytest tests/core/test_cors_config.py -v` 실행 → 통과 확인 (10개)
+
+#### REFACTOR ✅
+- [x] 프로덕션 환경에서 `*` 사용 시 경고 로그 출력
+- [x] CORS 설정 로깅 추가 (validate_cors_config에 포함)
+
+---
+
+### 검증 체크리스트 ✅
+- [x] `uv run pytest tests/ -v` 전체 테스트 통과 (507개, 기존 priority queue 제외)
+- [x] `uv run python -c "from app.core.cors import get_cors_origins; print(get_cors_origins())"` 확인
+- [x] 프로덕션 CORS 검증: `validate_cors_config()` 경고 로깅 구현
+
+---
+
+### 파일 구조 변경
+
+```
+backend/app/
+├── core/
+│   ├── config.py           # 수정: CORS_*, ENVIRONMENT 추가
+│   └── cors.py             # 신규: get_cors_origins(), validate_cors_config()
+├── services/
+│   └── crawler_service.py  # 수정: print() → logger (3개)
+└── main.py                 # 수정: 동적 CORS origins
+
+backend/tests/
+├── core/
+│   └── test_cors_config.py      # 신규 (8개 테스트)
+└── services/
+    └── test_crawler_logging.py  # 신규 (6개 테스트)
+
+backend/.env.example             # 수정: CORS 환경변수 추가
+```
+
+**총 신규 테스트: 17개** ✅ (Sprint 2.4: 7개 + Sprint 2.5: 10개)
 
 ---
 
@@ -1159,9 +1307,11 @@ logger.error("Worker crashed", worker_id=worker_id, error=str(e))
 | ✅ P5.5 | JSON 파싱 안정화 (TDD) | 완료 | Worker 크래시 방지 | 17개 |
 | ✅ P5.6 | 로깅 개선 (TDD) | 완료 | Structlog + 구조화 로깅 | 22개 |
 | ✅ P5.7 | 유틸리티 통합 (TDD) | 완료 | utc_now() 중복 제거 + 타입 안전성 | 12개 |
+| ✅ P5.8 | Crawler 로깅 (TDD) | 완료 | Crawler 디버깅 용이성 | 7개 |
+| ✅ P5.9 | CORS 설정 (TDD) | 완료 | 프로덕션 보안 | 10개 |
 | ⚪ P6 | DAST 핵심 기능 | 미정 | 제품 완성 | - |
 
-**현재 상태: 490개 테스트** ✅ (유틸리티 통합 완료)
+**현재 상태: 507개 테스트** ✅ (Sprint 2.4 + 2.5 완료)
 **다음 단계: Phase 6 DAST 핵심 기능** ⚪
 
 ### Phase 4 Day 5 버그 수정 내역

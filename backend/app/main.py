@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
+from app.core.cors import get_cors_origins, validate_cors_config
 
 app = FastAPI(
     title="EAZY Backend",
@@ -8,15 +9,16 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# CORS Configuration
-origins = ["*"]  # Allow all origins for MVP. In production, restrict this.
+# CORS Configuration (Sprint 2.5)
+origins = get_cors_origins()
+validate_cors_config(origins, settings.ENVIRONMENT, settings.CORS_ALLOW_CREDENTIALS)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+    allow_methods=settings.CORS_ALLOW_METHODS.split(",") if settings.CORS_ALLOW_METHODS != "*" else ["*"],
+    allow_headers=settings.CORS_ALLOW_HEADERS.split(",") if settings.CORS_ALLOW_HEADERS != "*" else ["*"],
 )
 
 from fastapi import APIRouter

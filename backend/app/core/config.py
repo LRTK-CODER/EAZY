@@ -27,6 +27,15 @@ class Settings(BaseSettings):
     WORKER_SHUTDOWN_TIMEOUT: int = 30
     WORKER_MAX_RESTARTS: int = 5
 
+    # CORS (Sprint 2.5)
+    CORS_ORIGINS: str = "http://localhost:3000"
+    CORS_ALLOW_CREDENTIALS: bool = True
+    CORS_ALLOW_METHODS: str = "*"
+    CORS_ALLOW_HEADERS: str = "*"
+
+    # ENVIRONMENT
+    ENVIRONMENT: str = "development"  # development, staging, production
+
     model_config = SettingsConfigDict(case_sensitive=True, env_file=".env")
 
 settings = Settings()
