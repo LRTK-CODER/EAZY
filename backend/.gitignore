@@ -60,9 +60,13 @@ coverage.xml
 # Environment Variables & Secrets
 # ------------------------------------------------------------------------------
 # 환경변수 파일 (보안상 절대 커밋 금지)
+# .env.example은 템플릿이므로 커밋 허용
 .env
-.env.*
-!.env.example  # 예시 파일은 커밋 허용
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.staging
 
 # ------------------------------------------------------------------------------
 # IDE & Editors
