@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     WORKER_SHUTDOWN_TIMEOUT: int = 30
     WORKER_MAX_RESTARTS: int = 5
 
+    # WORKER POOL - Aging (Sprint 3.1)
+    WORKER_AGING_ENABLED: bool = False
+    WORKER_AGING_INTERVAL: int = 60  # seconds
+
     # CORS (Sprint 2.5)
     CORS_ORIGINS: str = "http://localhost:3000"
     CORS_ALLOW_CREDENTIALS: bool = True

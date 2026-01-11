@@ -733,7 +733,12 @@ eazy_task_queue:dlq         ← 공용 DLQ
 
 #### GREEN: 구현
 - [x] 모든 기능이 Day 1-4에서 이미 구현됨
-- [ ] (선택) `app/workers/pool.py` 수정 - aging 태스크 추가 (추후 구현 가능)
+- [x] (Sprint 3.1) `app/workers/pool.py` 수정 - aging 태스크 추가 ✅
+  - [x] `WorkerPoolConfig`에 `aging_enabled`, `aging_interval` 추가
+  - [x] `_run_aging_task()` 메서드 구현 - 주기적 `promote_aged_tasks()` 호출
+  - [x] `start()`에서 aging 태스크 생성, `_cleanup()`에서 정리
+  - [x] 환경변수 지원: `WORKER_AGING_ENABLED`, `WORKER_AGING_INTERVAL`
+  - [x] `tests/workers/test_pool_aging.py` 13개 테스트 추가
 
 ---
 

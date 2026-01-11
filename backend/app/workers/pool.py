@@ -29,6 +29,7 @@ from app.core.structured_logger import get_logger
 # This is required for foreign key relationships to work correctly
 import app.models  # noqa: F401
 
+from app.core.queue import TaskManager
 from app.workers.runner import create_worker_context, process_one_task
 
 if TYPE_CHECKING:
@@ -49,6 +50,8 @@ class WorkerPoolConfig:
         restart_delay_max: 재시작 지연 최대값 (초)
         max_consecutive_errors: 최대 연속 에러 허용 횟수
         shutdown_timeout: Graceful shutdown 타임아웃 (초)
+        aging_enabled: Aging 태스크 활성화 여부
+        aging_interval: Aging 태스크 실행 주기 (초)
     """
 
     num_workers: int = 4
@@ -57,6 +60,8 @@ class WorkerPoolConfig:
     restart_delay_max: float = 30.0
     max_consecutive_errors: int = 10
     shutdown_timeout: float = 30.0
+    aging_enabled: bool = False
+    aging_interval: int = 60
 
     @classmethod
     def from_env(cls) -> WorkerPoolConfig:
@@ -65,6 +70,8 @@ class WorkerPoolConfig:
             num_workers=int(os.getenv("WORKER_NUM_WORKERS", "4")),
             max_restarts_per_worker=int(os.getenv("WORKER_MAX_RESTARTS", "5")),
             shutdown_timeout=float(os.getenv("WORKER_SHUTDOWN_TIMEOUT", "30.0")),
+            aging_enabled=os.getenv("WORKER_AGING_ENABLED", "false").lower() == "true",
+            aging_interval=int(os.getenv("WORKER_AGING_INTERVAL", "60")),
         )
 
 
@@ -90,6 +97,7 @@ class WorkerPool:
     _engine: Optional[AsyncEngine] = field(default=None, init=False)
     _tasks: list = field(default_factory=list, init=False)
     _started: bool = field(default=False, init=False)
+    _aging_task: Optional[asyncio.Task] = field(default=None, init=False)
 
     @property
     def is_running(self) -> bool:
@@ -138,6 +146,17 @@ class WorkerPool:
                     name=f"worker-{worker_id}",
                 )
                 self._tasks.append(task)
+
+            # Aging 태스크 생성 (활성화된 경우)
+            if self.config.aging_enabled:
+                self._aging_task = asyncio.create_task(
+                    self._run_aging_task(),
+                    name="aging-task",
+                )
+                logger.info(
+                    "Aging task scheduled",
+                    interval=self.config.aging_interval,
+                )
 
             # shutdown_event 대기 태스크
             shutdown_wait = asyncio.create_task(self._shutdown_event.wait())
@@ -330,9 +349,63 @@ class WorkerPool:
         else:
             return 1.0
 
+    async def _run_aging_task(self) -> None:
+        """
+        백그라운드 Aging 태스크.
+
+        주기적으로 promote_aged_tasks()를 호출하여
+        오래된 태스크를 상위 우선순위 큐로 승격합니다.
+        """
+        logger.info(
+            "Aging task started",
+            interval=self.config.aging_interval,
+        )
+
+        redis = Redis.from_url(
+            settings.REDIS_URL,
+            decode_responses=True,
+            single_connection_client=True,
+        )
+        task_manager = TaskManager(redis)
+
+        try:
+            while not self._shutdown_event.is_set():
+                try:
+                    promoted = await task_manager.promote_aged_tasks()
+                    if promoted > 0:
+                        logger.info("Promoted aged tasks", count=promoted)
+                except Exception as e:
+                    logger.warning("Aging task error", error=str(e))
+
+                # shutdown 체크하면서 interval 대기
+                try:
+                    await asyncio.wait_for(
+                        self._shutdown_event.wait(),
+                        timeout=self.config.aging_interval,
+                    )
+                    break  # Shutdown 요청됨
+                except asyncio.TimeoutError:
+                    pass  # 대기 완료, 다음 반복
+
+        except asyncio.CancelledError:
+            logger.info("Aging task cancelled")
+            raise
+        finally:
+            await redis.aclose()
+            logger.info("Aging task stopped")
+
     async def _cleanup(self) -> None:
         """리소스 정리."""
         logger.info("Cleaning up WorkerPool resources")
+
+        # Aging 태스크 정리
+        if self._aging_task and not self._aging_task.done():
+            self._aging_task.cancel()
+            try:
+                await self._aging_task
+            except asyncio.CancelledError:
+                pass
+            self._aging_task = None
 
         if self._engine:
             await self._engine.dispose()
