@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Archive, ArrowLeft, RotateCcw, Trash2 } from 'lucide-react';
 import { useArchivedProjects } from '@/hooks/useProjects';
@@ -21,21 +21,20 @@ export function ArchivedProjectsPage() {
   const [singleDeleteIds, setSingleDeleteIds] = useState<number[]>([]);
   const [singleDeleteNames, setSingleDeleteNames] = useState<string[]>([]);
 
-  const toggleProject = (id: number) => {
+  // Memoized handlers to prevent unnecessary re-renders
+  const toggleProject = useCallback((id: number) => {
     setSelectedProjects((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
     );
-  };
+  }, []);
 
-  const toggleAll = () => {
-    if (selectedProjects.length === projects.length) {
-      setSelectedProjects([]);
-    } else {
-      setSelectedProjects(projects.map((p) => p.id));
-    }
-  };
+  const toggleAll = useCallback(() => {
+    setSelectedProjects((prev) =>
+      prev.length === projects.length ? [] : projects.map((p) => p.id)
+    );
+  }, [projects]);
 
-  const handleBulkRestore = () => {
+  const handleBulkRestore = useCallback(() => {
     setSingleRestoreIds(selectedProjects);
     setSingleRestoreNames(
       projects
@@ -43,9 +42,9 @@ export function ArchivedProjectsPage() {
         .map((p) => p.name)
     );
     setRestoreOpen(true);
-  };
+  }, [selectedProjects, projects]);
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = useCallback(() => {
     setSingleDeleteIds(selectedProjects);
     setSingleDeleteNames(
       projects
@@ -53,37 +52,37 @@ export function ArchivedProjectsPage() {
         .map((p) => p.name)
     );
     setDeleteOpen(true);
-  };
+  }, [selectedProjects, projects]);
 
-  const handleSingleRestore = (id: number, name: string) => {
+  const handleSingleRestore = useCallback((id: number, name: string) => {
     setSingleRestoreIds([id]);
     setSingleRestoreNames([name]);
     setRestoreOpen(true);
-  };
+  }, []);
 
-  const handleSingleDelete = (id: number, name: string) => {
+  const handleSingleDelete = useCallback((id: number, name: string) => {
     setSingleDeleteIds([id]);
     setSingleDeleteNames([name]);
     setDeleteOpen(true);
-  };
+  }, []);
 
-  const handleRestoreClose = (open: boolean) => {
+  const handleRestoreClose = useCallback((open: boolean) => {
     setRestoreOpen(open);
     if (!open) {
       setSelectedProjects([]);
       setSingleRestoreIds([]);
       setSingleRestoreNames([]);
     }
-  };
+  }, []);
 
-  const handleDeleteClose = (open: boolean) => {
+  const handleDeleteClose = useCallback((open: boolean) => {
     setDeleteOpen(open);
     if (!open) {
       setSelectedProjects([]);
       setSingleDeleteIds([]);
       setSingleDeleteNames([]);
     }
-  };
+  }, []);
 
   if (isLoading) {
     return (

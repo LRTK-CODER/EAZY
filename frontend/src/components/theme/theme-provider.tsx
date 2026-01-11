@@ -2,6 +2,20 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 type Theme = "dark" | "light" | "system";
 
+const VALID_THEMES: Theme[] = ["dark", "light", "system"];
+
+/**
+ * Validates and parses theme from localStorage
+ * Returns null if the value is invalid or malformed
+ */
+const parseStoredTheme = (stored: string | null): Theme | null => {
+    if (!stored) return null;
+    if (VALID_THEMES.includes(stored as Theme)) {
+        return stored as Theme;
+    }
+    return null;
+};
+
 type ThemeProviderProps = {
     children: React.ReactNode;
     defaultTheme?: Theme;
@@ -26,9 +40,10 @@ export function ThemeProvider({
     storageKey = "eazy-ui-theme",
     ...props
 }: ThemeProviderProps) {
-    const [theme, setTheme] = useState<Theme>(
-        () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-    );
+    const [theme, setTheme] = useState<Theme>(() => {
+        const stored = localStorage.getItem(storageKey);
+        return parseStoredTheme(stored) ?? defaultTheme;
+    });
 
     useEffect(() => {
         const root = window.document.documentElement;

@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, Navigate } from 'react-router-dom';
 import { Loader2, AlertCircle, ArrowLeft, Plus } from 'lucide-react';
 import { formatDistanceToNow } from '@/utils/date';
+import { parseNumericParam, isValidId } from '@/utils/params';
 import { useProject } from '@/hooks/useProjects';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -10,8 +11,15 @@ import { CreateTargetForm } from '@/components/features/target/CreateTargetForm'
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { data: project, isLoading, isError } = useProject(Number(id));
+  const projectId = parseNumericParam(id);
   const [createTargetOpen, setCreateTargetOpen] = useState(false);
+
+  // Redirect to 404 if project ID is invalid
+  if (!isValidId(projectId)) {
+    return <Navigate to="/404" replace />;
+  }
+
+  const { data: project, isLoading, isError } = useProject(projectId);
 
   if (isLoading) {
     return (
@@ -76,14 +84,14 @@ export function ProjectDetailPage() {
           </Button>
         </div>
 
-        <TargetList projectId={Number(id)} />
+        <TargetList projectId={projectId} />
       </div>
 
       {/* CreateTargetForm Dialog */}
       <CreateTargetForm
         open={createTargetOpen}
         onOpenChange={setCreateTargetOpen}
-        projectId={Number(id)}
+        projectId={projectId}
       />
     </div>
   );

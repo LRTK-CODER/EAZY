@@ -2,12 +2,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Check, X, Loader2, StopCircle } from 'lucide-react';
 import { useMemo } from 'react';
-import { useLatestTask, useCancelTask } from '@/hooks/useTasks';
-import { TaskStatus } from '@/types/task';
+import { useCancelTask } from '@/hooks/useTasks';
+import { TaskStatus, type Task } from '@/types/task';
 import { formatElapsedTime } from '@/utils/date';
 
 interface ScanStatusBadgeProps {
-  targetId: number;
+  /** Task data to display (passed from parent for optimized batching) */
+  task?: Task;
+  /** Whether the task data is loading */
+  isLoading?: boolean;
 }
 
 /**
@@ -17,20 +20,20 @@ interface ScanStatusBadgeProps {
  * - Displays current task status with appropriate badge variant
  * - Shows elapsed time for PENDING and RUNNING tasks
  * - Provides stop button to cancel PENDING or RUNNING tasks
- * - Automatically polls for task status updates (5s interval)
- * - Stops polling when task reaches terminal state (COMPLETED/FAILED/CANCELLED)
  *
- * @param targetId - The target ID to fetch and display the latest task status for
+ * Note: Task data should be passed from parent component using useLatestTasks
+ * hook for optimized batch fetching instead of individual polling.
+ *
+ * @param task - The task object to display status for
+ * @param isLoading - Whether the task data is still loading
  *
  * @example
  * ```tsx
- * <ScanStatusBadge targetId={123} />
+ * const { tasksMap, isLoading } = useLatestTasks(targetIds);
+ * <ScanStatusBadge task={tasksMap.get(targetId)} isLoading={isLoading} />
  * ```
  */
-export function ScanStatusBadge({ targetId }: ScanStatusBadgeProps) {
-  // Fetch latest task for this target with automatic polling
-  const { data: task, isLoading } = useLatestTask(targetId);
-
+export function ScanStatusBadge({ task, isLoading = false }: ScanStatusBadgeProps) {
   // Hook to cancel a task
   const cancelTask = useCancelTask();
 

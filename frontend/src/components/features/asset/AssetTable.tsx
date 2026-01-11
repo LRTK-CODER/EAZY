@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Loader2, ChevronUp, ChevronDown, ExternalLink, Eye } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import * as assetService from '@/services/assetService';
+import { useTargetAssets } from '@/hooks/useAssets';
 import type { Asset, AssetType, AssetSource } from '@/types/asset';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -79,32 +78,54 @@ const getSourceBadgeColor = (source: AssetSource): string => {
  * - Pagination with configurable page size
  * - LocalStorage persistence for sort state
  */
+// Valid sort columns
+const VALID_SORT_COLUMNS: SortBy[] = ['type', 'url', 'last_seen'];
+const VALID_SORT_ORDERS: SortOrder[] = ['asc', 'desc'];
+
+// Helper functions moved outside component
+const truncatePath = (path: string, maxLength: number = 50): string => {
+  if (path.length <= maxLength) return path;
+  return path.slice(0, maxLength) + '...';
+};
+
+const formatParameters = (parameters: Record<string, unknown> | null): string => {
+  if (!parameters) return '-';
+  const count = Object.keys(parameters).length;
+  return count === 1 ? '1 param' : `${count} params`;
+};
+
+// Parse and validate sort state from localStorage
+const parseSortState = (stored: string | null): SortState | null => {
+  if (!stored) return null;
+  try {
+    const parsed = JSON.parse(stored);
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      VALID_SORT_COLUMNS.includes(parsed.sortBy) &&
+      VALID_SORT_ORDERS.includes(parsed.sortOrder)
+    ) {
+      return { sortBy: parsed.sortBy, sortOrder: parsed.sortOrder };
+    }
+  } catch {
+    // Invalid JSON, return null
+  }
+  return null;
+};
+
 export function AssetTable({ projectId, targetId }: AssetTableProps) {
-  // Fetch assets
-  const { data: assets = [], isLoading, isError } = useQuery({
-    queryKey: ['assets', projectId, targetId],
-    queryFn: () => assetService.getTargetAssets(projectId, targetId),
-  });
+  // Fetch assets using the proper hook (fixes layer violation)
+  const { data: assets = [], isLoading, isError } = useTargetAssets(projectId, targetId);
 
   // Asset Detail Dialog state
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Sort state with localStorage persistence
+  // Sort state with localStorage persistence (validated)
   const [sortState, setSortState] = useState<SortState>(() => {
-    try {
-      const stored = localStorage.getItem('assetTableSort');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return {
-          sortBy: parsed.sortBy || 'last_seen',
-          sortOrder: parsed.sortOrder || 'desc',
-        };
-      }
-    } catch (error) {
-      // Ignore parsing errors
-    }
-    return { sortBy: 'last_seen', sortOrder: 'desc' };
+    const stored = localStorage.getItem('assetTableSort');
+    const parsed = parseSortState(stored);
+    return parsed ?? { sortBy: 'last_seen', sortOrder: 'desc' };
   });
 
   // Pagination state
@@ -132,31 +153,40 @@ export function AssetTable({ projectId, targetId }: AssetTableProps) {
     });
   };
 
-  // Sort assets
-  const sortedAssets = [...assets].sort((a, b) => {
-    let compareResult = 0;
+  // Sort assets (memoized to prevent recalculation on every render)
+  const sortedAssets = useMemo(() => {
+    return [...assets].sort((a, b) => {
+      let compareResult = 0;
 
-    switch (sortState.sortBy) {
-      case 'type':
-        compareResult = a.type.localeCompare(b.type);
-        break;
-      case 'url':
-        compareResult = a.url.localeCompare(b.url);
-        break;
-      case 'last_seen':
-        compareResult =
-          new Date(a.last_seen_at).getTime() - new Date(b.last_seen_at).getTime();
-        break;
-    }
+      switch (sortState.sortBy) {
+        case 'type':
+          compareResult = a.type.localeCompare(b.type);
+          break;
+        case 'url':
+          compareResult = a.url.localeCompare(b.url);
+          break;
+        case 'last_seen':
+          compareResult =
+            new Date(a.last_seen_at).getTime() - new Date(b.last_seen_at).getTime();
+          break;
+      }
 
-    return sortState.sortOrder === 'asc' ? compareResult : -compareResult;
-  });
+      return sortState.sortOrder === 'asc' ? compareResult : -compareResult;
+    });
+  }, [assets, sortState.sortBy, sortState.sortOrder]);
 
-  // Paginate assets
-  const totalPages = Math.ceil(sortedAssets.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedAssets = sortedAssets.slice(startIndex, endIndex);
+  // Paginate assets (memoized)
+  const { totalPages, startIndex, endIndex, paginatedAssets } = useMemo(() => {
+    const total = Math.ceil(sortedAssets.length / pageSize);
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return {
+      totalPages: total,
+      startIndex: start,
+      endIndex: end,
+      paginatedAssets: sortedAssets.slice(start, end),
+    };
+  }, [sortedAssets, currentPage, pageSize]);
 
   // Reset to page 1 when page size changes
   useEffect(() => {
@@ -172,19 +202,6 @@ export function AssetTable({ projectId, targetId }: AssetTableProps) {
     ) : (
       <ChevronDown className="h-4 w-4 inline ml-1" />
     );
-  };
-
-  // Truncate path if too long
-  const truncatePath = (path: string, maxLength: number = 50): string => {
-    if (path.length <= maxLength) return path;
-    return path.slice(0, maxLength) + '...';
-  };
-
-  // Format parameters count
-  const formatParameters = (parameters: Record<string, unknown> | null): string => {
-    if (!parameters) return '-';
-    const count = Object.keys(parameters).length;
-    return count === 1 ? '1 param' : `${count} params`;
   };
 
   return (

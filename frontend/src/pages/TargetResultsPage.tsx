@@ -1,5 +1,6 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, Navigate } from 'react-router-dom';
 import { Loader2, ArrowLeft } from 'lucide-react';
+import { parseNumericParam, isValidId } from '@/utils/params';
 import { useProject } from '@/hooks/useProjects';
 import { useTarget } from '@/hooks/useTargets';
 import { useTargetAssets } from '@/hooks/useAssets';
@@ -28,29 +29,49 @@ import { Button } from '@/components/ui/button';
  * Route: /projects/:projectId/targets/:targetId/results
  */
 export function TargetResultsPage() {
-  // Extract route parameters
+  // Extract and validate route parameters
   const { projectId, targetId } = useParams<{ projectId: string; targetId: string }>();
+  const projectIdNum = parseNumericParam(projectId);
+  const targetIdNum = parseNumericParam(targetId);
 
-  // Convert to numbers (NaN is allowed, hooks will handle validation)
-  const projectIdNum = Number(projectId);
-  const targetIdNum = Number(targetId);
+  // Redirect to 404 if parameters are invalid
+  if (!isValidId(projectIdNum) || !isValidId(targetIdNum)) {
+    return <Navigate to="/404" replace />;
+  }
 
+  return (
+    <TargetResultsContent
+      projectId={projectIdNum}
+      targetId={targetIdNum}
+    />
+  );
+}
+
+interface TargetResultsContentProps {
+  projectId: number;
+  targetId: number;
+}
+
+/**
+ * Inner component that handles data fetching after validation
+ */
+function TargetResultsContent({ projectId, targetId }: TargetResultsContentProps) {
   // Fetch data from hooks
   const {
     data: project,
     isLoading: isProjectLoading,
     isError: isProjectError
-  } = useProject(projectIdNum);
+  } = useProject(projectId);
 
   const {
     data: target,
     isLoading: isTargetLoading,
     isError: isTargetError
-  } = useTarget(projectIdNum, targetIdNum);
+  } = useTarget(projectId, targetId);
 
   const {
     data: assets
-  } = useTargetAssets(projectIdNum, targetIdNum);
+  } = useTargetAssets(projectId, targetId);
 
   // Loading state: show spinner if project or target is loading
   if (isProjectLoading || isTargetLoading) {
@@ -106,7 +127,7 @@ export function TargetResultsPage() {
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to={`/projects/${projectIdNum}`}>{project?.name}</Link>
+              <Link to={`/projects/${projectId}`}>{project?.name}</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -144,13 +165,13 @@ export function TargetResultsPage() {
         </div>
       ) : (
         <div className="mb-6">
-          <AssetTable projectId={projectIdNum} targetId={targetIdNum} />
+          <AssetTable projectId={projectId} targetId={targetId} />
         </div>
       )}
 
       {/* Back to Project Button */}
       <div className="mt-6">
-        <Link to={`/projects/${projectIdNum}`}>
+        <Link to={`/projects/${projectId}`}>
           <Button variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Project

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Loader2, Edit, Trash2, Play, BarChart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTargets, useTriggerScan, targetKeys } from '@/hooks/useTargets';
+import { useLatestTasks } from '@/hooks/useTasks';
 import type { Target } from '@/types/target';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,36 +39,51 @@ interface TargetListProps {
  * - Edit/Delete/Scan actions for each target
  * - Scan status badges with real-time updates
  */
+// Format date for display (extracted outside component to avoid recreation)
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
 export function TargetList({ projectId }: TargetListProps) {
   const queryClient = useQueryClient();
   const { data: targets = [], isLoading, isError } = useTargets(projectId);
   const triggerScan = useTriggerScan();
 
+  // Batch fetch tasks for all targets (solves N+1 polling problem)
+  const targetIds = useMemo(() => targets.map((t) => t.id), [targets]);
+  const { tasksMap, isLoading: tasksLoading } = useLatestTasks(targetIds);
+
   // Dialog states
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState<Target | null>(null);
+  const [prevDeleteOpen, setPrevDeleteOpen] = useState(false);
 
   // When delete dialog closes, invalidate queries to refetch targets
+  // Fixed: Only trigger when dialog transitions from open to closed
   useEffect(() => {
-    if (!deleteOpen) {
-      // Dialog was closed, invalidate target queries to trigger refetch
+    if (prevDeleteOpen && !deleteOpen) {
       queryClient.invalidateQueries({ queryKey: targetKeys.lists() });
     }
-  }, [deleteOpen, queryClient]);
+    setPrevDeleteOpen(deleteOpen);
+  }, [deleteOpen, prevDeleteOpen, queryClient]);
 
-  // Handlers for action buttons
-  const handleEdit = (target: Target) => {
+  // Handlers with useCallback to prevent unnecessary re-renders
+  const handleEdit = useCallback((target: Target) => {
     setSelectedTarget(target);
     setEditOpen(true);
-  };
+  }, []);
 
-  const handleDelete = (target: Target) => {
+  const handleDelete = useCallback((target: Target) => {
     setSelectedTarget(target);
     setDeleteOpen(true);
-  };
+  }, []);
 
-  const handleScan = async (target: Target) => {
+  const handleScan = useCallback(async (target: Target) => {
     try {
       await triggerScan.mutateAsync({
         projectId: target.project_id,
@@ -77,16 +93,7 @@ export function TargetList({ projectId }: TargetListProps) {
     } catch {
       toast.error(`Failed to start scan for ${target.name}`);
     }
-  };
-
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  }, [triggerScan]);
 
   // Table with targets - show table structure even when loading/error/empty
   return (
@@ -137,7 +144,10 @@ export function TargetList({ projectId }: TargetListProps) {
                 </Badge>
               </TableCell>
               <TableCell>
-                <ScanStatusBadge targetId={target.id} />
+                <ScanStatusBadge
+                  task={tasksMap.get(target.id)}
+                  isLoading={tasksLoading}
+                />
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {formatDate(target.created_at)}
