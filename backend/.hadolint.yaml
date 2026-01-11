@@ -1,0 +1,9 @@
+# Hadolint configuration for EAZY Backend
+# https://github.com/hadolint/hadolint
+
+ignored:
+  # DL3008: Pin versions in apt get install
+  # Reason: We use base image version pinning (python:3.12-slim) instead.
+  # Pinning individual apt packages creates maintenance burden and
+  # can cause build failures when packages are updated upstream.
+  - DL3008

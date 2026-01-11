@@ -458,6 +458,9 @@ class TestDeprecation:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
 
+            # Import the deprecated module to trigger warning
+            import app.worker  # noqa: F401
+
             # Check that a DeprecationWarning was issued
             deprecation_warnings = [
                 warning
