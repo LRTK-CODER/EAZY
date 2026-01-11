@@ -167,5 +167,6 @@ class TestUvUsage:
     def test_workflow_installs_uv(self, ci_workflow):
         """워크플로우에서 uv를 설치해야 함"""
         workflow_str = str(ci_workflow)
-        assert "setup-uv" in workflow_str or "uv" in workflow_str, \
-            "uv installation not found"
+        assert (
+            "setup-uv" in workflow_str or "uv" in workflow_str
+        ), "uv installation not found"

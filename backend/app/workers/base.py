@@ -3,6 +3,7 @@ BaseWorker and WorkerContext for EAZY worker infrastructure.
 
 Phase 3: Architecture Improvement
 """
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
@@ -14,7 +15,6 @@ from sqlmodel import select
 from app.core.queue import TaskManager
 from app.core.dlq import DLQManager
 from app.core.recovery import OrphanRecovery
-from app.core.errors import classify_error, ErrorCategory
 from app.core.structured_logger import get_logger
 from app.core.utils import utc_now
 from app.models.task import Task, TaskStatus, TaskType
@@ -34,6 +34,7 @@ class WorkerContext:
     - dlq_manager: Dead letter queue management
     - orphan_recovery: Heartbeat and orphan task recovery
     """
+
     session: AsyncSession
     task_manager: TaskManager
     dlq_manager: DLQManager
@@ -52,6 +53,7 @@ class TaskResult:
     - _cancelled: Whether the task was cancelled by user
     - _skipped: Whether the task was skipped (e.g., lock unavailable)
     """
+
     _success: bool
     data: Dict[str, Any]
     error: Optional[str] = None
@@ -90,7 +92,9 @@ class TaskResult:
         return cls(_success=True, data=data)
 
     @classmethod
-    def create_failure(cls, error: str, data: Optional[Dict[str, Any]] = None) -> "TaskResult":
+    def create_failure(
+        cls, error: str, data: Optional[Dict[str, Any]] = None
+    ) -> "TaskResult":
         """Create a failure result."""
         return cls(_success=False, data=data or {}, error=error)
 
@@ -263,7 +267,9 @@ class BaseWorker(ABC):
         self.session.add(task)
         await self.session.commit()
 
-    async def _handle_failure(self, task: Task, task_json: str, error: Exception) -> None:
+    async def _handle_failure(
+        self, task: Task, task_json: str, error: Exception
+    ) -> None:
         """
         Handle task failure from exception.
 

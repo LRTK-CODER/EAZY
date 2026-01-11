@@ -9,6 +9,7 @@ Provides multi-worker management with:
 - Worker restart with exponential backoff
 - Per-worker Redis connections
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -250,7 +251,7 @@ class WorkerPool:
             except Exception as e:
                 restart_count += 1
                 delay = min(
-                    self.config.restart_delay_base * (2 ** restart_count),
+                    self.config.restart_delay_base * (2**restart_count),
                     self.config.restart_delay_max,
                 )
                 logger.error(
@@ -345,7 +346,7 @@ class WorkerPool:
         elif category == ErrorCategory.TRANSIENT:
             return 1.0
         elif category == ErrorCategory.RETRYABLE:
-            return min(2 ** consecutive_errors, 60)
+            return min(2**consecutive_errors, 60)
         else:
             return 1.0
 
@@ -424,5 +425,6 @@ async def run_worker_pool() -> None:
 
 if __name__ == "__main__":
     from app.core.structured_logger import configure_logging
+
     configure_logging()
     asyncio.run(run_worker_pool())

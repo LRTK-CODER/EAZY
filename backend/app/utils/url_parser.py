@@ -1,6 +1,7 @@
 """
 URL parsing utilities for extracting query parameters.
 """
+
 from typing import Dict, Any
 from urllib.parse import urlparse, parse_qs
 

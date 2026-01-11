@@ -6,7 +6,6 @@ TDD RED 단계 - dlq.py 구현 전에 실패해야 함
 
 import json
 import pytest
-from datetime import datetime
 from redis.asyncio import Redis
 
 from app.core.errors import ErrorCategory
@@ -51,9 +50,7 @@ class TestMoveToOrq:
     """move_to_dlq() 메서드 테스트"""
 
     @pytest.mark.asyncio
-    async def test_move_to_dlq_stores_metadata(
-        self, redis_client: Redis, clean_dlq
-    ):
+    async def test_move_to_dlq_stores_metadata(self, redis_client: Redis, clean_dlq):
         """DLQ 이동 시 메타데이터가 저장되어야 함"""
         from app.core.dlq import DLQManager
 
@@ -85,9 +82,7 @@ class TestMoveToOrq:
         assert "failed_at" in meta
 
     @pytest.mark.asyncio
-    async def test_move_to_dlq_adds_to_list(
-        self, redis_client: Redis, clean_dlq
-    ):
+    async def test_move_to_dlq_adds_to_list(self, redis_client: Redis, clean_dlq):
         """DLQ 이동 시 DLQ 리스트에 추가되어야 함"""
         from app.core.dlq import DLQManager
 
@@ -172,9 +167,7 @@ class TestListDlqTasks:
             assert "error_message" in task["meta"]
 
     @pytest.mark.asyncio
-    async def test_list_dlq_tasks_with_limit(
-        self, redis_client: Redis, clean_dlq
-    ):
+    async def test_list_dlq_tasks_with_limit(self, redis_client: Redis, clean_dlq):
         """limit 파라미터로 조회 개수 제한"""
         from app.core.dlq import DLQManager
 
@@ -185,7 +178,7 @@ class TestListDlqTasks:
             task_data = {"id": f"task-{i}", "db_task_id": i}
             await dlq_manager.move_to_dlq(
                 task_json=json.dumps(task_data),
-                error=Exception(f"Error"),
+                error=Exception("Error"),
                 error_category=ErrorCategory.PERMANENT,
                 retry_count=0,
             )
@@ -201,9 +194,7 @@ class TestRetryDlqTask:
     """retry_dlq_task() 메서드 테스트"""
 
     @pytest.mark.asyncio
-    async def test_retry_dlq_moves_back_to_queue(
-        self, redis_client: Redis, clean_dlq
-    ):
+    async def test_retry_dlq_moves_back_to_queue(self, redis_client: Redis, clean_dlq):
         """DLQ 작업을 원래 큐로 다시 이동"""
         from app.core.dlq import DLQManager
 
@@ -232,9 +223,7 @@ class TestRetryDlqTask:
         assert dlq_len == 0
 
     @pytest.mark.asyncio
-    async def test_retry_dlq_clears_metadata(
-        self, redis_client: Redis, clean_dlq
-    ):
+    async def test_retry_dlq_clears_metadata(self, redis_client: Redis, clean_dlq):
         """재시도 시 DLQ 메타데이터가 삭제되어야 함"""
         from app.core.dlq import DLQManager
 
@@ -272,9 +261,7 @@ class TestPurgeDlqTask:
     """purge_dlq_task() 메서드 테스트"""
 
     @pytest.mark.asyncio
-    async def test_purge_dlq_removes_completely(
-        self, redis_client: Redis, clean_dlq
-    ):
+    async def test_purge_dlq_removes_completely(self, redis_client: Redis, clean_dlq):
         """DLQ 작업 완전 삭제"""
         from app.core.dlq import DLQManager
 

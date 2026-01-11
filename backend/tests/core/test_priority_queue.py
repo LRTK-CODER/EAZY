@@ -101,9 +101,7 @@ class TestPriorityEnqueue:
 
         Task should be placed in the default queue 'eazy_task_queue'.
         """
-        await task_manager.enqueue_crawl_task(
-            project_id=1, target_id=1, db_task_id=100
-        )
+        await task_manager.enqueue_crawl_task(project_id=1, target_id=1, db_task_id=100)
 
         # Should be in normal queue (default key for backward compatibility)
         queue_len = await redis_client.llen("eazy_task_queue")

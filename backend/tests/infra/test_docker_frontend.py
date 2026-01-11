@@ -7,7 +7,6 @@ Frontend Dockerfile 및 Nginx 설정 검증
 
 from pathlib import Path
 
-import pytest
 
 # 프로젝트 경로
 BACKEND_ROOT = Path(__file__).parent.parent.parent  # backend/
@@ -49,8 +48,9 @@ class TestFrontendMultiStage:
         """Dockerfile에 runtime 또는 nginx 스테이지가 있어야 함"""
         dockerfile = FRONTEND_ROOT / "Dockerfile"
         content = dockerfile.read_text().lower()
-        assert "as runtime" in content or "nginx" in content, \
-            "runtime/nginx stage not found"
+        assert (
+            "as runtime" in content or "nginx" in content
+        ), "runtime/nginx stage not found"
 
 
 class TestFrontendBuild:
@@ -60,8 +60,9 @@ class TestFrontendBuild:
         """Dockerfile이 npm ci를 실행해야 함"""
         dockerfile = FRONTEND_ROOT / "Dockerfile"
         content = dockerfile.read_text()
-        assert "npm ci" in content or "npm install" in content, \
-            "npm ci/install not found"
+        assert (
+            "npm ci" in content or "npm install" in content
+        ), "npm ci/install not found"
 
     def test_dockerfile_runs_npm_build(self):
         """Dockerfile이 npm run build를 실행해야 함"""
@@ -82,8 +83,7 @@ class TestNginxConfig:
         """nginx.conf에 server 블록이 있어야 함"""
         nginx_conf = FRONTEND_ROOT / "nginx.conf"
         content = nginx_conf.read_text()
-        assert "server {" in content or "server{" in content, \
-            "server block not found"
+        assert "server {" in content or "server{" in content, "server block not found"
 
     def test_nginx_conf_has_spa_routing(self):
         """nginx.conf에 SPA 라우팅 설정이 있어야 함 (try_files)"""
@@ -101,8 +101,9 @@ class TestNginxConfig:
         """nginx.conf가 backend 서비스로 프록시해야 함"""
         nginx_conf = FRONTEND_ROOT / "nginx.conf"
         content = nginx_conf.read_text()
-        assert "backend" in content or "8000" in content, \
-            "backend proxy target not found"
+        assert (
+            "backend" in content or "8000" in content
+        ), "backend proxy target not found"
 
 
 class TestDockerfileExpose:

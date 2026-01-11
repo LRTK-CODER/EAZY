@@ -6,7 +6,7 @@ Worker의 ACK/NACK 패턴, 에러 처리, 재시도 로직을 검증합니다.
 
 import json
 import pytest
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch
 from redis.asyncio import Redis
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -173,7 +173,7 @@ class TestErrorClassificationIntegration:
     @pytest.mark.asyncio
     async def test_classify_error_in_context(self, redis_client: Redis):
         """에러 분류가 올바르게 동작하는지 확인"""
-        from app.core.errors import classify_error, ErrorCategory
+        from app.core.errors import classify_error
 
         # 다양한 에러 타입 테스트
         test_cases = [
@@ -199,7 +199,6 @@ class TestDLQIntegration:
     ):
         """영구적 에러는 DLQ로 이동해야 함"""
         from app.core.dlq import DLQManager
-        from app.core.errors import ErrorCategory
 
         dlq_manager = DLQManager(redis_client)
 
@@ -226,9 +225,7 @@ class TestRecoveryIntegration:
     """복구 통합 테스트"""
 
     @pytest.mark.asyncio
-    async def test_orphan_recovery_flow(
-        self, redis_client: Redis, clean_all_queues
-    ):
+    async def test_orphan_recovery_flow(self, redis_client: Redis, clean_all_queues):
         """고아 작업 복구 전체 흐름 테스트"""
         from app.core.recovery import OrphanRecovery
         from app.core.queue import TaskManager

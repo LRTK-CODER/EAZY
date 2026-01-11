@@ -4,6 +4,7 @@ TDD RED 단계 - DistributedLock 구현 전에 모두 실패해야 함
 
 Day 3: 분산 잠금 시스템
 """
+
 import asyncio
 import pytest
 from redis.asyncio import Redis
@@ -13,14 +14,14 @@ from redis.asyncio import Redis
 # Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 async def redis_client() -> Redis:
     """테스트용 Redis 클라이언트"""
     from app.core.config import settings
+
     redis = Redis.from_url(
-        settings.REDIS_URL,
-        decode_responses=True,
-        single_connection_client=True
+        settings.REDIS_URL, decode_responses=True, single_connection_client=True
     )
     # Initialize connection (required for single_connection_client in redis-py 7.x)
     await redis.ping()
@@ -45,6 +46,7 @@ async def clean_locks(redis_client: Redis):
 # =============================================================================
 # Lock Acquisition Tests
 # =============================================================================
+
 
 class TestLockAcquisition:
     """잠금 획득 테스트"""
@@ -79,9 +81,7 @@ class TestLockAcquisition:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_acquire_sets_ttl(
-        self, redis_client: Redis, clean_locks
-    ):
+    async def test_acquire_sets_ttl(self, redis_client: Redis, clean_locks):
         """획득 시 TTL이 설정되어야 함"""
         from app.core.lock import DistributedLock
 
@@ -97,13 +97,12 @@ class TestLockAcquisition:
 # Lock Release Tests
 # =============================================================================
 
+
 class TestLockRelease:
     """잠금 해제 테스트"""
 
     @pytest.mark.asyncio
-    async def test_release_removes_lock(
-        self, redis_client: Redis, clean_locks
-    ):
+    async def test_release_removes_lock(self, redis_client: Redis, clean_locks):
         """해제 시 잠금 제거"""
         from app.core.lock import DistributedLock
 
@@ -152,6 +151,7 @@ class TestLockRelease:
 # Context Manager Tests
 # =============================================================================
 
+
 class TestContextManager:
     """Context Manager 테스트"""
 
@@ -162,7 +162,7 @@ class TestContextManager:
         """with 블록 진입/종료 시 획득/해제"""
         from app.core.lock import DistributedLock
 
-        async with DistributedLock(redis_client, "test:target:7") as lock:
+        async with DistributedLock(redis_client, "test:target:7") as _:
             assert await redis_client.exists("eazy:lock:test:target:7") == 1
 
         assert await redis_client.exists("eazy:lock:test:target:7") == 0
@@ -203,13 +203,12 @@ class TestContextManager:
 # Lock Extension Tests
 # =============================================================================
 
+
 class TestLockExtension:
     """TTL 연장 테스트"""
 
     @pytest.mark.asyncio
-    async def test_extend_increases_ttl(
-        self, redis_client: Redis, clean_locks
-    ):
+    async def test_extend_increases_ttl(self, redis_client: Redis, clean_locks):
         """extend 호출 시 TTL 증가"""
         from app.core.lock import DistributedLock
 
@@ -223,9 +222,7 @@ class TestLockExtension:
         assert 55 <= ttl <= 60
 
     @pytest.mark.asyncio
-    async def test_extend_fails_for_wrong_owner(
-        self, redis_client: Redis, clean_locks
-    ):
+    async def test_extend_fails_for_wrong_owner(self, redis_client: Redis, clean_locks):
         """다른 소유자의 잠금은 연장 불가"""
         from app.core.lock import DistributedLock
 
@@ -241,6 +238,7 @@ class TestLockExtension:
 # =============================================================================
 # Concurrency Tests
 # =============================================================================
+
 
 class TestConcurrency:
     """동시성 테스트"""
@@ -259,19 +257,13 @@ class TestConcurrency:
             result = await lock.acquire()
             results.append((lock_id, result))
 
-        await asyncio.gather(
-            try_acquire(1),
-            try_acquire(2),
-            try_acquire(3)
-        )
+        await asyncio.gather(try_acquire(1), try_acquire(2), try_acquire(3))
 
         success_count = sum(1 for _, r in results if r)
         assert success_count == 1
 
     @pytest.mark.asyncio
-    async def test_sequential_locks_work(
-        self, redis_client: Redis, clean_locks
-    ):
+    async def test_sequential_locks_work(self, redis_client: Redis, clean_locks):
         """순차적 잠금/해제가 정상 동작"""
         from app.core.lock import DistributedLock
 
@@ -284,6 +276,7 @@ class TestConcurrency:
 # =============================================================================
 # Is Owned Tests
 # =============================================================================
+
 
 class TestIsOwned:
     """소유권 확인 테스트"""
@@ -318,6 +311,7 @@ class TestIsOwned:
 # =============================================================================
 # Lock Info Tests
 # =============================================================================
+
 
 class TestLockInfo:
     """잠금 정보 테스트"""

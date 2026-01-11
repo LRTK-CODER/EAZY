@@ -2,6 +2,7 @@
 Test 5-Imp.18: CrawlerService HTTP Interception Tests (RED Phase)
 Expected to FAIL: CrawlerService doesn't register page event handlers yet
 """
+
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from app.services.crawler_service import CrawlerService
@@ -23,7 +24,9 @@ async def test_crawler_registers_request_handler():
 
     mock_page.on = MagicMock(side_effect=capture_request_handler)
     mock_page.goto = AsyncMock()
-    mock_page.locator = MagicMock(return_value=MagicMock(all=AsyncMock(return_value=[])))
+    mock_page.locator = MagicMock(
+        return_value=MagicMock(all=AsyncMock(return_value=[]))
+    )
 
     # Patch playwright context
     with patch("app.services.crawler_service.async_playwright") as mock_playwright:
@@ -32,14 +35,18 @@ async def test_crawler_registers_request_handler():
         mock_context.new_page = AsyncMock(return_value=mock_page)
         mock_browser.new_context = AsyncMock(return_value=mock_context)
         mock_playwright.return_value.__aenter__ = AsyncMock(
-            return_value=MagicMock(chromium=MagicMock(launch=AsyncMock(return_value=mock_browser)))
+            return_value=MagicMock(
+                chromium=MagicMock(launch=AsyncMock(return_value=mock_browser))
+            )
         )
 
         # Call crawl - should FAIL: page.on("request") is never called
         await service.crawl("http://example.com")
 
     # Verify request handler was registered
-    assert mock_request_handler is not None, "CrawlerService should register 'request' event handler"
+    assert (
+        mock_request_handler is not None
+    ), "CrawlerService should register 'request' event handler"
 
 
 @pytest.mark.asyncio
@@ -58,7 +65,9 @@ async def test_crawler_registers_response_handler():
 
     mock_page.on = MagicMock(side_effect=capture_response_handler)
     mock_page.goto = AsyncMock()
-    mock_page.locator = MagicMock(return_value=MagicMock(all=AsyncMock(return_value=[])))
+    mock_page.locator = MagicMock(
+        return_value=MagicMock(all=AsyncMock(return_value=[]))
+    )
 
     # Patch playwright
     with patch("app.services.crawler_service.async_playwright") as mock_playwright:
@@ -67,14 +76,18 @@ async def test_crawler_registers_response_handler():
         mock_context.new_page = AsyncMock(return_value=mock_page)
         mock_browser.new_context = AsyncMock(return_value=mock_context)
         mock_playwright.return_value.__aenter__ = AsyncMock(
-            return_value=MagicMock(chromium=MagicMock(launch=AsyncMock(return_value=mock_browser)))
+            return_value=MagicMock(
+                chromium=MagicMock(launch=AsyncMock(return_value=mock_browser))
+            )
         )
 
         # Call crawl - should FAIL: page.on("response") is never called
         await service.crawl("http://example.com")
 
     # Verify response handler was registered
-    assert mock_response_handler is not None, "CrawlerService should register 'response' event handler"
+    assert (
+        mock_response_handler is not None
+    ), "CrawlerService should register 'response' event handler"
 
 
 @pytest.mark.asyncio
@@ -126,7 +139,7 @@ async def test_crawler_enforces_body_size_limit():
     # Should FAIL: body size limit not implemented
 
     # Mock a large response body
-    large_body = "x" * 20000  # 20KB
+    _large_body = "x" * 20000  # 20KB
 
     result = await service.crawl("http://example.com")
 
@@ -143,4 +156,4 @@ async def test_crawler_enforces_body_size_limit():
         if "response" in data and "body" in data["response"]:
             body = data["response"]["body"]
             if body:
-                assert len(body) <= MAX_BODY_SIZE, f"Response body exceeds 10KB limit"
+                assert len(body) <= MAX_BODY_SIZE, "Response body exceeds 10KB limit"

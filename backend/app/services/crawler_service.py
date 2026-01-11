@@ -49,7 +49,10 @@ class CrawlerService:
                             if post_data:
                                 # Truncate if too large
                                 if len(post_data) > self.MAX_BODY_SIZE:
-                                    body = post_data[:self.MAX_BODY_SIZE] + "... [TRUNCATED]"
+                                    body = (
+                                        post_data[: self.MAX_BODY_SIZE]
+                                        + "... [TRUNCATED]"
+                                    )
                                 else:
                                     body = post_data
                         except Exception:
@@ -62,11 +65,13 @@ class CrawlerService:
                     http_data[req_url]["request"] = {
                         "method": request.method,
                         "headers": headers,
-                        "body": body
+                        "body": body,
                     }
 
                 except Exception as e:
-                    logger.warning("Request interception error", error=str(e), url=req_url)
+                    logger.warning(
+                        "Request interception error", error=str(e), url=req_url
+                    )
 
             # Response interceptor
             async def handle_response(response: Response) -> None:
@@ -80,20 +85,25 @@ class CrawlerService:
                     content_type = headers.get("content-type", "")
 
                     # Handle text-based responses (JSON, HTML, CSS, JS)
-                    if any(ct in content_type for ct in [
-                        "application/json",
-                        "text/html",
-                        "text/css",
-                        "text/javascript",
-                        "application/javascript",
-                        "application/x-javascript"
-                    ]):
+                    if any(
+                        ct in content_type
+                        for ct in [
+                            "application/json",
+                            "text/html",
+                            "text/css",
+                            "text/javascript",
+                            "application/javascript",
+                            "application/x-javascript",
+                        ]
+                    ):
                         try:
                             body_text = await response.text()
 
                             # Truncate if too large
                             if len(body_text) > self.MAX_BODY_SIZE:
-                                body = body_text[:self.MAX_BODY_SIZE] + "... [TRUNCATED]"
+                                body = (
+                                    body_text[: self.MAX_BODY_SIZE] + "... [TRUNCATED]"
+                                )
                             else:
                                 # Try to parse as JSON for API responses
                                 if "application/json" in content_type:
@@ -114,10 +124,10 @@ class CrawlerService:
 
                             # Truncate if too large
                             if len(body_bytes) > self.MAX_BODY_SIZE:
-                                body_bytes = body_bytes[:self.MAX_BODY_SIZE]
+                                body_bytes = body_bytes[: self.MAX_BODY_SIZE]
 
                             # Encode as Base64 string for JSON serialization
-                            body = base64.b64encode(body_bytes).decode('utf-8')
+                            body = base64.b64encode(body_bytes).decode("utf-8")
                         except Exception:
                             pass
 
@@ -128,11 +138,13 @@ class CrawlerService:
                     http_data[resp_url]["response"] = {
                         "status": response.status,
                         "headers": headers,
-                        "body": body
+                        "body": body,
                     }
 
                 except Exception as e:
-                    logger.warning("Response interception error", error=str(e), url=resp_url)
+                    logger.warning(
+                        "Response interception error", error=str(e), url=resp_url
+                    )
 
             # Register event listeners
             page.on("request", handle_request)

@@ -1,17 +1,16 @@
 import pytest
-import asyncio
-from typing import AsyncGenerator, Generator
+from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 from httpx import AsyncClient, ASGITransport
-from redis.asyncio import Redis, ConnectionPool
+from redis.asyncio import Redis
 
 from app.main import app
 from app.core.config import settings
 from app.core.db import get_session
 from app.core.redis import get_redis
+
 
 @pytest.fixture(scope="function")
 async def db_engine():
@@ -20,21 +19,21 @@ async def db_engine():
     yield engine
     await engine.dispose()
 
+
 @pytest.fixture(scope="function")
 async def db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
-    async_session = sessionmaker(
-        db_engine, class_=AsyncSession, expire_on_commit=False
-    )
+    async_session = sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
     async with async_session() as session:
         # CLEANUP: Truncate all tables before test (Order matters due to FKs)
         # Or use CASCADE.
         # For simplicity in MVP, we explicitly delete from known tables.
         # Be careful with dependencies.
-        
+
         # We can't use TRUNCATE easily with FKs without CASCADE in Postgres.
         # DELETE FROM is safer for small data.
-        
+
         from sqlalchemy import text
+
         # Disable FK checks temporarily or delete in order
         # Leaf tables first
         await session.exec(text("DELETE FROM asset_discoveries"))
@@ -43,8 +42,9 @@ async def db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
         await session.exec(text("DELETE FROM targets"))
         await session.exec(text("DELETE FROM projects"))
         await session.commit()
-        
+
         yield session
+
 
 @pytest.fixture(scope="function")
 async def redis_client() -> AsyncGenerator[Redis, None]:
@@ -55,30 +55,33 @@ async def redis_client() -> AsyncGenerator[Redis, None]:
     might see slightly different state during tests.
     """
     redis = Redis(
-        host='localhost',
+        host="localhost",
         port=6379,
         db=0,
         decode_responses=True,
-        single_connection_client=True
+        single_connection_client=True,
     )
     # Initialize connection (required for single_connection_client in redis-py 7.x)
     await redis.ping()
     yield redis
     await redis.aclose()
 
+
 @pytest.fixture(scope="function")
 async def client(db_session, redis_client: Redis) -> AsyncGenerator[AsyncClient, None]:
     # Override the get_session dependency in the app to use our test session
     async def override_get_session():
         yield db_session
-        
+
     async def override_get_redis():
         yield redis_client
 
     app.dependency_overrides[get_session] = override_get_session
     app.dependency_overrides[get_redis] = override_get_redis
-    
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
         yield ac
-    
+
     app.dependency_overrides.clear()

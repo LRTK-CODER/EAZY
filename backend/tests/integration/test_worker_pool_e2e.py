@@ -4,19 +4,21 @@ Day 5: 통합 테스트 + 마무리
 
 WorkerPool + DistributedLock + CrawlWorker 전체 통합 검증
 """
+
 import asyncio
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 from redis.asyncio import Redis
 
 from app.workers.pool import WorkerPool, WorkerPoolConfig
-from app.workers.base import WorkerContext, TaskResult
+from app.workers.base import TaskResult
 from app.core.lock import DistributedLock, LockAcquisitionError
 
 
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def pool_config():
@@ -35,10 +37,9 @@ def pool_config():
 async def redis_client():
     """테스트용 Redis 클라이언트 (실제 연결)"""
     from app.core.config import settings
+
     redis = Redis.from_url(
-        settings.REDIS_URL,
-        decode_responses=True,
-        single_connection_client=True
+        settings.REDIS_URL, decode_responses=True, single_connection_client=True
     )
     # Initialize connection (required for single_connection_client in redis-py 7.x)
     await redis.ping()
@@ -64,6 +65,7 @@ async def clean_test_locks(redis_client):
 # WorkerPool Configuration Tests
 # =============================================================================
 
+
 class TestWorkerPoolConfiguration:
     """워커 풀 설정 테스트"""
 
@@ -78,11 +80,14 @@ class TestWorkerPoolConfiguration:
 
     def test_config_from_env_custom(self):
         """환경변수 커스텀 값 테스트"""
-        with patch.dict("os.environ", {
-            "WORKER_NUM_WORKERS": "8",
-            "WORKER_MAX_RESTARTS": "10",
-            "WORKER_SHUTDOWN_TIMEOUT": "60.0",
-        }):
+        with patch.dict(
+            "os.environ",
+            {
+                "WORKER_NUM_WORKERS": "8",
+                "WORKER_MAX_RESTARTS": "10",
+                "WORKER_SHUTDOWN_TIMEOUT": "60.0",
+            },
+        ):
             config = WorkerPoolConfig.from_env()
 
             assert config.num_workers == 8
@@ -100,6 +105,7 @@ class TestWorkerPoolConfiguration:
 # =============================================================================
 # DistributedLock Integration Tests
 # =============================================================================
+
 
 class TestDistributedLockIntegration:
     """분산 잠금 통합 테스트"""
@@ -125,9 +131,7 @@ class TestDistributedLockIntegration:
         await lock2.release()
 
     @pytest.mark.asyncio
-    async def test_lock_context_manager_cleanup(
-        self, redis_client, clean_test_locks
-    ):
+    async def test_lock_context_manager_cleanup(self, redis_client, clean_test_locks):
         """컨텍스트 매니저가 잠금을 정리"""
         async with DistributedLock(redis_client, "e2e:target:2") as lock:
             assert await redis_client.exists(lock.lock_key) == 1
@@ -169,15 +173,14 @@ class TestDistributedLockIntegration:
 # CrawlWorker Lock Integration Tests
 # =============================================================================
 
+
 class TestCrawlWorkerLockIntegration:
     """CrawlWorker 잠금 통합 테스트"""
 
     @pytest.mark.asyncio
     async def test_crawl_worker_uses_lock(self):
         """CrawlWorker가 분산 잠금을 사용"""
-        from app.workers.crawl_worker import CrawlWorker, LOCK_PREFIX, LOCK_TTL
-        from app.models.target import Target
-        from app.models.task import Task, TaskType, TaskStatus
+        from app.workers.crawl_worker import LOCK_PREFIX, LOCK_TTL
 
         # Verify constants
         assert LOCK_PREFIX == "eazy:lock:"
@@ -197,6 +200,7 @@ class TestCrawlWorkerLockIntegration:
 # =============================================================================
 # TaskResult Integration Tests
 # =============================================================================
+
 
 class TestTaskResultIntegration:
     """TaskResult 통합 테스트"""
@@ -237,6 +241,7 @@ class TestTaskResultIntegration:
 # Pool Lifecycle Tests
 # =============================================================================
 
+
 class TestPoolLifecycle:
     """워커 풀 라이프사이클 테스트"""
 
@@ -246,7 +251,9 @@ class TestPoolLifecycle:
         pool = WorkerPool(config=pool_config)
 
         # Mock process_one_task to return False (no tasks)
-        with patch("app.workers.pool.process_one_task", new=AsyncMock(return_value=False)):
+        with patch(
+            "app.workers.pool.process_one_task", new=AsyncMock(return_value=False)
+        ):
             with patch("app.workers.pool.create_worker_context"):
                 # 시작 태스크 생성
                 start_task = asyncio.create_task(pool.start())
@@ -265,7 +272,9 @@ class TestPoolLifecycle:
         """풀은 두 번 시작할 수 없음"""
         pool = WorkerPool(config=pool_config)
 
-        with patch("app.workers.pool.process_one_task", new=AsyncMock(return_value=False)):
+        with patch(
+            "app.workers.pool.process_one_task", new=AsyncMock(return_value=False)
+        ):
             with patch("app.workers.pool.create_worker_context"):
                 start_task = asyncio.create_task(pool.start())
 
@@ -282,6 +291,7 @@ class TestPoolLifecycle:
 # =============================================================================
 # Error Handling Integration Tests
 # =============================================================================
+
 
 class TestErrorHandlingIntegration:
     """에러 처리 통합 테스트"""
@@ -317,6 +327,7 @@ class TestErrorHandlingIntegration:
 # =============================================================================
 # Component Export Tests
 # =============================================================================
+
 
 class TestComponentExports:
     """컴포넌트 내보내기 테스트"""

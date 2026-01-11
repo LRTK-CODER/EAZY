@@ -2,6 +2,7 @@
 Test 5-Imp.33: AssetService Parameter Storage Tests (RED Phase)
 Expected to FAIL: process_asset() doesn't accept parameters argument yet
 """
+
 import pytest
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.services.asset_service import AssetService
@@ -24,7 +25,7 @@ async def test_asset_parameters_jsonb_storage(db_session: AsyncSession):
         name="Params Target",
         project_id=project.id,
         url="http://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -38,11 +39,7 @@ async def test_asset_parameters_jsonb_storage(db_session: AsyncSession):
     service = AssetService(db_session)
 
     # Prepare parameters from URL query
-    parameters = {
-        "q": "search term",
-        "page": "1",
-        "limit": "20"
-    }
+    parameters = {"q": "search term", "page": "1", "limit": "20"}
 
     # Call process_asset with parameters
     # Should FAIL: TypeError - process_asset() got unexpected keyword argument 'parameters'
@@ -53,7 +50,7 @@ async def test_asset_parameters_jsonb_storage(db_session: AsyncSession):
         method="GET",
         type=AssetType.URL,
         source=AssetSource.HTML,
-        parameters=parameters  # This parameter doesn't exist yet
+        parameters=parameters,  # This parameter doesn't exist yet
     )
 
     # Verify parameters are stored in JSONB field
@@ -76,7 +73,7 @@ async def test_asset_parameters_null_allowed(db_session: AsyncSession):
         name="Target",
         project_id=project.id,
         url="http://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -98,7 +95,7 @@ async def test_asset_parameters_null_allowed(db_session: AsyncSession):
         method="GET",
         type=AssetType.URL,
         source=AssetSource.HTML,
-        parameters=None  # Explicitly None
+        parameters=None,  # Explicitly None
     )
 
     # Verify NULL is allowed
@@ -118,7 +115,7 @@ async def test_asset_parameters_duplicate_merging(db_session: AsyncSession):
         name="Target",
         project_id=project.id,
         url="http://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -135,7 +132,7 @@ async def test_asset_parameters_duplicate_merging(db_session: AsyncSession):
     # This would come from: ?tag=python&tag=django&tag=web
     parameters = {
         "tag": ["python", "django", "web"],  # Multiple values as list
-        "sort": "recent"
+        "sort": "recent",
     }
 
     # Should FAIL: process_asset() doesn't accept parameters yet
@@ -146,13 +143,15 @@ async def test_asset_parameters_duplicate_merging(db_session: AsyncSession):
         method="GET",
         type=AssetType.URL,
         source=AssetSource.HTML,
-        parameters=parameters
+        parameters=parameters,
     )
 
     # Verify duplicate parameters are stored as list
     assert asset.parameters is not None
     assert "tag" in asset.parameters
-    assert isinstance(asset.parameters["tag"], list), "Duplicate parameters should be list"
+    assert isinstance(
+        asset.parameters["tag"], list
+    ), "Duplicate parameters should be list"
     assert len(asset.parameters["tag"]) == 3
     assert "python" in asset.parameters["tag"]
     assert "django" in asset.parameters["tag"]

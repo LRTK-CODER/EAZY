@@ -1,6 +1,5 @@
 import hashlib
 from typing import Optional, Dict, Any, List, Tuple
-from datetime import datetime
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from urllib.parse import urlparse
@@ -42,7 +41,7 @@ class AssetService:
                 task_id=task_id,
                 asset_id=asset.id,
                 parent_asset_id=parent_id,
-                discovered_at=utc_now()
+                discovered_at=utc_now(),
             )
             discoveries.append(discovery)
 
@@ -63,7 +62,9 @@ class AssetService:
         identifier = f"{method.upper()}:{url}"
         return hashlib.sha256(identifier.encode()).hexdigest()
 
-    def _truncate_body(self, spec: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    def _truncate_body(
+        self, spec: Optional[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
         """
         Truncate body field in request/response spec if it exceeds MAX_BODY_SIZE.
 
@@ -103,7 +104,7 @@ class AssetService:
         # NEW PARAMETERS
         request_spec: Optional[Dict[str, Any]] = None,
         response_spec: Optional[Dict[str, Any]] = None,
-        parameters: Optional[Dict[str, Any]] = None
+        parameters: Optional[Dict[str, Any]] = None,
     ) -> Asset:
         """
         Process a discovered asset with HTTP data and parameters.
@@ -167,7 +168,7 @@ class AssetService:
                 # NEW FIELDS
                 request_spec=request_spec,
                 response_spec=response_spec,
-                parameters=parameters
+                parameters=parameters,
             )
 
         # Buffer asset and discovery info (defer commit)

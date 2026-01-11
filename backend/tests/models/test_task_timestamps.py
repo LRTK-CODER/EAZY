@@ -2,11 +2,11 @@
 Test 5-Imp.1: Task Timestamps & Cancellation Model Tests (RED Phase)
 Expected to FAIL: AttributeError for started_at, completed_at, CANCELLED status
 """
+
 import pytest
 from datetime import datetime
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.project import Project
-from app.models.target import Target, TargetScope
 from app.models.task import Task, TaskType, TaskStatus
 
 
@@ -23,7 +23,7 @@ async def test_task_has_started_at_field(db_session: AsyncSession):
     task = Task(project_id=project.id, type=TaskType.CRAWL, status=TaskStatus.PENDING)
 
     # This should FAIL: AttributeError: 'Task' has no attribute 'started_at'
-    assert hasattr(task, 'started_at'), "Task should have started_at field"
+    assert hasattr(task, "started_at"), "Task should have started_at field"
     assert task.started_at is None, "started_at should be None initially"
 
 
@@ -38,7 +38,7 @@ async def test_task_has_completed_at_field(db_session: AsyncSession):
     task = Task(project_id=project.id, type=TaskType.CRAWL, status=TaskStatus.PENDING)
 
     # This should FAIL: AttributeError: 'Task' has no attribute 'completed_at'
-    assert hasattr(task, 'completed_at'), "Task should have completed_at field"
+    assert hasattr(task, "completed_at"), "Task should have completed_at field"
     assert task.completed_at is None, "completed_at should be None initially"
 
 
@@ -46,7 +46,7 @@ async def test_task_has_completed_at_field(db_session: AsyncSession):
 async def test_task_status_has_cancelled_value(db_session: AsyncSession):
     """Test TaskStatus enum has CANCELLED value - RED Phase"""
     # This should FAIL: AttributeError: 'TaskStatus' has no attribute 'CANCELLED'
-    assert hasattr(TaskStatus, 'CANCELLED'), "TaskStatus should have CANCELLED value"
+    assert hasattr(TaskStatus, "CANCELLED"), "TaskStatus should have CANCELLED value"
     assert TaskStatus.CANCELLED == "cancelled"
 
 
@@ -71,6 +71,7 @@ async def test_task_started_at_auto_set_on_running(db_session: AsyncSession):
     task.status = TaskStatus.RUNNING
     # Manually set started_at (this would be done in service layer)
     from app.core.utils import utc_now
+
     task.started_at = utc_now()
     await db_session.commit()
     await db_session.refresh(task)
@@ -90,11 +91,12 @@ async def test_task_completed_at_auto_set_on_completion(db_session: AsyncSession
 
     # Create task with RUNNING status
     from app.core.utils import utc_now
+
     task = Task(
         project_id=project.id,
         type=TaskType.CRAWL,
         status=TaskStatus.RUNNING,
-        started_at=utc_now()
+        started_at=utc_now(),
     )
     db_session.add(task)
     await db_session.commit()
@@ -124,11 +126,12 @@ async def test_task_completed_at_set_on_cancellation(db_session: AsyncSession):
 
     # Create task with RUNNING status
     from app.core.utils import utc_now
+
     task = Task(
         project_id=project.id,
         type=TaskType.CRAWL,
         status=TaskStatus.RUNNING,
-        started_at=utc_now()
+        started_at=utc_now(),
     )
     db_session.add(task)
     await db_session.commit()

@@ -7,7 +7,7 @@ async def test_crawler_uses_explicit_timeout():
     """Test that crawler uses explicit timeout for page.goto()."""
     from app.services.crawler_service import CrawlerService
 
-    with patch('app.services.crawler_service.async_playwright') as mock_playwright:
+    with patch("app.services.crawler_service.async_playwright") as mock_playwright:
         # Setup mocks
         mock_page = AsyncMock()
         mock_page.locator.return_value.all.return_value = []
@@ -28,5 +28,7 @@ async def test_crawler_uses_explicit_timeout():
         # Verify timeout parameter is passed
         mock_page.goto.assert_called_once()
         call_kwargs = mock_page.goto.call_args[1]
-        assert "timeout" in call_kwargs, "timeout parameter should be passed to page.goto()"
+        assert (
+            "timeout" in call_kwargs
+        ), "timeout parameter should be passed to page.goto()"
         assert call_kwargs["timeout"] == 30000, "timeout should be 30000ms (30 seconds)"

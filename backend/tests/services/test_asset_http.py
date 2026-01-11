@@ -2,6 +2,7 @@
 Test 5-Imp.19: AssetService HTTP Storage Tests (RED Phase)
 Expected to FAIL: process_asset() doesn't accept request_spec, response_spec parameters yet
 """
+
 import pytest
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.services.asset_service import AssetService
@@ -24,7 +25,7 @@ async def test_asset_request_spec_jsonb_storage(db_session: AsyncSession):
         name="HTTP Target",
         project_id=project.id,
         url="http://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -40,11 +41,8 @@ async def test_asset_request_spec_jsonb_storage(db_session: AsyncSession):
     # Prepare HTTP request spec
     request_spec = {
         "method": "GET",
-        "headers": {
-            "User-Agent": "Mozilla/5.0",
-            "Accept": "text/html"
-        },
-        "body": None
+        "headers": {"User-Agent": "Mozilla/5.0", "Accept": "text/html"},
+        "body": None,
     }
 
     # Call process_asset with request_spec
@@ -56,7 +54,7 @@ async def test_asset_request_spec_jsonb_storage(db_session: AsyncSession):
         method="GET",
         type=AssetType.URL,
         source=AssetSource.HTML,
-        request_spec=request_spec  # This parameter doesn't exist yet
+        request_spec=request_spec,  # This parameter doesn't exist yet
     )
 
     # Verify request_spec is stored
@@ -78,7 +76,7 @@ async def test_asset_response_spec_jsonb_storage(db_session: AsyncSession):
         name="Target",
         project_id=project.id,
         url="http://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -94,11 +92,8 @@ async def test_asset_response_spec_jsonb_storage(db_session: AsyncSession):
     # Prepare HTTP response spec
     response_spec = {
         "status": 200,
-        "headers": {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-cache"
-        },
-        "body": '{"users": [{"id": 1, "name": "Alice"}]}'
+        "headers": {"Content-Type": "application/json", "Cache-Control": "no-cache"},
+        "body": '{"users": [{"id": 1, "name": "Alice"}]}',
     }
 
     # Call process_asset with response_spec
@@ -110,7 +105,7 @@ async def test_asset_response_spec_jsonb_storage(db_session: AsyncSession):
         method="GET",
         type=AssetType.URL,
         source=AssetSource.HTML,
-        response_spec=response_spec  # This parameter doesn't exist yet
+        response_spec=response_spec,  # This parameter doesn't exist yet
     )
 
     # Verify response_spec is stored
@@ -132,7 +127,7 @@ async def test_asset_http_specs_null_allowed(db_session: AsyncSession):
         name="Target",
         project_id=project.id,
         url="http://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -155,7 +150,7 @@ async def test_asset_http_specs_null_allowed(db_session: AsyncSession):
         type=AssetType.URL,
         source=AssetSource.HTML,
         request_spec=None,
-        response_spec=None
+        response_spec=None,
     )
 
     # Verify NULL is allowed
@@ -176,7 +171,7 @@ async def test_asset_http_body_truncation(db_session: AsyncSession):
         name="Target",
         project_id=project.id,
         url="http://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -196,7 +191,7 @@ async def test_asset_http_body_truncation(db_session: AsyncSession):
     response_spec = {
         "status": 200,
         "headers": {"Content-Type": "text/html"},
-        "body": large_body
+        "body": large_body,
     }
 
     # Should FAIL: process_asset() doesn't accept response_spec yet
@@ -207,10 +202,12 @@ async def test_asset_http_body_truncation(db_session: AsyncSession):
         method="GET",
         type=AssetType.URL,
         source=AssetSource.HTML,
-        response_spec=response_spec
+        response_spec=response_spec,
     )
 
     # Verify body is truncated to 10KB
     assert asset.response_spec is not None
     stored_body = asset.response_spec.get("body", "")
-    assert len(stored_body) <= MAX_BODY_SIZE, f"Body should be truncated to max {MAX_BODY_SIZE} bytes"
+    assert (
+        len(stored_body) <= MAX_BODY_SIZE
+    ), f"Body should be truncated to max {MAX_BODY_SIZE} bytes"

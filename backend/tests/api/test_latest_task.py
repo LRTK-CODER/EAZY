@@ -2,13 +2,16 @@
 Test 5-Imp.3: Latest Task API Tests (RED Phase)
 Expected to FAIL: 404 Not Found for /targets/{id}/latest-task endpoint
 """
+
 import pytest
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 
 @pytest.mark.asyncio
-async def test_get_latest_task_endpoint_exists(client: AsyncClient, db_session: AsyncSession):
+async def test_get_latest_task_endpoint_exists(
+    client: AsyncClient, db_session: AsyncSession
+):
     """Test GET /targets/{id}/latest-task returns 200 OK - RED Phase"""
     # Setup: Create project and target
     resp = await client.post("/api/v1/projects/", json={"name": "Latest Task Proj"})
@@ -17,7 +20,7 @@ async def test_get_latest_task_endpoint_exists(client: AsyncClient, db_session: 
 
     resp = await client.post(
         f"/api/v1/projects/{project_id}/targets/",
-        json={"name": "Target", "url": "http://example.com"}
+        json={"name": "Target", "url": "http://example.com"},
     )
     assert resp.status_code == 201
     target_id = resp.json()["id"]
@@ -37,7 +40,9 @@ async def test_get_latest_task_endpoint_exists(client: AsyncClient, db_session: 
 
 
 @pytest.mark.asyncio
-async def test_get_latest_task_returns_most_recent(client: AsyncClient, db_session: AsyncSession):
+async def test_get_latest_task_returns_most_recent(
+    client: AsyncClient, db_session: AsyncSession
+):
     """Test returns most recent task (ORDER BY created_at DESC) - RED Phase"""
     # Setup
     resp = await client.post("/api/v1/projects/", json={"name": "Recent Task Proj"})
@@ -45,7 +50,7 @@ async def test_get_latest_task_returns_most_recent(client: AsyncClient, db_sessi
 
     resp = await client.post(
         f"/api/v1/projects/{project_id}/targets/",
-        json={"name": "Target", "url": "http://example.com"}
+        json={"name": "Target", "url": "http://example.com"},
     )
     target_id = resp.json()["id"]
 
@@ -71,7 +76,9 @@ async def test_get_latest_task_returns_most_recent(client: AsyncClient, db_sessi
 
 
 @pytest.mark.asyncio
-async def test_get_latest_task_returns_404_when_no_tasks(client: AsyncClient, db_session: AsyncSession):
+async def test_get_latest_task_returns_404_when_no_tasks(
+    client: AsyncClient, db_session: AsyncSession
+):
     """Test returns 404 when target has no tasks - RED Phase"""
     # Setup: Create project and target, but NO scans
     resp = await client.post("/api/v1/projects/", json={"name": "No Tasks Proj"})
@@ -79,7 +86,7 @@ async def test_get_latest_task_returns_404_when_no_tasks(client: AsyncClient, db
 
     resp = await client.post(
         f"/api/v1/projects/{project_id}/targets/",
-        json={"name": "Target No Scans", "url": "http://example.com"}
+        json={"name": "Target No Scans", "url": "http://example.com"},
     )
     target_id = resp.json()["id"]
 

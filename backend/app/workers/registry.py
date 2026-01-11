@@ -6,6 +6,7 @@ Phase 3: Architecture Improvement
 Provides a registry pattern for mapping task types to worker classes,
 enabling easy extension of the worker system with new task types.
 """
+
 from typing import Dict, Optional, Type, Union
 
 from app.workers.base import BaseWorker, WorkerContext
@@ -19,6 +20,7 @@ WORKER_REGISTRY: Dict[Union[TaskType, str], Type[BaseWorker]] = {}
 def _register_default_workers():
     """Register default workers on module load."""
     from app.workers.crawl_worker import CrawlWorker
+
     WORKER_REGISTRY[TaskType.CRAWL] = CrawlWorker
 
 
@@ -65,18 +67,18 @@ def register_worker(task_type: Union[TaskType, str]):
     Raises:
         TypeError: If the class is not a BaseWorker subclass
     """
+
     def decorator(cls: Type[BaseWorker]) -> Type[BaseWorker]:
         if not issubclass(cls, BaseWorker):
             raise TypeError(f"{cls.__name__} must be a subclass of BaseWorker")
         WORKER_REGISTRY[task_type] = cls
         return cls
+
     return decorator
 
 
 def create_worker(
-    task_type: Union[TaskType, str],
-    context: WorkerContext,
-    **kwargs
+    task_type: Union[TaskType, str], context: WorkerContext, **kwargs
 ) -> BaseWorker:
     """
     Factory function to create a worker instance.

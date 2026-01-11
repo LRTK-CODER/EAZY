@@ -84,7 +84,9 @@ class OrphanRecovery:
                     f"Invalid JSON in processing queue, treating as orphan: "
                     f"{parse_result.error}"
                 )
-                orphans.append({"_parse_error": parse_result.error, "_raw_json": task_json})
+                orphans.append(
+                    {"_parse_error": parse_result.error, "_raw_json": task_json}
+                )
                 continue
 
             task_data = parse_result.data

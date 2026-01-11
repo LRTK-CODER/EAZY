@@ -237,10 +237,12 @@ class TaskManager:
                 results.append(parse_result.data)
             else:
                 # Include invalid entries with error info for debugging
-                results.append({
-                    "_parse_error": parse_result.error,
-                    "_raw_json": parse_result.raw_input[:500],  # Limit raw content
-                })
+                results.append(
+                    {
+                        "_parse_error": parse_result.error,
+                        "_raw_json": parse_result.raw_input[:500],  # Limit raw content
+                    }
+                )
         return results
 
     async def get_dlq_tasks(self) -> List[Dict[str, Any]]:
@@ -260,10 +262,12 @@ class TaskManager:
                 results.append(parse_result.data)
             else:
                 # Include invalid entries with error info for debugging
-                results.append({
-                    "_parse_error": parse_result.error,
-                    "_raw_json": parse_result.raw_input[:500],  # Limit raw content
-                })
+                results.append(
+                    {
+                        "_parse_error": parse_result.error,
+                        "_raw_json": parse_result.raw_input[:500],  # Limit raw content
+                    }
+                )
         return results
 
     async def get_queue_length(self) -> int:

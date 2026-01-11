@@ -2,8 +2,8 @@
 Phase 3 Day 3: Worker Registry 테스트
 TDD RED 단계 - 이 테스트들은 registry.py 구현 전에 실패해야 함
 """
+
 import pytest
-from unittest.mock import AsyncMock
 
 from app.models.task import TaskType
 from app.workers.base import BaseWorker, WorkerContext, TaskResult
@@ -31,8 +31,9 @@ class TestWorkerRegistry:
         from app.workers.registry import WORKER_REGISTRY
 
         for task_type, worker_class in WORKER_REGISTRY.items():
-            assert issubclass(worker_class, BaseWorker), \
-                f"{worker_class} is not a BaseWorker subclass"
+            assert issubclass(
+                worker_class, BaseWorker
+            ), f"{worker_class} is not a BaseWorker subclass"
 
 
 class TestGetWorkerClass:
@@ -118,6 +119,7 @@ class TestRegisterWorker:
         from app.workers.registry import register_worker
 
         with pytest.raises(TypeError):
+
             @register_worker("invalid")
             class NotAWorker:
                 pass

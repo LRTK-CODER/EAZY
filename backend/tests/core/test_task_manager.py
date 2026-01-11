@@ -1,6 +1,7 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from app.core.queue import TaskManager
+
 
 @pytest.mark.asyncio
 async def test_enqueue_task(client):
@@ -17,6 +18,7 @@ async def test_enqueue_task(client):
     assert task_id is not None
     # Verify Redis rpush was called to add to queue
     mock_redis.rpush.assert_called_once()
+
 
 @pytest.mark.asyncio
 async def test_dequeue_task_blmove():

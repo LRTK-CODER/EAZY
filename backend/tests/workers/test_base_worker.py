@@ -2,11 +2,9 @@
 Phase 3 Day 1: BaseWorker + WorkerContext 테스트
 TDD RED 단계 - 이 테스트들은 base.py 구현 전에 실패해야 함
 """
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from abc import ABC
 
-from sqlmodel.ext.asyncio.session import AsyncSession
+import pytest
+from unittest.mock import AsyncMock
 
 
 class TestWorkerContext:
@@ -224,7 +222,9 @@ class TestBaseWorker:
         await db_session.commit()
         await db_session.refresh(project)
 
-        target = Target(name="Test Target", project_id=project.id, url="http://example.com")
+        target = Target(
+            name="Test Target", project_id=project.id, url="http://example.com"
+        )
         db_session.add(target)
         await db_session.commit()
         await db_session.refresh(target)
@@ -288,7 +288,9 @@ class TestBaseWorker:
         await db_session.commit()
         await db_session.refresh(project)
 
-        target = Target(name="Test Target", project_id=project.id, url="http://example.com")
+        target = Target(
+            name="Test Target", project_id=project.id, url="http://example.com"
+        )
         db_session.add(target)
         await db_session.commit()
         await db_session.refresh(target)
@@ -350,7 +352,9 @@ class TestBaseWorker:
         await db_session.commit()
         await db_session.refresh(project)
 
-        target = Target(name="Test Target", project_id=project.id, url="http://example.com")
+        target = Target(
+            name="Test Target", project_id=project.id, url="http://example.com"
+        )
         db_session.add(target)
         await db_session.commit()
         await db_session.refresh(target)
@@ -409,7 +413,9 @@ class TestBaseWorker:
         await db_session.commit()
         await db_session.refresh(project)
 
-        target = Target(name="Test Target", project_id=project.id, url="http://example.com")
+        target = Target(
+            name="Test Target", project_id=project.id, url="http://example.com"
+        )
         db_session.add(target)
         await db_session.commit()
         await db_session.refresh(target)
@@ -473,7 +479,9 @@ class TestSkippedTaskHandling:
         await db_session.commit()
         await db_session.refresh(project)
 
-        target = Target(name="Test Target", project_id=project.id, url="http://example.com")
+        target = Target(
+            name="Test Target", project_id=project.id, url="http://example.com"
+        )
         db_session.add(target)
         await db_session.commit()
         await db_session.refresh(target)
@@ -495,10 +503,12 @@ class TestSkippedTaskHandling:
                 return TaskType.CRAWL
 
             async def execute(self, task_data, task_record):
-                return TaskResult.create_skipped({
-                    "target_id": task_data.get("target_id"),
-                    "reason": "lock_unavailable",
-                })
+                return TaskResult.create_skipped(
+                    {
+                        "target_id": task_data.get("target_id"),
+                        "reason": "lock_unavailable",
+                    }
+                )
 
         worker = SkippedWorker(context)
         task_data = {"db_task_id": task.id, "target_id": target.id, "id": "test-uuid"}
@@ -538,7 +548,9 @@ class TestSkippedTaskHandling:
         await db_session.commit()
         await db_session.refresh(project)
 
-        target = Target(name="Test Target", project_id=project.id, url="http://example.com")
+        target = Target(
+            name="Test Target", project_id=project.id, url="http://example.com"
+        )
         db_session.add(target)
         await db_session.commit()
         await db_session.refresh(target)
@@ -599,7 +611,9 @@ class TestSkippedTaskHandling:
         await db_session.commit()
         await db_session.refresh(project)
 
-        target = Target(name="Test Target", project_id=project.id, url="http://example.com")
+        target = Target(
+            name="Test Target", project_id=project.id, url="http://example.com"
+        )
         db_session.add(target)
         await db_session.commit()
         await db_session.refresh(target)

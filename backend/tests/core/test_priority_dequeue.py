@@ -8,7 +8,6 @@ Tests:
 3. Processing queue integration
 """
 
-import json
 import pytest
 from redis.asyncio import Redis
 

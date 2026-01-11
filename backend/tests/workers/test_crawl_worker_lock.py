@@ -4,18 +4,19 @@ TDD RED 단계 - 잠금 통합 전에 모두 실패해야 함
 
 Day 4: CrawlWorker 잠금 통합
 """
-import asyncio
+
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from redis.asyncio import Redis
 
-from app.workers.base import WorkerContext, TaskResult
+from app.workers.base import WorkerContext
 from app.models.task import Task, TaskType, TaskStatus
 
 
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def mock_session():
@@ -60,7 +61,9 @@ def mock_orphan_recovery():
 
 
 @pytest.fixture
-def worker_context(mock_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery):
+def worker_context(
+    mock_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery
+):
     """워커 컨텍스트 생성"""
     return WorkerContext(
         session=mock_session,
@@ -94,12 +97,18 @@ def sample_task_data():
 # Lock Integration Tests
 # =============================================================================
 
+
 class TestCrawlWorkerLockIntegration:
     """CrawlWorker 잠금 통합 테스트"""
 
     @pytest.mark.asyncio
     async def test_acquires_lock_before_crawl(
-        self, worker_context, sample_task, sample_task_data, mock_session, mock_task_manager
+        self,
+        worker_context,
+        sample_task,
+        sample_task_data,
+        mock_session,
+        mock_task_manager,
     ):
         """크롤링 전에 잠금을 획득해야 함"""
         from app.workers.crawl_worker import CrawlWorker
@@ -125,14 +134,20 @@ class TestCrawlWorkerLockIntegration:
         redis = mock_task_manager.redis
         redis.set.assert_called()
         set_calls = [
-            call for call in redis.set.call_args_list
+            call
+            for call in redis.set.call_args_list
             if "lock" in str(call).lower() or "target" in str(call).lower()
         ]
         assert len(set_calls) >= 1, "Lock should be acquired for target"
 
     @pytest.mark.asyncio
     async def test_releases_lock_after_crawl(
-        self, worker_context, sample_task, sample_task_data, mock_session, mock_task_manager
+        self,
+        worker_context,
+        sample_task,
+        sample_task_data,
+        mock_session,
+        mock_task_manager,
     ):
         """크롤링 후 잠금을 해제해야 함"""
         from app.workers.crawl_worker import CrawlWorker
@@ -157,7 +172,12 @@ class TestCrawlWorkerLockIntegration:
 
     @pytest.mark.asyncio
     async def test_releases_lock_on_exception(
-        self, worker_context, sample_task, sample_task_data, mock_session, mock_task_manager
+        self,
+        worker_context,
+        sample_task,
+        sample_task_data,
+        mock_session,
+        mock_task_manager,
     ):
         """예외 발생 시에도 잠금 해제"""
         from app.workers.crawl_worker import CrawlWorker
@@ -205,7 +225,12 @@ class TestCrawlWorkerLockIntegration:
 
     @pytest.mark.asyncio
     async def test_uses_correct_lock_key_format(
-        self, worker_context, sample_task, sample_task_data, mock_session, mock_task_manager
+        self,
+        worker_context,
+        sample_task,
+        sample_task_data,
+        mock_session,
+        mock_task_manager,
     ):
         """올바른 잠금 키 형식 사용"""
         from app.workers.crawl_worker import CrawlWorker
@@ -228,8 +253,7 @@ class TestCrawlWorkerLockIntegration:
         redis = mock_task_manager.redis
         set_calls = redis.set.call_args_list
         lock_call = next(
-            (call for call in set_calls if "lock" in str(call).lower()),
-            None
+            (call for call in set_calls if "lock" in str(call).lower()), None
         )
         assert lock_call is not None
         # Key should be like "eazy:lock:target:100"
@@ -241,12 +265,18 @@ class TestCrawlWorkerLockIntegration:
 # Lock Failure Handling Tests
 # =============================================================================
 
+
 class TestLockFailureHandling:
     """잠금 획득 실패 처리 테스트"""
 
     @pytest.mark.asyncio
     async def test_returns_skipped_when_lock_unavailable(
-        self, worker_context, sample_task, sample_task_data, mock_session, mock_task_manager
+        self,
+        worker_context,
+        sample_task,
+        sample_task_data,
+        mock_session,
+        mock_task_manager,
     ):
         """잠금 획득 실패 시 SKIPPED 반환"""
         from app.workers.crawl_worker import CrawlWorker
@@ -275,7 +305,12 @@ class TestLockFailureHandling:
 
     @pytest.mark.asyncio
     async def test_does_not_crawl_when_lock_fails(
-        self, worker_context, sample_task, sample_task_data, mock_session, mock_task_manager
+        self,
+        worker_context,
+        sample_task,
+        sample_task_data,
+        mock_session,
+        mock_task_manager,
     ):
         """잠금 실패 시 크롤링하지 않음"""
         from app.workers.crawl_worker import CrawlWorker
@@ -303,7 +338,12 @@ class TestLockFailureHandling:
 
     @pytest.mark.asyncio
     async def test_logs_lock_failure(
-        self, worker_context, sample_task, sample_task_data, mock_session, mock_task_manager
+        self,
+        worker_context,
+        sample_task,
+        sample_task_data,
+        mock_session,
+        mock_task_manager,
     ):
         """잠금 실패 시 로그 기록"""
         from app.workers.crawl_worker import CrawlWorker
@@ -327,16 +367,14 @@ class TestLockFailureHandling:
 
             # Should log warning about lock failure
             warning_calls = mock_logger.warning.call_args_list
-            lock_warning = any(
-                "lock" in str(call).lower()
-                for call in warning_calls
-            )
+            lock_warning = any("lock" in str(call).lower() for call in warning_calls)
             assert lock_warning, "Should log warning about lock failure"
 
 
 # =============================================================================
 # Lock TTL Tests
 # =============================================================================
+
 
 class TestLockTTL:
     """잠금 TTL 테스트"""
@@ -361,6 +399,7 @@ class TestLockTTL:
 # =============================================================================
 # Concurrent Lock Tests
 # =============================================================================
+
 
 class TestConcurrentLocks:
     """동시 잠금 테스트"""
@@ -428,6 +467,7 @@ class TestConcurrentLocks:
 # =============================================================================
 # Lock Key Tests
 # =============================================================================
+
 
 class TestLockKey:
     """잠금 키 형식 테스트"""

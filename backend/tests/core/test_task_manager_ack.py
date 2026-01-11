@@ -52,9 +52,7 @@ class TestBrpoplpush:
     ):
         """dequeue 시 작업이 processing 큐로 이동해야 함"""
         # Given: 큐에 작업 추가
-        task_id = await task_manager.enqueue_crawl_task(
-            project_id=1, target_id=1, db_task_id=100
-        )
+        await task_manager.enqueue_crawl_task(project_id=1, target_id=1, db_task_id=100)
 
         # When: 작업 dequeue
         task_data = await task_manager.dequeue_task(timeout=1)
@@ -74,9 +72,7 @@ class TestBrpoplpush:
     ):
         """dequeue는 task_data와 task_json 튜플을 반환해야 함"""
         # Given: 큐에 작업 추가
-        await task_manager.enqueue_crawl_task(
-            project_id=1, target_id=2, db_task_id=200
-        )
+        await task_manager.enqueue_crawl_task(project_id=1, target_id=2, db_task_id=200)
 
         # When: 작업 dequeue
         result = await task_manager.dequeue_task(timeout=1)
@@ -106,9 +102,7 @@ class TestAckTask:
     ):
         """ack 시 processing 큐에서 작업 제거"""
         # Given: 작업을 dequeue하여 processing 큐로 이동
-        await task_manager.enqueue_crawl_task(
-            project_id=1, target_id=1, db_task_id=100
-        )
+        await task_manager.enqueue_crawl_task(project_id=1, target_id=1, db_task_id=100)
         task_data, task_json = await task_manager.dequeue_task(timeout=1)
 
         # When: ACK 호출
@@ -124,12 +118,8 @@ class TestAckTask:
     ):
         """ack는 해당 작업만 제거해야 함"""
         # Given: 여러 작업을 processing 큐로 이동
-        await task_manager.enqueue_crawl_task(
-            project_id=1, target_id=1, db_task_id=100
-        )
-        await task_manager.enqueue_crawl_task(
-            project_id=1, target_id=2, db_task_id=200
-        )
+        await task_manager.enqueue_crawl_task(project_id=1, target_id=1, db_task_id=100)
+        await task_manager.enqueue_crawl_task(project_id=1, target_id=2, db_task_id=200)
 
         task_data_1, task_json_1 = await task_manager.dequeue_task(timeout=1)
         task_data_2, task_json_2 = await task_manager.dequeue_task(timeout=1)
@@ -151,9 +141,7 @@ class TestNackTask:
     ):
         """nack(retry=True) 시 원래 큐로 다시 이동"""
         # Given: 작업을 dequeue하여 processing 큐로 이동
-        await task_manager.enqueue_crawl_task(
-            project_id=1, target_id=1, db_task_id=100
-        )
+        await task_manager.enqueue_crawl_task(project_id=1, target_id=1, db_task_id=100)
         task_data, task_json = await task_manager.dequeue_task(timeout=1)
 
         # When: NACK (retry=True)
@@ -173,9 +161,7 @@ class TestNackTask:
     ):
         """nack(retry=False) 시 DLQ로 이동"""
         # Given: 작업을 dequeue하여 processing 큐로 이동
-        await task_manager.enqueue_crawl_task(
-            project_id=1, target_id=1, db_task_id=100
-        )
+        await task_manager.enqueue_crawl_task(project_id=1, target_id=1, db_task_id=100)
         task_data, task_json = await task_manager.dequeue_task(timeout=1)
 
         # When: NACK (retry=False)
@@ -199,9 +185,7 @@ class TestNackTask:
     ):
         """nack 시 원본 작업 데이터가 보존되어야 함"""
         # Given: 작업을 dequeue
-        await task_manager.enqueue_crawl_task(
-            project_id=1, target_id=1, db_task_id=100
-        )
+        await task_manager.enqueue_crawl_task(project_id=1, target_id=1, db_task_id=100)
         task_data, task_json = await task_manager.dequeue_task(timeout=1)
         original_db_task_id = task_data["db_task_id"]
 
@@ -222,23 +206,19 @@ class TestProcessingQueuePersistence:
     ):
         """Worker 크래시 시뮬레이션 - processing 큐의 작업이 유지되어야 함"""
         # Given: 작업을 dequeue (processing 큐로 이동)
-        await task_manager.enqueue_crawl_task(
-            project_id=1, target_id=1, db_task_id=100
-        )
+        await task_manager.enqueue_crawl_task(project_id=1, target_id=1, db_task_id=100)
         task_data, task_json = await task_manager.dequeue_task(timeout=1)
 
         # When: Worker "크래시" (ACK 없이 종료 시뮬레이션)
         # 새로운 TaskManager 인스턴스 생성 (Worker 재시작 시뮬레이션)
-        new_task_manager = TaskManager(redis_client)
+        _new_task_manager = TaskManager(redis_client)
 
         # Then: processing 큐에 작업이 여전히 있어야 함
         processing_len = await redis_client.llen("eazy_task_queue:processing")
         assert processing_len == 1
 
         # 작업 데이터도 유지되어야 함
-        task_json_in_queue = await redis_client.lindex(
-            "eazy_task_queue:processing", 0
-        )
+        task_json_in_queue = await redis_client.lindex("eazy_task_queue:processing", 0)
         recovered_data = json.loads(task_json_in_queue)
         assert recovered_data["db_task_id"] == 100
 
@@ -248,12 +228,8 @@ class TestProcessingQueuePersistence:
     ):
         """processing 큐의 작업 목록을 조회할 수 있어야 함"""
         # Given: 여러 작업을 processing 큐로 이동
-        await task_manager.enqueue_crawl_task(
-            project_id=1, target_id=1, db_task_id=100
-        )
-        await task_manager.enqueue_crawl_task(
-            project_id=1, target_id=2, db_task_id=200
-        )
+        await task_manager.enqueue_crawl_task(project_id=1, target_id=1, db_task_id=100)
+        await task_manager.enqueue_crawl_task(project_id=1, target_id=2, db_task_id=200)
         await task_manager.dequeue_task(timeout=1)
         await task_manager.dequeue_task(timeout=1)
 

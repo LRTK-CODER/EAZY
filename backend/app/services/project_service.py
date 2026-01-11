@@ -5,6 +5,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.project import Project, ProjectCreate, ProjectUpdate
 from app.core.utils import utc_now
 
+
 class ProjectService:
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -16,16 +17,25 @@ class ProjectService:
         await self.session.refresh(db_project)
         return db_project
 
-    async def get_projects(self, skip: int = 0, limit: int = 100, archived: bool = False) -> List[Project]:
+    async def get_projects(
+        self, skip: int = 0, limit: int = 100, archived: bool = False
+    ) -> List[Project]:
         """Get projects, by default excludes archived"""
-        query = select(Project).where(Project.is_archived == archived).offset(skip).limit(limit)
+        query = (
+            select(Project)
+            .where(Project.is_archived == archived)
+            .offset(skip)
+            .limit(limit)
+        )
         result = await self.session.exec(query)
         return result.all()
 
     async def get_project(self, project_id: int) -> Optional[Project]:
         return await self.session.get(Project, project_id)
 
-    async def update_project(self, project_id: int, project_update: ProjectUpdate) -> Optional[Project]:
+    async def update_project(
+        self, project_id: int, project_update: ProjectUpdate
+    ) -> Optional[Project]:
         """Update project and return updated instance, or None if not found"""
         db_project = await self.session.get(Project, project_id)
         if not db_project:

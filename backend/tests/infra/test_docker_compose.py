@@ -162,8 +162,7 @@ class TestWorkerService:
         """worker 서비스가 workers.pool을 실행해야 함"""
         worker = compose_config["services"]["worker"]
         command = str(worker.get("command", ""))
-        assert "pool" in command or "worker" in command, \
-            "worker does not run pool"
+        assert "pool" in command or "worker" in command, "worker does not run pool"
 
 
 class TestFrontendService:

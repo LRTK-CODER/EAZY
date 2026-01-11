@@ -60,9 +60,7 @@ class DLQManager:
         # DLQ 리스트에 task_id 추가
         await self.redis.lpush(self.dlq_key, task_id)
 
-    async def list_dlq_tasks(
-        self, limit: int = 100
-    ) -> List[Dict[str, Any]]:
+    async def list_dlq_tasks(self, limit: int = 100) -> List[Dict[str, Any]]:
         """
         DLQ의 작업 목록을 메타데이터와 함께 조회합니다.
 
@@ -82,16 +80,18 @@ class DLQManager:
 
             if meta:
                 original_task = json.loads(meta.get("original_task", "{}"))
-                results.append({
-                    "task_id": task_id,
-                    "task_data": original_task,
-                    "meta": {
-                        "error_message": meta.get("error_message"),
-                        "error_category": meta.get("error_category"),
-                        "retry_count": int(meta.get("retry_count", 0)),
-                        "failed_at": meta.get("failed_at"),
-                    },
-                })
+                results.append(
+                    {
+                        "task_id": task_id,
+                        "task_data": original_task,
+                        "meta": {
+                            "error_message": meta.get("error_message"),
+                            "error_category": meta.get("error_category"),
+                            "retry_count": int(meta.get("retry_count", 0)),
+                            "failed_at": meta.get("failed_at"),
+                        },
+                    }
+                )
 
         return results
 

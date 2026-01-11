@@ -4,9 +4,11 @@ from sqlmodel import Field, SQLModel
 
 from app.core.utils import utc_now
 
+
 class ProjectBase(SQLModel):
     name: str = Field(index=True, max_length=255)
     description: Optional[str] = Field(default=None)
+
 
 class Project(ProjectBase, table=True):
     __tablename__ = "projects"
@@ -17,12 +19,15 @@ class Project(ProjectBase, table=True):
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
 
+
 class ProjectCreate(ProjectBase):
     pass
+
 
 class ProjectUpdate(SQLModel):
     name: Optional[str] = None
     description: Optional[str] = None
+
 
 class ProjectRead(ProjectBase):
     id: int

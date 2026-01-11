@@ -2,11 +2,11 @@
 Worker test fixtures
 Phase 3: Architecture Improvement - TDD
 """
+
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 from redis.asyncio import Redis
 
-from app.core.config import settings
 from app.core.queue import TaskManager
 from app.core.dlq import DLQManager
 from app.core.recovery import OrphanRecovery
@@ -20,11 +20,11 @@ async def redis_client() -> Redis:
     same connection, preventing race conditions.
     """
     redis = Redis(
-        host='localhost',
+        host="localhost",
         port=6379,
         db=0,
         decode_responses=True,
-        single_connection_client=True
+        single_connection_client=True,
     )
     # Initialize connection (required for single_connection_client in redis-py 7.x)
     await redis.ping()
@@ -82,19 +82,21 @@ def mock_orphan_recovery(redis_client: Redis) -> OrphanRecovery:
 def mock_crawler_service():
     """Mock CrawlerService for testing"""
     mock = MagicMock()
-    mock.crawl = AsyncMock(return_value=(
-        ["http://example.com/page1", "http://example.com/page2"],
-        {
-            "http://example.com/page1": {
-                "request": {"method": "GET", "headers": {}},
-                "response": {"status": 200, "headers": {}},
-                "parameters": {}
+    mock.crawl = AsyncMock(
+        return_value=(
+            ["http://example.com/page1", "http://example.com/page2"],
+            {
+                "http://example.com/page1": {
+                    "request": {"method": "GET", "headers": {}},
+                    "response": {"status": 200, "headers": {}},
+                    "parameters": {},
+                },
+                "http://example.com/page2": {
+                    "request": {"method": "GET", "headers": {}},
+                    "response": {"status": 200, "headers": {}},
+                    "parameters": {},
+                },
             },
-            "http://example.com/page2": {
-                "request": {"method": "GET", "headers": {}},
-                "response": {"status": 200, "headers": {}},
-                "parameters": {}
-            }
-        }
-    ))
+        )
+    )
     return mock

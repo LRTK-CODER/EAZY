@@ -4,10 +4,8 @@ TDD Tests for Structlog-based logging system.
 Sprint 2.2: Structlog 로깅 시스템
 Red Phase: 테스트 먼저 작성
 """
+
 import io
-import json
-import logging
-import pytest
 from unittest.mock import patch
 
 from app.core.structured_logger import (
@@ -53,7 +51,6 @@ class TestGetLogger:
 
     def test_get_logger_returns_bound_logger(self):
         """get_logger should return a structlog BoundLogger."""
-        import structlog
 
         configure_logging(log_format=LogFormat.CONSOLE, level="DEBUG")
         logger = get_logger("test.module")

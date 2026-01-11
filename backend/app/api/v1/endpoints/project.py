@@ -3,45 +3,48 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
-from app.models.project import Project, ProjectCreate, ProjectRead, ProjectUpdate
+from app.models.project import ProjectCreate, ProjectRead, ProjectUpdate
+from app.models.target import TargetCreate, TargetRead, TargetUpdate
+from app.models.asset import AssetRead
 from app.services.project_service import ProjectService
+from app.services.target_service import TargetService
 
 router = APIRouter()
 
+
 @router.post("/", response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
 async def create_project(
-    project_in: ProjectCreate,
-    session: AsyncSession = Depends(get_session)
+    project_in: ProjectCreate, session: AsyncSession = Depends(get_session)
 ):
     service = ProjectService(session)
     return await service.create_project(project_in)
+
 
 @router.get("/", response_model=List[ProjectRead])
 async def read_projects(
     skip: int = 0,
     limit: int = 100,
     archived: bool = False,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
 ):
     service = ProjectService(session)
     return await service.get_projects(skip=skip, limit=limit, archived=archived)
 
+
 @router.get("/{project_id}", response_model=ProjectRead)
-async def read_project(
-    project_id: int,
-    session: AsyncSession = Depends(get_session)
-):
+async def read_project(project_id: int, session: AsyncSession = Depends(get_session)):
     service = ProjectService(session)
     project = await service.get_project(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
 
+
 @router.patch("/{project_id}", response_model=ProjectRead)
 async def update_project(
     project_id: int,
     project_update: ProjectUpdate,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
 ):
     """Update an existing project"""
     service = ProjectService(session)
@@ -50,11 +53,12 @@ async def update_project(
         raise HTTPException(status_code=404, detail="Project not found")
     return updated_project
 
+
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
     project_id: int,
     permanent: bool = False,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
 ):
     """Delete a project (soft delete by default, permanent if permanent=true)"""
     service = ProjectService(session)
@@ -70,10 +74,10 @@ async def delete_project(
         raise HTTPException(status_code=404, detail="Project not found")
     return
 
+
 @router.patch("/{project_id}/restore", status_code=status.HTTP_204_NO_CONTENT)
 async def restore_project(
-    project_id: int,
-    session: AsyncSession = Depends(get_session)
+    project_id: int, session: AsyncSession = Depends(get_session)
 ):
     """Restore an archived project"""
     service = ProjectService(session)
@@ -82,30 +86,32 @@ async def restore_project(
         raise HTTPException(status_code=404, detail="Project not found")
     return
 
-from app.models.target import TargetCreate, TargetRead
-from app.models.asset import AssetRead
-from app.services.target_service import TargetService
 
-@router.post("/{project_id}/targets/", response_model=TargetRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{project_id}/targets/",
+    response_model=TargetRead,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_target(
     project_id: int,
     target_in: TargetCreate,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
 ):
     # Verify project exists first
     project_service = ProjectService(session)
     if not await project_service.get_project(project_id):
         raise HTTPException(status_code=404, detail="Project not found")
-        
+
     service = TargetService(session)
     return await service.create_target(project_id, target_in)
+
 
 @router.get("/{project_id}/targets/", response_model=List[TargetRead])
 async def read_targets(
     project_id: int,
     skip: int = 0,
     limit: int = 100,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
 ):
     # Verify project exists first
     project_service = ProjectService(session)
@@ -115,11 +121,10 @@ async def read_targets(
     service = TargetService(session)
     return await service.get_targets(project_id, skip=skip, limit=limit)
 
+
 @router.get("/{project_id}/targets/{target_id}", response_model=TargetRead)
 async def read_target(
-    project_id: int,
-    target_id: int,
-    session: AsyncSession = Depends(get_session)
+    project_id: int, target_id: int, session: AsyncSession = Depends(get_session)
 ):
     # Verify project exists first
     project_service = ProjectService(session)
@@ -139,11 +144,10 @@ async def read_target(
 
     return target
 
+
 @router.get("/{project_id}/targets/{target_id}/assets", response_model=List[AssetRead])
 async def get_target_assets(
-    project_id: int,
-    target_id: int,
-    session: AsyncSession = Depends(get_session)
+    project_id: int, target_id: int, session: AsyncSession = Depends(get_session)
 ):
     """Get all unique assets for a target (sorted by last_seen_at DESC)"""
     from app.models.asset import Asset
@@ -172,11 +176,12 @@ async def get_target_assets(
     results = await session.exec(statement)
     return results.all()
 
-@router.delete("/{project_id}/targets/{target_id}", status_code=status.HTTP_204_NO_CONTENT)
+
+@router.delete(
+    "/{project_id}/targets/{target_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def delete_target(
-    project_id: int,
-    target_id: int,
-    session: AsyncSession = Depends(get_session)
+    project_id: int, target_id: int, session: AsyncSession = Depends(get_session)
 ):
     service = TargetService(session)
     # Ideally check project_id match too, but for MVP simple ID check
@@ -185,14 +190,13 @@ async def delete_target(
         raise HTTPException(status_code=404, detail="Target not found")
     return
 
-from app.models.target import TargetUpdate
 
 @router.patch("/{project_id}/targets/{target_id}", response_model=TargetRead)
 async def update_target(
     project_id: int,
     target_id: int,
     target_in: TargetUpdate,
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
 ):
     service = TargetService(session)
     updated_target = await service.update_target(target_id, target_in)

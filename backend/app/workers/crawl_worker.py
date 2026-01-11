@@ -5,6 +5,7 @@ Phase 3: Architecture Improvement
 Phase 4: Scalability - Distributed Lock Integration
 Phase 4 Day 5: SSRF Prevention
 """
+
 import asyncio
 import ipaddress
 from typing import Any, Callable, Dict, Optional
@@ -120,7 +121,9 @@ class CrawlWorker(BaseWorker):
         """
         super().__init__(context)
         self.crawler = crawler_service or CrawlerService()
-        self.asset_service_factory = asset_service_factory or (lambda s: AssetService(s))
+        self.asset_service_factory = asset_service_factory or (
+            lambda s: AssetService(s)
+        )
 
     @property
     def task_type(self) -> TaskType:
@@ -149,12 +152,14 @@ class CrawlWorker(BaseWorker):
         # SSRF Prevention: Validate URL before crawling
         if not is_safe_url(target.url):
             logger.warning("Blocked unsafe URL", target_id=target_id, url=target.url)
-            return TaskResult.create_skipped({
-                "reason": "unsafe_url",
-                "target_id": target_id,
-                "url": target.url,
-                "message": f"URL {target.url} blocked for security reasons",
-            })
+            return TaskResult.create_skipped(
+                {
+                    "reason": "unsafe_url",
+                    "target_id": target_id,
+                    "url": target.url,
+                    "message": f"URL {target.url} blocked for security reasons",
+                }
+            )
 
         # Create distributed lock for target
         lock = DistributedLock(
@@ -170,11 +175,13 @@ class CrawlWorker(BaseWorker):
                 "Could not acquire lock for target, another worker is processing",
                 target_id=target_id,
             )
-            return TaskResult.create_skipped({
-                "reason": "lock_unavailable",
-                "target_id": target_id,
-                "message": f"Target {target_id} is locked by another worker",
-            })
+            return TaskResult.create_skipped(
+                {
+                    "reason": "lock_unavailable",
+                    "target_id": target_id,
+                    "message": f"Target {target_id} is locked by another worker",
+                }
+            )
 
         try:
             # Crawl with lock held
@@ -212,12 +219,14 @@ class CrawlWorker(BaseWorker):
                     if await self._check_cancellation(db_task_id):
                         await asset_service.flush()
                         await self._clear_cancel_flag(db_task_id)
-                        return TaskResult.create_cancelled({
-                            "cancelled": True,
-                            "processed_links": saved_count,
-                            "total_links": len(links),
-                            "message": "Task cancelled by user",
-                        })
+                        return TaskResult.create_cancelled(
+                            {
+                                "cancelled": True,
+                                "processed_links": saved_count,
+                                "total_links": len(links),
+                                "message": "Task cancelled by user",
+                            }
+                        )
                     last_check_time = current_time
 
                 # Extract HTTP data
@@ -226,7 +235,9 @@ class CrawlWorker(BaseWorker):
                 response_data = link_http_data.get("response")
                 parameters_data = link_http_data.get("parameters")
 
-                http_method = request_data.get("method", "GET") if request_data else "GET"
+                http_method = (
+                    request_data.get("method", "GET") if request_data else "GET"
+                )
 
                 await asset_service.process_asset(
                     target_id=target_id,
@@ -241,10 +252,12 @@ class CrawlWorker(BaseWorker):
                 )
                 saved_count += 1
 
-        return TaskResult.create_success({
-            "found_links": len(links),
-            "saved_assets": saved_count,
-        })
+        return TaskResult.create_success(
+            {
+                "found_links": len(links),
+                "saved_assets": saved_count,
+            }
+        )
 
     async def _check_cancellation(self, task_id: int) -> bool:
         """

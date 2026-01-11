@@ -26,6 +26,7 @@ Usage:
     log.info("Started processing")
     log.info("Finished processing")
 """
+
 import logging
 import os
 import sys
@@ -38,6 +39,7 @@ from structlog.typing import Processor
 
 class LogFormat(str, Enum):
     """Supported log output formats."""
+
     CONSOLE = "console"
     JSON = "json"
 

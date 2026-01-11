@@ -3,6 +3,7 @@ Target 서비스 CASCADE 삭제 통합 테스트
 
 Target 삭제 시 관련 Task, Asset, AssetDiscovery가 자동으로 삭제되는지 검증
 """
+
 import pytest
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -28,7 +29,7 @@ async def test_delete_target_cascades_tasks(db_session: AsyncSession):
         project_id=project.id,
         name="Test Target",
         url="https://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -39,7 +40,7 @@ async def test_delete_target_cascades_tasks(db_session: AsyncSession):
         project_id=project.id,
         target_id=target.id,
         type=TaskType.CRAWL,
-        status=TaskStatus.PENDING
+        status=TaskStatus.PENDING,
     )
     db_session.add(task)
     await db_session.commit()
@@ -76,7 +77,7 @@ async def test_delete_target_cascades_assets(db_session: AsyncSession):
         project_id=project.id,
         name="Test Target",
         url="https://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -90,7 +91,7 @@ async def test_delete_target_cascades_assets(db_session: AsyncSession):
         source=AssetSource.HTML,
         method="GET",
         url="https://example.com/page1",
-        path="/page1"
+        path="/page1",
     )
     db_session.add(asset)
     await db_session.commit()
@@ -127,7 +128,7 @@ async def test_delete_target_cascades_asset_discoveries(db_session: AsyncSession
         project_id=project.id,
         name="Test Target",
         url="https://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -138,7 +139,7 @@ async def test_delete_target_cascades_asset_discoveries(db_session: AsyncSession
         project_id=project.id,
         target_id=target.id,
         type=TaskType.CRAWL,
-        status=TaskStatus.COMPLETED
+        status=TaskStatus.COMPLETED,
     )
     db_session.add(task)
     await db_session.commit()
@@ -152,18 +153,14 @@ async def test_delete_target_cascades_asset_discoveries(db_session: AsyncSession
         source=AssetSource.HTML,
         method="GET",
         url="https://example.com/page2",
-        path="/page2"
+        path="/page2",
     )
     db_session.add(asset)
     await db_session.commit()
     await db_session.refresh(asset)
 
     # 4. AssetDiscovery 생성 (Task와 Asset 연결)
-    discovery = AssetDiscovery(
-        task_id=task.id,
-        asset_id=asset.id,
-        parent_asset_id=None
-    )
+    discovery = AssetDiscovery(task_id=task.id, asset_id=asset.id, parent_asset_id=None)
     db_session.add(discovery)
     await db_session.commit()
     await db_session.refresh(discovery)
@@ -172,7 +169,9 @@ async def test_delete_target_cascades_asset_discoveries(db_session: AsyncSession
     query = select(AssetDiscovery).where(AssetDiscovery.asset_id == asset.id)
     result = await db_session.exec(query)
     discoveries_before = result.all()
-    assert len(discoveries_before) == 1, "AssetDiscovery should exist before target deletion"
+    assert (
+        len(discoveries_before) == 1
+    ), "AssetDiscovery should exist before target deletion"
 
     # 6. Target 삭제
     target_service = TargetService(db_session)
@@ -184,7 +183,9 @@ async def test_delete_target_cascades_asset_discoveries(db_session: AsyncSession
     query = select(AssetDiscovery).where(AssetDiscovery.id == discovery.id)
     result = await db_session.exec(query)
     discoveries_after = result.all()
-    assert len(discoveries_after) == 0, "AssetDiscovery should be CASCADE deleted (via Asset)"
+    assert (
+        len(discoveries_after) == 0
+    ), "AssetDiscovery should be CASCADE deleted (via Asset)"
 
 
 @pytest.mark.asyncio
@@ -200,7 +201,7 @@ async def test_delete_target_with_multiple_relations(db_session: AsyncSession):
         project_id=project.id,
         name="Test Target",
         url="https://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -213,7 +214,7 @@ async def test_delete_target_with_multiple_relations(db_session: AsyncSession):
             project_id=project.id,
             target_id=target.id,
             type=TaskType.CRAWL,
-            status=TaskStatus.PENDING
+            status=TaskStatus.PENDING,
         )
         db_session.add(task)
         tasks.append(task)
@@ -229,7 +230,7 @@ async def test_delete_target_with_multiple_relations(db_session: AsyncSession):
             source=AssetSource.HTML,
             method="GET",
             url=f"https://example.com/page{i}",
-            path=f"/page{i}"
+            path=f"/page{i}",
         )
         db_session.add(asset)
         assets.append(asset)

@@ -2,13 +2,14 @@
 Test 5-Imp.20: Worker HTTP Integration Tests (GREEN Phase)
 Expected to PASS: Worker collects and passes HTTP data with Base64 image encoding
 """
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.project import Project
 from app.models.target import Target, TargetScope
 from app.models.task import Task, TaskType, TaskStatus
-from app.models.asset import Asset, AssetType, AssetSource
+from app.models.asset import Asset
 from sqlmodel import select
 import base64
 
@@ -26,7 +27,7 @@ async def test_worker_collects_http_data_during_crawl(db_session: AsyncSession):
         name="Target",
         project_id=project.id,
         url="http://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -36,7 +37,7 @@ async def test_worker_collects_http_data_during_crawl(db_session: AsyncSession):
         project_id=project.id,
         target_id=target.id,
         type=TaskType.CRAWL,
-        status=TaskStatus.PENDING
+        status=TaskStatus.PENDING,
     )
     db_session.add(task)
     await db_session.commit()
@@ -45,15 +46,12 @@ async def test_worker_collects_http_data_during_crawl(db_session: AsyncSession):
     # Mock CrawlerService to return HTTP data
     mock_http_data = {
         "http://example.com/page": {
-            "request": {
-                "method": "GET",
-                "headers": {"User-Agent": "Mozilla/5.0"}
-            },
+            "request": {"method": "GET", "headers": {"User-Agent": "Mozilla/5.0"}},
             "response": {
                 "status": 200,
                 "headers": {"Content-Type": "text/html"},
-                "body": "<html>...</html>"
-            }
+                "body": "<html>...</html>",
+            },
         }
     }
 
@@ -90,7 +88,7 @@ async def test_worker_passes_http_data_to_asset_service(db_session: AsyncSession
         name="Target",
         project_id=project.id,
         url="http://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -100,7 +98,7 @@ async def test_worker_passes_http_data_to_asset_service(db_session: AsyncSession
         project_id=project.id,
         target_id=target.id,
         type=TaskType.CRAWL,
-        status=TaskStatus.PENDING
+        status=TaskStatus.PENDING,
     )
     db_session.add(task)
     await db_session.commit()
@@ -110,7 +108,7 @@ async def test_worker_passes_http_data_to_asset_service(db_session: AsyncSession
     mock_http_data = {
         "http://example.com/api": {
             "request": {"method": "GET", "headers": {}},
-            "response": {"status": 200, "body": '{"success": true}'}
+            "response": {"status": 200, "body": '{"success": true}'},
         }
     }
 
@@ -122,12 +120,11 @@ async def test_worker_passes_http_data_to_asset_service(db_session: AsyncSession
         )
 
         from app.worker import process_task
+
         await process_task(task.id, db_session)
 
     # Verify Asset has HTTP data
-    result = await db_session.exec(
-        select(Asset).where(Asset.target_id == target.id)
-    )
+    result = await db_session.exec(select(Asset).where(Asset.target_id == target.id))
     assets = result.all()
 
     # Should FAIL: Assets don't have request_spec/response_spec populated
@@ -150,7 +147,7 @@ async def test_worker_parses_json_response_bodies(db_session: AsyncSession):
         name="Target",
         project_id=project.id,
         url="http://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -160,7 +157,7 @@ async def test_worker_parses_json_response_bodies(db_session: AsyncSession):
         project_id=project.id,
         target_id=target.id,
         type=TaskType.CRAWL,
-        status=TaskStatus.PENDING
+        status=TaskStatus.PENDING,
     )
     db_session.add(task)
     await db_session.commit()
@@ -174,8 +171,8 @@ async def test_worker_parses_json_response_bodies(db_session: AsyncSession):
             "response": {
                 "status": 200,
                 "headers": {"Content-Type": "application/json"},
-                "body": json_body
-            }
+                "body": json_body,
+            },
         }
     }
 
@@ -187,6 +184,7 @@ async def test_worker_parses_json_response_bodies(db_session: AsyncSession):
         )
 
         from app.worker import process_task
+
         await process_task(task.id, db_session)
 
     # Verify JSON body is stored
@@ -213,7 +211,7 @@ async def test_worker_excludes_image_responses(db_session: AsyncSession):
         name="Target",
         project_id=project.id,
         url="http://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -223,7 +221,7 @@ async def test_worker_excludes_image_responses(db_session: AsyncSession):
         project_id=project.id,
         target_id=target.id,
         type=TaskType.CRAWL,
-        status=TaskStatus.PENDING
+        status=TaskStatus.PENDING,
     )
     db_session.add(task)
     await db_session.commit()
@@ -231,7 +229,7 @@ async def test_worker_excludes_image_responses(db_session: AsyncSession):
 
     # Mock image response (Base64 encoded as CrawlerService does)
     image_bytes = b"binary image data..."
-    image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+    image_base64 = base64.b64encode(image_bytes).decode("utf-8")
 
     mock_http_data = {
         "http://example.com/logo.png": {
@@ -239,8 +237,8 @@ async def test_worker_excludes_image_responses(db_session: AsyncSession):
             "response": {
                 "status": 200,
                 "headers": {"Content-Type": "image/png"},
-                "body": image_base64  # Base64 encoded string
-            }
+                "body": image_base64,  # Base64 encoded string
+            },
         }
     }
 
@@ -252,6 +250,7 @@ async def test_worker_excludes_image_responses(db_session: AsyncSession):
         )
 
         from app.worker import process_task
+
         await process_task(task.id, db_session)
 
     # Verify image response body is Base64 encoded
@@ -282,7 +281,7 @@ async def test_full_integration_worker_crawler_asset(db_session: AsyncSession):
         name="Target",
         project_id=project.id,
         url="http://example.com",
-        scope=TargetScope.DOMAIN
+        scope=TargetScope.DOMAIN,
     )
     db_session.add(target)
     await db_session.commit()
@@ -292,7 +291,7 @@ async def test_full_integration_worker_crawler_asset(db_session: AsyncSession):
         project_id=project.id,
         target_id=target.id,
         type=TaskType.CRAWL,
-        status=TaskStatus.PENDING
+        status=TaskStatus.PENDING,
     )
     db_session.add(task)
     await db_session.commit()
@@ -301,15 +300,12 @@ async def test_full_integration_worker_crawler_asset(db_session: AsyncSession):
     # Mock complete HTTP data flow
     mock_http_data = {
         "http://example.com/about": {
-            "request": {
-                "method": "GET",
-                "headers": {"User-Agent": "EAZY/1.0"}
-            },
+            "request": {"method": "GET", "headers": {"User-Agent": "EAZY/1.0"}},
             "response": {
                 "status": 200,
                 "headers": {"Content-Type": "text/html"},
-                "body": "<html><body>About Us</body></html>"
-            }
+                "body": "<html><body>About Us</body></html>",
+            },
         }
     }
 
@@ -321,6 +317,7 @@ async def test_full_integration_worker_crawler_asset(db_session: AsyncSession):
         )
 
         from app.worker import process_task
+
         await process_task(task.id, db_session)
 
     # Verify complete flow

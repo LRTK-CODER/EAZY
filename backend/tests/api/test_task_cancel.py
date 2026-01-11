@@ -2,6 +2,7 @@
 Test 5-Imp.2: Task Cancellation API Tests (RED Phase)
 Expected to FAIL: 404 Not Found for /tasks/{id}/cancel endpoint
 """
+
 import pytest
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -9,7 +10,9 @@ from app.models.task import TaskStatus
 
 
 @pytest.mark.asyncio
-async def test_cancel_task_endpoint_exists(client: AsyncClient, db_session: AsyncSession):
+async def test_cancel_task_endpoint_exists(
+    client: AsyncClient, db_session: AsyncSession
+):
     """Test POST /tasks/{id}/cancel returns 200 OK - RED Phase"""
     # Setup: Create project, target, and trigger scan
     resp = await client.post("/api/v1/projects/", json={"name": "Cancel Test Proj"})
@@ -18,7 +21,7 @@ async def test_cancel_task_endpoint_exists(client: AsyncClient, db_session: Asyn
 
     resp = await client.post(
         f"/api/v1/projects/{project_id}/targets/",
-        json={"name": "Cancel Target", "url": "http://example.com"}
+        json={"name": "Cancel Target", "url": "http://example.com"},
     )
     assert resp.status_code == 201
     target_id = resp.json()["id"]
@@ -34,7 +37,9 @@ async def test_cancel_task_endpoint_exists(client: AsyncClient, db_session: Asyn
 
 
 @pytest.mark.asyncio
-async def test_cancel_running_task_succeeds(client: AsyncClient, db_session: AsyncSession):
+async def test_cancel_running_task_succeeds(
+    client: AsyncClient, db_session: AsyncSession
+):
     """Test cancelling a RUNNING task succeeds - RED Phase"""
     # Setup
     resp = await client.post("/api/v1/projects/", json={"name": "Running Cancel Proj"})
@@ -42,7 +47,7 @@ async def test_cancel_running_task_succeeds(client: AsyncClient, db_session: Asy
 
     resp = await client.post(
         f"/api/v1/projects/{project_id}/targets/",
-        json={"name": "Target", "url": "http://example.com"}
+        json={"name": "Target", "url": "http://example.com"},
     )
     target_id = resp.json()["id"]
 
@@ -71,7 +76,9 @@ async def test_cancel_running_task_succeeds(client: AsyncClient, db_session: Asy
 
 
 @pytest.mark.asyncio
-async def test_cancel_pending_task_succeeds(client: AsyncClient, db_session: AsyncSession):
+async def test_cancel_pending_task_succeeds(
+    client: AsyncClient, db_session: AsyncSession
+):
     """Test cancelling a PENDING task succeeds - RED Phase"""
     # Setup
     resp = await client.post("/api/v1/projects/", json={"name": "Pending Cancel Proj"})
@@ -79,7 +86,7 @@ async def test_cancel_pending_task_succeeds(client: AsyncClient, db_session: Asy
 
     resp = await client.post(
         f"/api/v1/projects/{project_id}/targets/",
-        json={"name": "Target", "url": "http://example.com"}
+        json={"name": "Target", "url": "http://example.com"},
     )
     target_id = resp.json()["id"]
 
@@ -98,15 +105,19 @@ async def test_cancel_pending_task_succeeds(client: AsyncClient, db_session: Asy
 
 
 @pytest.mark.asyncio
-async def test_cancel_completed_task_fails(client: AsyncClient, db_session: AsyncSession):
+async def test_cancel_completed_task_fails(
+    client: AsyncClient, db_session: AsyncSession
+):
     """Test cancelling a COMPLETED task returns 400 Bad Request - RED Phase"""
     # Setup
-    resp = await client.post("/api/v1/projects/", json={"name": "Completed Cancel Proj"})
+    resp = await client.post(
+        "/api/v1/projects/", json={"name": "Completed Cancel Proj"}
+    )
     project_id = resp.json()["id"]
 
     resp = await client.post(
         f"/api/v1/projects/{project_id}/targets/",
-        json={"name": "Target", "url": "http://example.com"}
+        json={"name": "Target", "url": "http://example.com"},
     )
     target_id = resp.json()["id"]
 

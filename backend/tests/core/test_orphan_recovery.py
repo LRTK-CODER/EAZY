@@ -7,7 +7,6 @@ TDD RED 단계 - recovery.py 구현 전에 실패해야 함
 import json
 import pytest
 from datetime import datetime, timezone, timedelta
-from unittest.mock import patch, AsyncMock
 from redis.asyncio import Redis
 
 
@@ -133,9 +132,7 @@ class TestOrphanRecovery:
     """고아 작업 복구 테스트"""
 
     @pytest.mark.asyncio
-    async def test_orphan_recovered_to_queue(
-        self, redis_client: Redis, clean_queues
-    ):
+    async def test_orphan_recovered_to_queue(self, redis_client: Redis, clean_queues):
         """고아 작업이 원래 큐로 복구되어야 함"""
         from app.core.recovery import OrphanRecovery
 
@@ -159,9 +156,7 @@ class TestOrphanRecovery:
         assert processing_len == 0
 
     @pytest.mark.asyncio
-    async def test_recovery_count_increments(
-        self, redis_client: Redis, clean_queues
-    ):
+    async def test_recovery_count_increments(self, redis_client: Redis, clean_queues):
         """복구 시 recovery_count가 증가해야 함"""
         from app.core.recovery import OrphanRecovery
 
@@ -214,9 +209,7 @@ class TestHeartbeat:
     """하트비트 테스트"""
 
     @pytest.mark.asyncio
-    async def test_send_heartbeat_sets_key(
-        self, redis_client: Redis, clean_queues
-    ):
+    async def test_send_heartbeat_sets_key(self, redis_client: Redis, clean_queues):
         """send_heartbeat가 Redis 키를 설정해야 함"""
         from app.core.recovery import OrphanRecovery
 
@@ -246,9 +239,7 @@ class TestHeartbeat:
         assert ttl > 0
 
     @pytest.mark.asyncio
-    async def test_clear_heartbeat_removes_key(
-        self, redis_client: Redis, clean_queues
-    ):
+    async def test_clear_heartbeat_removes_key(self, redis_client: Redis, clean_queues):
         """clear_heartbeat가 키를 삭제해야 함"""
         from app.core.recovery import OrphanRecovery
 

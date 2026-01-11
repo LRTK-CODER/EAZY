@@ -15,6 +15,7 @@ Usage:
     else:
         logger.warning(f"JSON parse failed: {result.error}")
 """
+
 import json
 from dataclasses import dataclass
 from typing import Any, Optional
@@ -31,6 +32,7 @@ class JsonParseResult:
         error: 에러 메시지 (실패 시) 또는 None (성공 시)
         raw_input: 원본 입력 문자열
     """
+
     success: bool
     data: Optional[Any]
     error: Optional[str]
@@ -72,10 +74,7 @@ class SafeJsonParser:
         # None 체크
         if json_str is None:
             return JsonParseResult(
-                success=False,
-                data=None,
-                error="Input is None",
-                raw_input=""
+                success=False, data=None, error="Input is None", raw_input=""
             )
 
         # 타입 체크 - str만 허용
@@ -84,7 +83,7 @@ class SafeJsonParser:
                 success=False,
                 data=None,
                 error=f"Expected str type, got {type(json_str).__name__}",
-                raw_input=str(json_str)[:200]  # 너무 긴 경우 잘라냄
+                raw_input=str(json_str)[:200],  # 너무 긴 경우 잘라냄
             )
 
         # 빈 문자열 또는 공백만 있는 경우
@@ -93,24 +92,21 @@ class SafeJsonParser:
                 success=False,
                 data=None,
                 error="Empty string" if not json_str else "Whitespace only string",
-                raw_input=json_str
+                raw_input=json_str,
             )
 
         # JSON 파싱 시도
         try:
             data = json.loads(json_str)
             return JsonParseResult(
-                success=True,
-                data=data,
-                error=None,
-                raw_input=json_str
+                success=True, data=data, error=None, raw_input=json_str
             )
         except json.JSONDecodeError as e:
             return JsonParseResult(
                 success=False,
                 data=None,
                 error=f"JSONDecodeError: {e}",
-                raw_input=json_str
+                raw_input=json_str,
             )
         except Exception as e:
             # 예상치 못한 예외 처리
@@ -118,5 +114,5 @@ class SafeJsonParser:
                 success=False,
                 data=None,
                 error=f"Unexpected error: {type(e).__name__}: {e}",
-                raw_input=json_str
+                raw_input=json_str,
             )

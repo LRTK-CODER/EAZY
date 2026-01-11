@@ -9,6 +9,7 @@ Usage:
     origins = get_cors_origins()
     validate_cors_config(origins, settings.ENVIRONMENT)
 """
+
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional
 
@@ -21,6 +22,7 @@ logger = get_logger(__name__)
 @dataclass
 class CORSConfig:
     """CORS configuration container."""
+
     origins: List[str]
     allow_credentials: bool
     allow_methods: List[str]
@@ -49,7 +51,7 @@ def get_cors_origins(origins_str: Optional[str] = None) -> List[str]:
 
     if origins_str is None:
         # Read from environment first, then fall back to settings
-        origins_str = os.environ.get('CORS_ORIGINS', settings.CORS_ORIGINS)
+        origins_str = os.environ.get("CORS_ORIGINS", settings.CORS_ORIGINS)
 
     # Handle wildcard
     if origins_str.strip() == "*":
@@ -65,9 +67,7 @@ def get_cors_origins(origins_str: Optional[str] = None) -> List[str]:
 
 
 def validate_cors_config(
-    origins: List[str],
-    environment: str,
-    allow_credentials: bool = True
+    origins: List[str], environment: str, allow_credentials: bool = True
 ) -> Dict[str, Any]:
     """
     Validate CORS configuration for security.
@@ -107,7 +107,7 @@ def validate_cors_config(
             "Insecure CORS configuration",
             environment=environment,
             origins=origins,
-            issue="wildcard_in_production"
+            issue="wildcard_in_production",
         )
 
     # Rule 2: Credentials + wildcard = invalid (browser will reject)
@@ -121,7 +121,7 @@ def validate_cors_config(
             "Invalid CORS configuration",
             allow_credentials=allow_credentials,
             origins=origins,
-            issue="credentials_with_wildcard"
+            issue="credentials_with_wildcard",
         )
 
     # Log the final configuration
@@ -130,7 +130,7 @@ def validate_cors_config(
             "CORS configuration validated",
             environment=environment,
             origins_count=len(origins),
-            allow_credentials=allow_credentials
+            allow_credentials=allow_credentials,
         )
 
     return result
@@ -147,11 +147,13 @@ def get_cors_config() -> CORSConfig:
 
     # Parse methods and headers
     methods = (
-        ["*"] if settings.CORS_ALLOW_METHODS == "*"
+        ["*"]
+        if settings.CORS_ALLOW_METHODS == "*"
         else [m.strip() for m in settings.CORS_ALLOW_METHODS.split(",")]
     )
     headers = (
-        ["*"] if settings.CORS_ALLOW_HEADERS == "*"
+        ["*"]
+        if settings.CORS_ALLOW_HEADERS == "*"
         else [h.strip() for h in settings.CORS_ALLOW_HEADERS.split(",")]
     )
 

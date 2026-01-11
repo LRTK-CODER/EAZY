@@ -6,8 +6,6 @@ These tests verify utc_now() and utc_now_tz() functions.
 
 from datetime import datetime, timezone, timedelta
 
-import pytest
-
 
 class TestUtcNow:
     """Tests for utc_now() function - offset-naive datetime."""

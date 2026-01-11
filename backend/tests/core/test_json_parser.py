@@ -4,7 +4,7 @@ TDD Tests for SafeJsonParser utility.
 Sprint 1.1: JSON 파싱 안정화
 Red Phase: 테스트 먼저 작성
 """
-import pytest
+
 from app.core.utils.json_parser import SafeJsonParser, JsonParseResult
 
 
@@ -23,7 +23,7 @@ class TestSafeJsonParser:
 
     def test_parse_valid_json_list(self):
         """유효한 JSON list 파싱"""
-        json_str = '[1, 2, 3]'
+        json_str = "[1, 2, 3]"
         result = SafeJsonParser.parse(json_str)
 
         assert result.success is True
@@ -41,7 +41,7 @@ class TestSafeJsonParser:
 
     def test_parse_valid_json_number(self):
         """유효한 JSON 숫자 파싱"""
-        json_str = '42'
+        json_str = "42"
         result = SafeJsonParser.parse(json_str)
 
         assert result.success is True
@@ -50,7 +50,7 @@ class TestSafeJsonParser:
 
     def test_parse_valid_json_null(self):
         """유효한 JSON null 파싱"""
-        json_str = 'null'
+        json_str = "null"
         result = SafeJsonParser.parse(json_str)
 
         assert result.success is True
@@ -59,7 +59,7 @@ class TestSafeJsonParser:
 
     def test_parse_empty_string(self):
         """빈 문자열 처리 - 'Expecting value: line 1 column 1' 에러 방지"""
-        json_str = ''
+        json_str = ""
         result = SafeJsonParser.parse(json_str)
 
         assert result.success is False
@@ -70,7 +70,7 @@ class TestSafeJsonParser:
 
     def test_parse_whitespace_only_string(self):
         """공백만 있는 문자열 처리"""
-        json_str = '   \n\t  '
+        json_str = "   \n\t  "
         result = SafeJsonParser.parse(json_str)
 
         assert result.success is False
@@ -147,6 +147,7 @@ class TestJsonParseResult:
     def test_result_is_dataclass(self):
         """JsonParseResult가 dataclass인지 확인"""
         from dataclasses import is_dataclass
+
         assert is_dataclass(JsonParseResult)
 
     def test_result_fields(self):
@@ -155,13 +156,13 @@ class TestJsonParseResult:
             success=True,
             data={"test": "data"},
             error=None,
-            raw_input='{"test": "data"}'
+            raw_input='{"test": "data"}',
         )
 
-        assert hasattr(result, 'success')
-        assert hasattr(result, 'data')
-        assert hasattr(result, 'error')
-        assert hasattr(result, 'raw_input')
+        assert hasattr(result, "success")
+        assert hasattr(result, "data")
+        assert hasattr(result, "error")
+        assert hasattr(result, "raw_input")
 
     def test_result_immutability(self):
         """JsonParseResult 불변성 (frozen=True인 경우)"""
@@ -169,7 +170,7 @@ class TestJsonParseResult:
             success=True,
             data={"test": "data"},
             error=None,
-            raw_input='{"test": "data"}'
+            raw_input='{"test": "data"}',
         )
 
         # frozen=True가 아니면 이 테스트는 스킵

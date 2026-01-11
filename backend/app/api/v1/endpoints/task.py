@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 from redis.asyncio import Redis
@@ -11,12 +11,13 @@ from app.models.asset import AssetRead
 
 router = APIRouter()
 
+
 @router.post("/projects/{project_id}/targets/{target_id}/scan", status_code=202)
 async def trigger_scan(
     project_id: int,
     target_id: int,
     session: AsyncSession = Depends(get_session),
-    redis: Redis = Depends(get_redis)
+    redis: Redis = Depends(get_redis),
 ) -> dict:
     """
     Trigger a crawl/scan task for a specific target.
@@ -28,11 +29,12 @@ async def trigger_scan(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/tasks/{task_id}", response_model=TaskRead)
 async def get_task_status(
     task_id: int,
     session: AsyncSession = Depends(get_session),
-    redis: Redis = Depends(get_redis)
+    redis: Redis = Depends(get_redis),
 ):
     service = TaskService(session, redis)
     task = await service.get_task(task_id)
@@ -40,11 +42,12 @@ async def get_task_status(
         raise HTTPException(status_code=404, detail="Task not found")
     return task
 
+
 @router.get("/tasks/{task_id}/assets", response_model=List[AssetRead])
 async def get_task_assets(
     task_id: int,
     session: AsyncSession = Depends(get_session),
-    redis: Redis = Depends(get_redis)
+    redis: Redis = Depends(get_redis),
 ):
     service = TaskService(session, redis)
     assets = await service.get_task_assets(task_id)
@@ -55,7 +58,7 @@ async def get_task_assets(
 async def cancel_task(
     task_id: int,
     session: AsyncSession = Depends(get_session),
-    redis: Redis = Depends(get_redis)
+    redis: Redis = Depends(get_redis),
 ) -> Task:
     """
     Cancel a running or pending task.
@@ -87,7 +90,7 @@ async def cancel_task(
 async def get_latest_task(
     target_id: int,
     session: AsyncSession = Depends(get_session),
-    redis: Redis = Depends(get_redis)
+    redis: Redis = Depends(get_redis),
 ) -> Task:
     """
     Get the most recent task for a target.
@@ -106,8 +109,7 @@ async def get_latest_task(
 
     if not task:
         raise HTTPException(
-            status_code=404,
-            detail=f"No tasks found for target {target_id}"
+            status_code=404, detail=f"No tasks found for target {target_id}"
         )
 
     return task

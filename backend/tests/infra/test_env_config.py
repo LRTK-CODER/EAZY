@@ -5,10 +5,8 @@ TDD RED Phase - 테스트 작성
 환경 설정 파일과 Makefile 존재 및 필수 내용 검증
 """
 
-import os
 from pathlib import Path
 
-import pytest
 
 # 프로젝트 루트 경로
 # tests/infra/test_env_config.py → backend/tests/infra/test_env_config.py

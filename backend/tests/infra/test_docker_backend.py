@@ -5,10 +5,8 @@ TDD RED Phase - 테스트 작성
 Backend Dockerfile 존재 및 유효성 검증
 """
 
-import subprocess
 from pathlib import Path
 
-import pytest
 
 # 프로젝트 경로
 BACKEND_ROOT = Path(__file__).parent.parent.parent  # backend/
@@ -76,15 +74,15 @@ class TestDockerfilePlaywright:
         dockerfile = BACKEND_ROOT / "Dockerfile"
         content = dockerfile.read_text()
         # Playwright에 필요한 주요 라이브러리 중 하나 확인
-        assert "libnss3" in content or "playwright install" in content, \
-            "Playwright dependencies not found"
+        assert (
+            "libnss3" in content or "playwright install" in content
+        ), "Playwright dependencies not found"
 
     def test_dockerfile_sets_playwright_path(self):
         """Dockerfile에 PLAYWRIGHT_BROWSERS_PATH가 설정되어야 함"""
         dockerfile = BACKEND_ROOT / "Dockerfile"
         content = dockerfile.read_text()
-        assert "PLAYWRIGHT_BROWSERS_PATH" in content, \
-            "PLAYWRIGHT_BROWSERS_PATH not set"
+        assert "PLAYWRIGHT_BROWSERS_PATH" in content, "PLAYWRIGHT_BROWSERS_PATH not set"
 
 
 class TestDockerfileExpose:

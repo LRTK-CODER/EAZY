@@ -2,7 +2,6 @@
 Test 5-Imp.32: URL Parameter Parsing Tests (RED Phase)
 Expected to FAIL: ImportError - parse_query_params function doesn't exist yet
 """
-import pytest
 
 
 def test_parse_query_params_function_exists():
@@ -10,7 +9,9 @@ def test_parse_query_params_function_exists():
     # Should FAIL: ImportError - cannot import name 'parse_query_params'
     from app.utils.url_parser import parse_query_params
 
-    assert callable(parse_query_params), "parse_query_params should be a callable function"
+    assert callable(
+        parse_query_params
+    ), "parse_query_params should be a callable function"
 
 
 def test_parse_query_params_extracts_parameters():

@@ -2,14 +2,15 @@
 Phase 3 Day 4: Worker Runner 테스트
 TDD RED 단계 - 이 테스트들은 runner.py 구현 전에 실패해야 함
 """
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 import json
 
 from app.models.task import Task, TaskStatus, TaskType
 from app.models.project import Project
 from app.models.target import Target
-from app.workers.base import WorkerContext, TaskResult
+from app.workers.base import WorkerContext
 
 
 class TestProcessOneTask:
@@ -70,7 +71,9 @@ class TestProcessOneTask:
         await db_session.commit()
         await db_session.refresh(project)
 
-        target = Target(name="Test Target", project_id=project.id, url="http://example.com")
+        target = Target(
+            name="Test Target", project_id=project.id, url="http://example.com"
+        )
         db_session.add(target)
         await db_session.commit()
         await db_session.refresh(target)
@@ -134,7 +137,9 @@ class TestProcessOneTask:
         await db_session.commit()
         await db_session.refresh(project)
 
-        target = Target(name="Test Target", project_id=project.id, url="http://example.com")
+        target = Target(
+            name="Test Target", project_id=project.id, url="http://example.com"
+        )
         db_session.add(target)
         await db_session.commit()
         await db_session.refresh(target)
@@ -257,7 +262,9 @@ class TestCreateWorkerContext:
     """create_worker_context() 함수 테스트"""
 
     @pytest.mark.asyncio
-    async def test_create_context_creates_all_dependencies(self, db_session, redis_client):
+    async def test_create_context_creates_all_dependencies(
+        self, db_session, redis_client
+    ):
         """create_worker_context() should create all required managers"""
         from app.workers.runner import create_worker_context
 
@@ -269,7 +276,9 @@ class TestCreateWorkerContext:
         assert context.orphan_recovery is not None
 
     @pytest.mark.asyncio
-    async def test_create_context_shares_redis_connection(self, db_session, redis_client):
+    async def test_create_context_shares_redis_connection(
+        self, db_session, redis_client
+    ):
         """create_worker_context() should share Redis between managers"""
         from app.workers.runner import create_worker_context
 
@@ -298,7 +307,11 @@ class TestIntegration:
         await db_session.commit()
         await db_session.refresh(project)
 
-        target = Target(name="Integration Target", project_id=project.id, url="http://integration.test")
+        target = Target(
+            name="Integration Target",
+            project_id=project.id,
+            url="http://integration.test",
+        )
         db_session.add(target)
         await db_session.commit()
         await db_session.refresh(target)
@@ -323,10 +336,18 @@ class TestIntegration:
         # Process with mocked crawler
         with patch("app.workers.crawl_worker.CrawlerService") as MockCrawler:
             mock_crawler = MockCrawler.return_value
-            mock_crawler.crawl = AsyncMock(return_value=(
-                ["http://integration.test/page1"],
-                {"http://integration.test/page1": {"request": {"method": "GET"}, "response": {"status": 200}, "parameters": {}}}
-            ))
+            mock_crawler.crawl = AsyncMock(
+                return_value=(
+                    ["http://integration.test/page1"],
+                    {
+                        "http://integration.test/page1": {
+                            "request": {"method": "GET"},
+                            "response": {"status": 200},
+                            "parameters": {},
+                        }
+                    },
+                )
+            )
 
             result = await process_one_task(context)
 
@@ -428,7 +449,6 @@ class TestDeprecation:
     def test_old_worker_module_emits_deprecation_warning(self):
         """Importing app.worker should emit DeprecationWarning"""
         import warnings
-        import importlib
         import sys
 
         # Remove from cache if already imported
@@ -437,11 +457,11 @@ class TestDeprecation:
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            import app.worker
 
             # Check that a DeprecationWarning was issued
             deprecation_warnings = [
-                warning for warning in w
+                warning
+                for warning in w
                 if issubclass(warning.category, DeprecationWarning)
             ]
             assert len(deprecation_warnings) >= 1

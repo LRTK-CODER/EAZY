@@ -1,15 +1,15 @@
 import pytest
-from datetime import datetime
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select
 
 from app.services.asset_service import AssetService
 from app.models.task import Task
-from app.models.asset import Asset, AssetDiscovery, AssetType, AssetSource
+from app.models.asset import AssetDiscovery, AssetType, AssetSource
 
 from app.models.project import Project
 from app.models.target import Target, TargetScope
-from app.models.task import Task, TaskType
+from app.models.task import TaskType
+
 
 @pytest.mark.asyncio
 async def test_create_asset_deduplication(db_session: AsyncSession):
@@ -21,17 +21,22 @@ async def test_create_asset_deduplication(db_session: AsyncSession):
     db_session.add(project)
     await db_session.commit()
     await db_session.refresh(project)
-    
-    target = Target(name="Test Target", project_id=project.id, url="http://example.com", scope=TargetScope.DOMAIN)
+
+    target = Target(
+        name="Test Target",
+        project_id=project.id,
+        url="http://example.com",
+        scope=TargetScope.DOMAIN,
+    )
     db_session.add(target)
     await db_session.commit()
     await db_session.refresh(target)
-    
+
     task1 = Task(project_id=project.id, target_id=target.id, type=TaskType.CRAWL)
     db_session.add(task1)
     await db_session.commit()
     await db_session.refresh(task1)
-    
+
     task2 = Task(project_id=project.id, target_id=target.id, type=TaskType.CRAWL)
     db_session.add(task2)
     await db_session.commit()
@@ -52,7 +57,7 @@ async def test_create_asset_deduplication(db_session: AsyncSession):
             url=url,
             method=method,
             type=AssetType.URL,
-            source=AssetSource.HTML
+            source=AssetSource.HTML,
         )
 
     # After context exit, assets are flushed
@@ -63,7 +68,9 @@ async def test_create_asset_deduplication(db_session: AsyncSession):
     first_seen = asset1.first_seen_at
 
     # Verify AssetDiscovery created
-    result = await db_session.exec(select(AssetDiscovery).where(AssetDiscovery.asset_id == asset1.id))
+    result = await db_session.exec(
+        select(AssetDiscovery).where(AssetDiscovery.asset_id == asset1.id)
+    )
     discoveries = result.all()
     assert len(discoveries) == 1
     assert discoveries[0].task_id == task_id
@@ -77,9 +84,9 @@ async def test_create_asset_deduplication(db_session: AsyncSession):
             target_id=target_id,
             task_id=task_id_2,
             url=url,
-            method=method, # Same method + url -> Same hash
+            method=method,  # Same method + url -> Same hash
             type=AssetType.URL,
-            source=AssetSource.HTML
+            source=AssetSource.HTML,
         )
 
     # After context exit, assets are flushed
@@ -92,7 +99,9 @@ async def test_create_asset_deduplication(db_session: AsyncSession):
     assert asset2.last_task_id == task_id_2
 
     # Verify NEW AssetDiscovery created
-    result = await db_session.exec(select(AssetDiscovery).where(AssetDiscovery.asset_id == asset1.id))
+    result = await db_session.exec(
+        select(AssetDiscovery).where(AssetDiscovery.asset_id == asset1.id)
+    )
     discoveries = result.all()
     assert len(discoveries) == 2
     task_ids = [d.task_id for d in discoveries]

@@ -5,9 +5,8 @@ Phase 3: Architecture Improvement
 
 Provides the main worker loop and utilities for processing tasks.
 """
+
 import asyncio
-import json
-from typing import Optional
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
@@ -17,7 +16,7 @@ from app.core.config import settings
 from app.core.queue import TaskManager
 from app.core.dlq import DLQManager
 from app.core.recovery import OrphanRecovery
-from app.core.structured_logger import configure_logging, get_logger
+from app.core.structured_logger import get_logger
 from app.workers.base import WorkerContext
 
 # Import all models to register them with SQLAlchemy metadata
@@ -116,7 +115,9 @@ async def run_worker() -> None:
     redis = Redis.from_url(settings.REDIS_URL, decode_responses=True)
 
     engine = create_async_engine(settings.DATABASE_URL, echo=False, future=True)
-    async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async_session = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
 
     logger.info("Worker started. Waiting for tasks...")
 

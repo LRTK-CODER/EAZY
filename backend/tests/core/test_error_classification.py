@@ -4,8 +4,6 @@ Phase 2 Day 1: 에러 분류 시스템 테스트
 TDD RED 단계 - 이 테스트들은 errors.py와 retry.py 구현 전에 실패해야 함
 """
 
-import pytest
-import random
 from unittest.mock import patch
 
 
@@ -172,7 +170,7 @@ class TestCalculateBackoff:
 
     def test_backoff_increases_exponentially(self):
         """재시도 횟수에 따라 지수적으로 증가해야 함"""
-        from app.core.retry import calculate_backoff, BASE_DELAY
+        from app.core.retry import calculate_backoff
 
         # Jitter 제거하고 평균값 비교
         with patch("random.uniform", return_value=0):

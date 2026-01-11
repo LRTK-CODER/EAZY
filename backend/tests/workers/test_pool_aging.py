@@ -3,9 +3,10 @@ Sprint 3.1: Aging Task Background Worker Tests
 
 TDD tests for WorkerPool aging task that promotes aged tasks periodically.
 """
+
 import asyncio
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 import os
 
 
@@ -23,7 +24,7 @@ class TestAgingTaskConfig:
         """Aging can be enabled via environment variable."""
         from app.workers.pool import WorkerPoolConfig
 
-        with patch.dict(os.environ, {'WORKER_AGING_ENABLED': 'true'}):
+        with patch.dict(os.environ, {"WORKER_AGING_ENABLED": "true"}):
             config = WorkerPoolConfig.from_env()
             assert config.aging_enabled is True
 
@@ -38,7 +39,7 @@ class TestAgingTaskConfig:
         """Aging interval can be set via environment variable."""
         from app.workers.pool import WorkerPoolConfig
 
-        with patch.dict(os.environ, {'WORKER_AGING_INTERVAL': '30'}):
+        with patch.dict(os.environ, {"WORKER_AGING_INTERVAL": "30"}):
             config = WorkerPoolConfig.from_env()
             assert config.aging_interval == 30
 
@@ -65,11 +66,13 @@ class TestAgingTaskLifecycle:
             # Wait briefly then return
             await asyncio.sleep(0.05)
 
-        with patch.object(pool, '_run_aging_task', side_effect=track_aging):
-            with patch.object(pool, '_run_worker_supervised', new_callable=AsyncMock):
+        with patch.object(pool, "_run_aging_task", side_effect=track_aging):
+            with patch.object(pool, "_run_worker_supervised", new_callable=AsyncMock):
                 mock_engine = AsyncMock()
                 mock_engine.dispose = AsyncMock()
-                with patch('app.workers.pool.create_async_engine', return_value=mock_engine):
+                with patch(
+                    "app.workers.pool.create_async_engine", return_value=mock_engine
+                ):
                     # Start and immediately stop
                     start_task = asyncio.create_task(pool.start())
                     await asyncio.sleep(0.1)
@@ -95,11 +98,13 @@ class TestAgingTaskLifecycle:
         async def track_aging():
             aging_called.set()
 
-        with patch.object(pool, '_run_aging_task', side_effect=track_aging):
-            with patch.object(pool, '_run_worker_supervised', new_callable=AsyncMock):
+        with patch.object(pool, "_run_aging_task", side_effect=track_aging):
+            with patch.object(pool, "_run_worker_supervised", new_callable=AsyncMock):
                 mock_engine = AsyncMock()
                 mock_engine.dispose = AsyncMock()
-                with patch('app.workers.pool.create_async_engine', return_value=mock_engine):
+                with patch(
+                    "app.workers.pool.create_async_engine", return_value=mock_engine
+                ):
                     start_task = asyncio.create_task(pool.start())
                     await asyncio.sleep(0.1)
                     await pool.stop()
@@ -131,11 +136,13 @@ class TestAgingTaskLifecycle:
                 aging_task_stopped.set()
                 raise
 
-        with patch.object(pool, '_run_aging_task', side_effect=mock_aging_task):
-            with patch.object(pool, '_run_worker_supervised', new_callable=AsyncMock):
+        with patch.object(pool, "_run_aging_task", side_effect=mock_aging_task):
+            with patch.object(pool, "_run_worker_supervised", new_callable=AsyncMock):
                 mock_engine = AsyncMock()
                 mock_engine.dispose = AsyncMock()
-                with patch('app.workers.pool.create_async_engine', return_value=mock_engine):
+                with patch(
+                    "app.workers.pool.create_async_engine", return_value=mock_engine
+                ):
                     start_task = asyncio.create_task(pool.start())
                     await asyncio.wait_for(aging_task_started.wait(), timeout=1.0)
                     await pool.stop()
@@ -161,11 +168,11 @@ class TestAgingTaskExecution:
         pool = WorkerPool(config)
         pool._shutdown_event = asyncio.Event()
 
-        with patch('app.workers.pool.Redis') as mock_redis_cls:
+        with patch("app.workers.pool.Redis") as mock_redis_cls:
             mock_redis = AsyncMock()
             mock_redis_cls.from_url.return_value = mock_redis
 
-            with patch('app.workers.pool.TaskManager') as mock_tm_cls:
+            with patch("app.workers.pool.TaskManager") as mock_tm_cls:
                 mock_tm = AsyncMock()
                 mock_tm.promote_aged_tasks = AsyncMock(return_value=0)
                 mock_tm_cls.return_value = mock_tm
@@ -201,11 +208,11 @@ class TestAgingTaskExecution:
             call_count += 1
             return 0
 
-        with patch('app.workers.pool.Redis') as mock_redis_cls:
+        with patch("app.workers.pool.Redis") as mock_redis_cls:
             mock_redis = AsyncMock()
             mock_redis_cls.from_url.return_value = mock_redis
 
-            with patch('app.workers.pool.TaskManager') as mock_tm_cls:
+            with patch("app.workers.pool.TaskManager") as mock_tm_cls:
                 mock_tm = AsyncMock()
                 mock_tm.promote_aged_tasks = mock_promote
                 mock_tm_cls.return_value = mock_tm
@@ -245,11 +252,11 @@ class TestAgingTaskExecution:
             success_count += 1
             return 0
 
-        with patch('app.workers.pool.Redis') as mock_redis_cls:
+        with patch("app.workers.pool.Redis") as mock_redis_cls:
             mock_redis = AsyncMock()
             mock_redis_cls.from_url.return_value = mock_redis
 
-            with patch('app.workers.pool.TaskManager') as mock_tm_cls:
+            with patch("app.workers.pool.TaskManager") as mock_tm_cls:
                 mock_tm = AsyncMock()
                 mock_tm.promote_aged_tasks = mock_promote_with_errors
                 mock_tm_cls.return_value = mock_tm
@@ -280,16 +287,17 @@ class TestAgingTaskExecution:
         pool = WorkerPool(config)
         pool._shutdown_event = asyncio.Event()
 
-        with patch('app.workers.pool.Redis') as mock_redis_cls:
+        with patch("app.workers.pool.Redis") as mock_redis_cls:
             mock_redis = AsyncMock()
             mock_redis_cls.from_url.return_value = mock_redis
 
-            with patch('app.workers.pool.TaskManager') as mock_tm_cls:
+            with patch("app.workers.pool.TaskManager") as mock_tm_cls:
                 mock_tm = AsyncMock()
                 mock_tm.promote_aged_tasks = AsyncMock(return_value=5)
                 mock_tm_cls.return_value = mock_tm
 
-                with patch('app.workers.pool.logger') as mock_logger:
+                with patch("app.workers.pool.logger") as mock_logger:
+
                     async def stop_after_delay():
                         await asyncio.sleep(0.15)
                         pool._shutdown_event.set()
@@ -299,8 +307,9 @@ class TestAgingTaskExecution:
 
                     # Verify info log was called with promotion count
                     info_calls = [
-                        call for call in mock_logger.info.call_args_list
-                        if 'Promoted' in str(call) or 'count' in str(call)
+                        call
+                        for call in mock_logger.info.call_args_list
+                        if "Promoted" in str(call) or "count" in str(call)
                     ]
                     assert len(info_calls) > 0
 
@@ -333,11 +342,13 @@ class TestAgingTaskIntegration:
             # Immediately return to not block test
             return
 
-        with patch.object(pool, '_run_aging_task', side_effect=track_aging):
-            with patch.object(pool, '_run_worker_supervised', side_effect=track_worker):
+        with patch.object(pool, "_run_aging_task", side_effect=track_aging):
+            with patch.object(pool, "_run_worker_supervised", side_effect=track_worker):
                 mock_engine = AsyncMock()
                 mock_engine.dispose = AsyncMock()
-                with patch('app.workers.pool.create_async_engine', return_value=mock_engine):
+                with patch(
+                    "app.workers.pool.create_async_engine", return_value=mock_engine
+                ):
                     start_task = asyncio.create_task(pool.start())
                     await asyncio.sleep(0.1)
                     await pool.stop()
