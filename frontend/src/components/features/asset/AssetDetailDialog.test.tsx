@@ -264,8 +264,8 @@ describe('AssetDetailDialog Component', () => {
       });
     });
 
-    it('should display parameters in table format', async () => {
-      // GREEN Phase: Verify parameters Table
+    it('should display parameters in table format with Name, Value, Type columns', async () => {
+      // GREEN Phase: Verify parameters Table with Type column
       render(
         <AssetDetailDialog
           asset={mockAssetWithHttpData}
@@ -283,10 +283,17 @@ describe('AssetDetailDialog Component', () => {
         expect(screen.getByText('Parameters')).toBeInTheDocument();
       });
 
-      // Verify parameter entries
+      // Verify table headers include Type column
+      expect(screen.getByRole('columnheader', { name: /name/i })).toBeInTheDocument();
+      expect(screen.getByRole('columnheader', { name: /value/i })).toBeInTheDocument();
+      expect(screen.getByRole('columnheader', { name: /type/i })).toBeInTheDocument();
+
+      // Verify parameter entries with types
       expect(screen.getByText('username')).toBeInTheDocument();
-      expect(screen.getAllByText('string').length).toBeGreaterThan(0);
       expect(screen.getByText('password')).toBeInTheDocument();
+      // inferType('string') returns 'string' - there should be type badges
+      const typeBadges = screen.getAllByText('string');
+      expect(typeBadges.length).toBeGreaterThanOrEqual(2); // At least 2 type badges
     });
   });
 

@@ -1,3 +1,4 @@
+import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -39,30 +40,29 @@ vi.mock('@/hooks/useAssets', () => ({
   },
 }));
 
-// Mock AssetTable component (will be created in future phase)
-vi.mock('@/components/features/asset/AssetTable', async () => {
-  const { useTargetAssets } = await import('@/hooks/useAssets');
-  return {
-    AssetTable: ({ projectId, targetId }: { projectId: number; targetId: number }) => {
-      const { data: assets } = useTargetAssets(projectId, targetId);
+// Mock AssetExplorer component
+vi.mock('@/components/features/asset/AssetExplorer', () => ({
+  AssetExplorer: ({ assets, isLoading }: { assets: Asset[]; isLoading?: boolean }) => {
+    if (isLoading) {
+      return <div data-testid="asset-explorer-loading">Loading...</div>;
+    }
 
-      if (!assets || assets.length === 0) {
-        return <div data-testid="asset-table">No assets</div>;
-      }
+    if (!assets || assets.length === 0) {
+      return <div data-testid="asset-explorer">No assets discovered yet</div>;
+    }
 
-      return (
-        <div data-testid="asset-table">
-          <div data-testid="asset-count">{assets.length}</div>
-          {assets.map((asset: Asset) => (
-            <div key={asset.id} data-testid={`asset-${asset.id}`}>
-              {asset.url}
-            </div>
-          ))}
-        </div>
-      );
-    },
-  };
-});
+    return (
+      <div data-testid="asset-explorer">
+        <div data-testid="asset-count">{assets.length}</div>
+        {assets.map((asset: Asset) => (
+          <div key={asset.id} data-testid={`asset-${asset.id}`}>
+            {asset.url}
+          </div>
+        ))}
+      </div>
+    );
+  },
+}));
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -200,7 +200,7 @@ describe('TargetResultsPage Component', () => {
       expect(useTarget).toHaveBeenCalledWith(1, 2);
     });
 
-    it('handles invalid projectId (non-numeric string)', () => {
+    it('handles invalid projectId (non-numeric string) - redirects to 404', () => {
       vi.mocked(useParams).mockReturnValue({ projectId: 'invalid', targetId: '2' });
       vi.mocked(useProject).mockReturnValue({
         data: undefined,
@@ -220,12 +220,12 @@ describe('TargetResultsPage Component', () => {
 
       renderWithProviders(<TargetResultsPage />);
 
-      // NaN is passed to hooks
-      expect(useProject).toHaveBeenCalledWith(NaN);
-      expect(useTarget).toHaveBeenCalledWith(NaN, 2);
+      // Invalid params trigger redirect, so hooks are not called
+      expect(useProject).not.toHaveBeenCalled();
+      expect(useTarget).not.toHaveBeenCalled();
     });
 
-    it('handles invalid targetId (non-numeric string)', () => {
+    it('handles invalid targetId (non-numeric string) - redirects to 404', () => {
       vi.mocked(useParams).mockReturnValue({ projectId: '1', targetId: 'invalid' });
       vi.mocked(useProject).mockReturnValue({
         data: mockProject,
@@ -245,8 +245,9 @@ describe('TargetResultsPage Component', () => {
 
       renderWithProviders(<TargetResultsPage />);
 
-      // NaN is passed to useTarget
-      expect(useTarget).toHaveBeenCalledWith(1, NaN);
+      // Invalid params trigger redirect, so hooks are not called
+      expect(useProject).not.toHaveBeenCalled();
+      expect(useTarget).not.toHaveBeenCalled();
     });
 
     it('calls useTargetAssets with correct parameters', () => {
@@ -272,7 +273,7 @@ describe('TargetResultsPage Component', () => {
       expect(useTargetAssets).toHaveBeenCalledWith(5, 10);
     });
 
-    it('handles missing params (undefined)', () => {
+    it('handles missing params (undefined) - redirects to 404', () => {
       vi.mocked(useParams).mockReturnValue({});
       vi.mocked(useProject).mockReturnValue({
         data: undefined,
@@ -292,9 +293,9 @@ describe('TargetResultsPage Component', () => {
 
       renderWithProviders(<TargetResultsPage />);
 
-      // undefined converts to NaN
-      expect(useProject).toHaveBeenCalledWith(NaN);
-      expect(useTarget).toHaveBeenCalledWith(NaN, NaN);
+      // Invalid params trigger redirect, so hooks are not called
+      expect(useProject).not.toHaveBeenCalled();
+      expect(useTarget).not.toHaveBeenCalled();
     });
   });
 
@@ -368,8 +369,7 @@ describe('TargetResultsPage Component', () => {
       renderWithProviders(<TargetResultsPage />);
 
       expect(useTargetAssets).toHaveBeenCalledWith(1, 2);
-      // Called twice: once in TargetResultsPage and once in mocked AssetTable
-      expect(useTargetAssets).toHaveBeenCalledTimes(2);
+      expect(useTargetAssets).toHaveBeenCalledTimes(1);
     });
 
     it('ensures query keys are consistent across hooks', () => {
@@ -547,7 +547,7 @@ describe('TargetResultsPage Component', () => {
       });
     });
 
-    it('integrates AssetTable component with assets data', async () => {
+    it('integrates AssetExplorer component with assets data', async () => {
       vi.mocked(useParams).mockReturnValue({ projectId: '1', targetId: '2' });
       vi.mocked(useProject).mockReturnValue({
         data: mockProject,
@@ -568,8 +568,8 @@ describe('TargetResultsPage Component', () => {
       renderWithProviders(<TargetResultsPage />);
 
       await waitFor(() => {
-        const assetTable = screen.getByTestId('asset-table');
-        expect(assetTable).toBeInTheDocument();
+        const assetExplorer = screen.getByTestId('asset-explorer');
+        expect(assetExplorer).toBeInTheDocument();
 
         // Verify asset count
         const assetCount = screen.getByTestId('asset-count');
@@ -681,8 +681,7 @@ describe('TargetResultsPage Component', () => {
       renderWithProviders(<TargetResultsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/no assets found/i)).toBeInTheDocument();
-        expect(screen.getByText(/run a scan to discover attack surfaces/i)).toBeInTheDocument();
+        expect(screen.getByText(/no assets discovered yet/i)).toBeInTheDocument();
       });
     });
 

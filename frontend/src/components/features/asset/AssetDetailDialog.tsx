@@ -10,6 +10,7 @@
 import { formatDistanceToNow } from 'date-fns';
 import type { Asset } from '@/types/asset';
 import { parseJsonBody } from '@/utils/http';
+import { inferType } from '@/utils/parameterType';
 import {
   Dialog,
   DialogContent,
@@ -280,6 +281,7 @@ export function AssetDetailDialog({
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Value</TableHead>
+                      <TableHead>Type</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -290,6 +292,11 @@ export function AssetDetailDialog({
                           {typeof value === 'string'
                             ? value
                             : JSON.stringify(value)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {inferType(value)}
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     ))}

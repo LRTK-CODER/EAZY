@@ -4,7 +4,7 @@ import { parseNumericParam, isValidId } from '@/utils/params';
 import { useProject } from '@/hooks/useProjects';
 import { useTarget } from '@/hooks/useTargets';
 import { useTargetAssets } from '@/hooks/useAssets';
-import { AssetTable } from '@/components/features/asset/AssetTable';
+import { AssetExplorer } from '@/components/features/asset/AssetExplorer';
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
  * Features:
  * - Breadcrumb navigation (Home → Projects → Project Detail → Results)
  * - Target information header (Name, URL, Scope badge)
- * - AssetTable integration showing discovered assets
+ * - AssetExplorer integration showing discovered assets
  * - Loading, error, and empty states
  * - "Back to Project" navigation button
  *
@@ -70,7 +70,8 @@ function TargetResultsContent({ projectId, targetId }: TargetResultsContentProps
   } = useTarget(projectId, targetId);
 
   const {
-    data: assets
+    data: assets,
+    isLoading: isAssetsLoading
   } = useTargetAssets(projectId, targetId);
 
   // Loading state: show spinner if project or target is loading
@@ -154,20 +155,9 @@ function TargetResultsContent({ projectId, targetId }: TargetResultsContentProps
       </div>
 
       {/* Assets Section */}
-      {assets && assets.length === 0 ? (
-        <div className="flex items-center justify-center py-12 border rounded-md bg-muted/30">
-          <div className="text-center">
-            <h3 className="text-lg font-semibold mb-2">No assets found</h3>
-            <p className="text-muted-foreground">
-              run a scan to discover attack surfaces
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="mb-6">
-          <AssetTable projectId={projectId} targetId={targetId} />
-        </div>
-      )}
+      <div className="h-[calc(100vh-280px)] min-h-[400px] border rounded-md overflow-hidden mb-6">
+        <AssetExplorer assets={assets ?? []} isLoading={isAssetsLoading} />
+      </div>
 
       {/* Back to Project Button */}
       <div className="mt-6">
