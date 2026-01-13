@@ -3,13 +3,10 @@
  * Burp Suite style tree view + detail panel layout
  */
 
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import { FolderTree, PanelLeft } from 'lucide-react';
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from '@/components/ui/resizable';
+import { Panel, Group as PanelGroup, Separator as PanelSeparator } from 'react-resizable-panels';
+import { GripVertical } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -20,42 +17,60 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile, useIsTablet } from '@/hooks/use-mobile';
+import { useDebounce } from '@/hooks/use-debounce';
 import { AssetExplorerProvider, useAssetExplorer } from '@/contexts/AssetExplorerContext';
-import { AssetTreeView } from './tree/AssetTreeView';
+import { AssetTreeView, type HttpMethod } from './tree/AssetTreeView';
+import { SearchFilterBar } from './tree/SearchFilterBar';
 import { AssetDetailPanel } from './detail/AssetDetailPanel';
 import type { Asset } from '@/types/asset';
 
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** Minimum tree panel width in pixels */
+export const TREE_MIN_WIDTH_PX = 280;
+
+/** Default tree panel width as percentage */
+export const TREE_DEFAULT_PERCENT = 35;
+
+// ============================================================================
+// Utilities
+// ============================================================================
+
 /**
- * Custom hook for persisting panel layout to localStorage
+ * Calculate minimum panel size as percentage based on viewport width
+ * Ensures tree panel is at least TREE_MIN_WIDTH_PX pixels
  */
-type Layout = { [panelId: string]: number };
+export function getMinSizePercent(viewportWidth: number): number {
+  return (TREE_MIN_WIDTH_PX / viewportWidth) * 100;
+}
 
-function usePanelLayout(storageKey: string, defaultLayout: Layout) {
-  const [layout, setLayout] = useState<Layout>(() => {
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        return JSON.parse(stored) as Layout;
-      }
-    } catch {
-      // Ignore localStorage errors
+// ============================================================================
+// Hooks
+// ============================================================================
+
+/**
+ * Custom hook for mobile sheet state management
+ * Automatically closes sheet when an asset is selected
+ */
+export function useMobileSheet(selectedAssetId: number | null) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Close sheet when selectedAssetId changes (asset selected)
+  useEffect(() => {
+    if (selectedAssetId !== null && isOpen) {
+      setIsOpen(false);
     }
-    return defaultLayout;
-  });
+  }, [selectedAssetId, isOpen]);
 
-  const onLayoutChange = useCallback(
-    (newLayout: Layout) => {
-      setLayout(newLayout);
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(newLayout));
-      } catch {
-        // Ignore localStorage errors
-      }
-    },
-    [storageKey]
-  );
-
-  return { layout, onLayoutChange };
+  return {
+    isOpen,
+    setIsOpen,
+    open: useCallback(() => setIsOpen(true), []),
+    close: useCallback(() => setIsOpen(false), []),
+    toggle: useCallback(() => setIsOpen((prev) => !prev), []),
+  };
 }
 
 /**
@@ -68,10 +83,19 @@ interface AssetExplorerProps {
   isLoading?: boolean;
 }
 
+/** Debounce delay for search input (ms) */
+const SEARCH_DEBOUNCE_DELAY = 300;
+
 /**
- * Tree panel content with AssetTreeView
+ * Tree panel content with AssetTreeView and SearchFilterBar
  */
 function TreePanelContent({ assets }: { assets: Asset[] }) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterMethod, setFilterMethod] = useState<HttpMethod | null>(null);
+
+  // Debounce search query to avoid filtering on every keystroke
+  const debouncedSearchQuery = useDebounce(searchQuery, SEARCH_DEBOUNCE_DELAY);
+
   if (assets.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -91,8 +115,21 @@ function TreePanelContent({ assets }: { assets: Asset[] }) {
           {assets.length} assets
         </p>
       </div>
+      <div className="border-b p-2">
+        <SearchFilterBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          filterMethod={filterMethod}
+          onFilterMethodChange={setFilterMethod}
+        />
+      </div>
       <div className="flex-1 overflow-hidden">
-        <AssetTreeView assets={assets} className="h-full" />
+        <AssetTreeView
+          assets={assets}
+          searchQuery={debouncedSearchQuery}
+          filterMethod={filterMethod ?? undefined}
+          className="h-full"
+        />
       </div>
     </div>
   );
@@ -137,11 +174,6 @@ function LoadingSkeleton() {
  * Desktop layout with resizable panels
  */
 function DesktopLayout({ assets }: { assets: Asset[] }) {
-  const { layout, onLayoutChange } = usePanelLayout('asset-explorer-desktop', {
-    'tree-panel': 30,
-    'detail-panel': 70,
-  });
-
   if (assets.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -154,36 +186,38 @@ function DesktopLayout({ assets }: { assets: Asset[] }) {
   }
 
   return (
-    <ResizablePanelGroup
+    <PanelGroup
       orientation="horizontal"
-      className="asset-explorer-panel-group"
-      defaultLayout={layout}
-      onLayoutChange={onLayoutChange}
+      className="flex h-full w-full asset-explorer-panel-group"
     >
-      <ResizablePanel
+      <Panel
         id="tree-panel"
-        defaultSize={layout['tree-panel'] ?? 30}
-        minSize={20}
-        maxSize={50}
+        defaultSize="25"
+        minSize="20"
+        maxSize="50"
         data-testid="asset-explorer-tree-panel"
       >
         <TreePanelContent assets={assets} />
-      </ResizablePanel>
+      </Panel>
 
-      <ResizableHandle
-        withHandle
+      <PanelSeparator
+        className="relative flex w-1 items-center justify-center bg-border transition-colors hover:bg-primary/20 after:absolute after:inset-y-0 after:left-1/2 after:w-3 after:-translate-x-1/2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         data-testid="asset-explorer-resize-handle"
-      />
+      >
+        <div className="z-10 flex h-6 w-4 items-center justify-center rounded-sm border bg-border">
+          <GripVertical className="h-3 w-3" />
+        </div>
+      </PanelSeparator>
 
-      <ResizablePanel
+      <Panel
         id="detail-panel"
-        defaultSize={layout['detail-panel'] ?? 70}
-        minSize={40}
+        defaultSize="75"
+        minSize="40"
         data-testid="asset-explorer-detail-panel"
       >
         <DetailPanelContent assets={assets} />
-      </ResizablePanel>
-    </ResizablePanelGroup>
+      </Panel>
+    </PanelGroup>
   );
 }
 
@@ -191,11 +225,6 @@ function DesktopLayout({ assets }: { assets: Asset[] }) {
  * Tablet layout with vertical resizable panels
  */
 function TabletLayout({ assets }: { assets: Asset[] }) {
-  const { layout, onLayoutChange } = usePanelLayout('asset-explorer-tablet', {
-    'tree-panel-tablet': 40,
-    'detail-panel-tablet': 60,
-  });
-
   if (assets.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -209,44 +238,66 @@ function TabletLayout({ assets }: { assets: Asset[] }) {
 
   return (
     <div data-testid="asset-explorer-tablet" className="h-full">
-      <ResizablePanelGroup
+      <PanelGroup
         orientation="vertical"
-        className="asset-explorer-panel-group-tablet"
-        defaultLayout={layout}
-        onLayoutChange={onLayoutChange}
+        className="flex h-full w-full flex-col asset-explorer-panel-group-tablet"
       >
-        <ResizablePanel
+        <Panel
           id="tree-panel-tablet"
-          defaultSize={layout['tree-panel-tablet'] ?? 40}
-          minSize={20}
-          maxSize={60}
+          defaultSize="40"
+          minSize="20"
+          maxSize="60"
           data-testid="asset-explorer-tree-panel-tablet"
         >
           <TreePanelContent assets={assets} />
-        </ResizablePanel>
+        </Panel>
 
-        <ResizableHandle
-          withHandle
+        <PanelSeparator
+          className="relative flex h-1 w-full items-center justify-center bg-border transition-colors hover:bg-primary/20"
           data-testid="asset-explorer-resize-handle-tablet"
-        />
+        >
+          <div className="z-10 flex h-4 w-6 items-center justify-center rounded-sm border bg-border rotate-90">
+            <GripVertical className="h-3 w-3" />
+          </div>
+        </PanelSeparator>
 
-        <ResizablePanel
+        <Panel
           id="detail-panel-tablet"
-          defaultSize={layout['detail-panel-tablet'] ?? 60}
-          minSize={30}
+          defaultSize="60"
+          minSize="30"
           data-testid="asset-explorer-detail-panel-tablet"
         >
           <DetailPanelContent assets={assets} />
-        </ResizablePanel>
-      </ResizablePanelGroup>
+        </Panel>
+      </PanelGroup>
     </div>
   );
 }
 
 /**
  * Mobile layout with sheet drawer
+ * Sheet automatically closes when an asset is selected
  */
 function MobileLayout({ assets }: { assets: Asset[] }) {
+  const { selectedAssetId } = useAssetExplorer();
+  const { isOpen, setIsOpen } = useMobileSheet(selectedAssetId);
+
+  // Get selected asset for trigger button display
+  const selectedAsset = useMemo(() => {
+    if (selectedAssetId === null) return null;
+    return assets.find((a) => a.id === selectedAssetId) ?? null;
+  }, [assets, selectedAssetId]);
+
+  // Get display text for trigger button
+  const triggerText = useMemo(() => {
+    if (selectedAsset?.path) {
+      // Show truncated path for selected asset
+      const path = selectedAsset.path;
+      return path.length > 20 ? `...${path.slice(-17)}` : path;
+    }
+    return 'Tree';
+  }, [selectedAsset]);
+
   if (assets.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -261,11 +312,16 @@ function MobileLayout({ assets }: { assets: Asset[] }) {
   return (
     <div data-testid="asset-explorer-mobile" className="flex h-full flex-col">
       <div className="flex items-center gap-2 border-b p-2">
-        <Sheet>
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="sm">
-              <PanelLeft className="mr-2 h-4 w-4" />
-              Tree
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="mobile-sheet-trigger"
+              className="max-w-[200px]"
+            >
+              <PanelLeft className="mr-2 h-4 w-4 shrink-0" />
+              <span className="truncate">{triggerText}</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-[300px] p-0">

@@ -218,6 +218,59 @@ describe('AssetExplorer', () => {
     });
   });
 
+  describe('Tree Panel Width Optimization (1.1)', () => {
+    const localStorageMock = (() => {
+      let store: Record<string, string> = {};
+      return {
+        getItem: (key: string) => store[key] || null,
+        setItem: (key: string, value: string) => { store[key] = value; },
+        removeItem: (key: string) => { delete store[key]; },
+        clear: () => { store = {}; },
+      };
+    })();
+
+    beforeEach(() => {
+      Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true });
+      localStorageMock.clear();
+    });
+
+    it('should have TREE_MIN_WIDTH_PX constant defined as 280', async () => {
+      const module = await import('./AssetExplorer');
+      expect(module.TREE_MIN_WIDTH_PX).toBe(280);
+    });
+
+    it('should have TREE_DEFAULT_PERCENT constant defined as 35', async () => {
+      const module = await import('./AssetExplorer');
+      expect(module.TREE_DEFAULT_PERCENT).toBe(35);
+    });
+
+    it('should calculate minimum percentage based on viewport width', async () => {
+      const module = await import('./AssetExplorer');
+      // At 1024px viewport, 280px minimum = ~27.3%
+      expect(module.getMinSizePercent(1024)).toBeCloseTo(27.34, 1);
+      // At 1920px viewport, 280px minimum = ~14.6%
+      expect(module.getMinSizePercent(1920)).toBeCloseTo(14.58, 1);
+    });
+
+    it('should render tree panel with correct structure', () => {
+      renderWithProviders(<AssetExplorer assets={mockAssets} />);
+
+      const treePanel = screen.getByTestId('asset-explorer-tree-panel');
+      // Panel should be rendered with panel ID
+      expect(treePanel).toHaveAttribute('data-panel-id', 'tree-panel');
+    });
+
+    it('should render both tree and detail panels', () => {
+      renderWithProviders(<AssetExplorer assets={mockAssets} />);
+
+      const treePanel = screen.getByTestId('asset-explorer-tree-panel');
+      const detailPanel = screen.getByTestId('asset-explorer-detail-panel');
+
+      expect(treePanel).toBeInTheDocument();
+      expect(detailPanel).toBeInTheDocument();
+    });
+  });
+
   describe('TreeView Placeholder', () => {
     it('should render tree view placeholder content', () => {
       renderWithProviders(<AssetExplorer assets={mockAssets} />);
@@ -269,6 +322,60 @@ describe('AssetExplorer', () => {
       renderWithProviders(<AssetExplorer assets={mockAssets} />);
 
       expect(screen.getByRole('heading', { name: /asset tree/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('Mobile Drawer Auto-Close (1.2)', () => {
+    beforeEach(() => {
+      mockUseIsMobile.mockReturnValue(true);
+      mockUseIsTablet.mockReturnValue(false);
+    });
+
+    it('should have controlled Sheet with open state', () => {
+      renderWithProviders(<AssetExplorer assets={mockAssets} />);
+
+      // Should have mobile layout with sheet trigger
+      expect(screen.getByTestId('asset-explorer-mobile')).toBeInTheDocument();
+      const triggerButton = screen.getByTestId('mobile-sheet-trigger');
+      expect(triggerButton).toBeInTheDocument();
+    });
+
+    it('should close sheet when onOpenChange is called with false', async () => {
+      const { user } = renderWithProviders(<AssetExplorer assets={mockAssets} />);
+
+      // Open the sheet
+      const triggerButton = screen.getByTestId('mobile-sheet-trigger');
+      await user.click(triggerButton);
+
+      // Verify sheet is open
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      // Close via ESC or clicking outside (simulated by onOpenChange)
+      await user.keyboard('{Escape}');
+
+      // Sheet should close
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should display selected asset path in trigger button when asset is selected', async () => {
+      const { user } = renderWithProviders(<AssetExplorer assets={mockAssets} />);
+
+      // Trigger button should have testid
+      const triggerButton = screen.getByTestId('mobile-sheet-trigger');
+      expect(triggerButton).toBeInTheDocument();
+
+      // Initially should show "Tree" text
+      expect(triggerButton).toHaveTextContent(/tree/i);
+    });
+
+    it('should export useMobileSheet hook', async () => {
+      const module = await import('./AssetExplorer');
+      expect(module.useMobileSheet).toBeDefined();
+      expect(typeof module.useMobileSheet).toBe('function');
     });
   });
 });

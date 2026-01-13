@@ -13,8 +13,12 @@ import {
   type TreeNode as TreeNodeType,
   type FlatNode,
 } from '@/utils/assetTree';
+import { filterAssets, type HttpMethod } from '@/hooks/use-asset-filter';
 import { TreeNode } from './TreeNode';
 import type { Asset } from '@/types/asset';
+
+// Re-export HttpMethod for convenience
+export type { HttpMethod } from '@/hooks/use-asset-filter';
 
 /**
  * Props for AssetTreeView
@@ -28,27 +32,87 @@ interface AssetTreeViewProps {
   showTypeBadge?: boolean;
   /** Whether to show asset source badges */
   showSourceBadge?: boolean;
+  /** Search query to filter assets */
+  searchQuery?: string;
+  /** HTTP method filter */
+  filterMethod?: HttpMethod;
   /** Additional className */
   className?: string;
 }
 
 /**
- * AssetTreeView
- * Displays assets in a virtualized tree structure
+ * Get node IDs that should be expanded to show matching nodes
  */
+function getExpandedNodesForSearch(
+  tree: TreeNodeType[],
+  searchQuery: string
+): Set<string> {
+  const expandedIds = new Set<string>();
+
+  const traverse = (nodes: TreeNodeType[], ancestors: string[]): boolean => {
+    let hasMatchingDescendant = false;
+
+    for (const node of nodes) {
+      const nodeMatches =
+        node.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        node.path.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const childHasMatch = node.children.length > 0
+        ? traverse(node.children, [...ancestors, node.id])
+        : false;
+
+      if (nodeMatches || childHasMatch) {
+        hasMatchingDescendant = true;
+        // Expand all ancestors
+        ancestors.forEach((id) => expandedIds.add(id));
+        // Also expand this node if it has matching children
+        if (childHasMatch) {
+          expandedIds.add(node.id);
+        }
+      }
+    }
+
+    return hasMatchingDescendant;
+  };
+
+  traverse(tree, []);
+  return expandedIds;
+}
+
 export function AssetTreeView({
   assets,
   onSelectAsset,
   showTypeBadge = false,
   showSourceBadge = false,
+  searchQuery,
+  filterMethod,
   className,
 }: AssetTreeViewProps) {
   const parentRef = useRef<HTMLDivElement>(null);
-  const { expandedNodes, toggleNode, selectedAssetId, setSelectedAssetId } = useAssetExplorer();
+  const { expandedNodes, toggleNode, selectedAssetId, setSelectedAssetId, expandAll } = useAssetExplorer();
   const [focusedIndex, setFocusedIndex] = useState(-1);
 
-  // Build tree from assets
-  const tree = useMemo(() => buildAssetTree(assets), [assets]);
+  // Filter assets based on search query and method filter
+  const filteredAssets = useMemo(
+    () => filterAssets(assets, searchQuery, filterMethod),
+    [assets, searchQuery, filterMethod]
+  );
+
+  // Build tree from filtered assets
+  const tree = useMemo(() => buildAssetTree(filteredAssets), [filteredAssets]);
+
+  // Auto-expand nodes when searching
+  const searchExpandedNodes = useMemo(() => {
+    if (!searchQuery) return null;
+    return getExpandedNodesForSearch(tree, searchQuery);
+  }, [tree, searchQuery]);
+
+  // Apply search-triggered expansions
+  React.useEffect(() => {
+    if (searchExpandedNodes && searchExpandedNodes.size > 0) {
+      expandAll([...searchExpandedNodes]);
+    }
+  }, [searchExpandedNodes, expandAll]);
 
   // Apply expanded state from context to tree
   const treeWithState = useMemo(() => {
@@ -128,11 +192,20 @@ export function AssetTreeView({
     [flatNodes, focusedIndex, virtualizer]
   );
 
-  // Empty state
+  // Empty state - no assets at all
   if (assets.length === 0) {
     return (
       <div className={cn('flex items-center justify-center h-full text-muted-foreground', className)}>
         <p>No assets found</p>
+      </div>
+    );
+  }
+
+  // Empty state - no matching assets after filtering
+  if (filteredAssets.length === 0 && (searchQuery || filterMethod)) {
+    return (
+      <div className={cn('flex items-center justify-center h-full text-muted-foreground', className)}>
+        <p>No matching assets</p>
       </div>
     );
   }
@@ -178,6 +251,7 @@ export function AssetTreeView({
                 onSelect={handleSelect}
                 showTypeBadge={showTypeBadge}
                 showSourceBadge={showSourceBadge}
+                searchQuery={searchQuery}
               />
             </div>
           );

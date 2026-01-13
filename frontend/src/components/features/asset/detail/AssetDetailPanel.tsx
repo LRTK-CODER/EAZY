@@ -14,6 +14,7 @@ import type { Asset } from '@/types/asset';
 import { parseJsonBody } from '@/utils/http';
 import { inferType } from '@/utils/parameterType';
 import { cn } from '@/lib/utils';
+import { CodeBlock } from '@/components/ui/code-block';
 import {
   Tabs,
   TabsContent,
@@ -142,11 +143,16 @@ export function AssetDetailPanel({ asset, className }: AssetDetailPanelProps) {
                 {asset.request_spec.body ? (
                   <div>
                     <h3 className="text-sm font-semibold mb-2">Body</h3>
-                    <pre className="bg-muted p-4 rounded-md max-h-96 overflow-auto" data-testid="request-body">
-                      <code className="text-sm">
-                        {formatHttpBody(asset.request_spec.body)}
-                      </code>
-                    </pre>
+                    <CodeBlock
+                      code={formatHttpBody(asset.request_spec.body)}
+                      contentType={
+                        asset.request_spec.headers &&
+                        typeof asset.request_spec.headers === 'object'
+                          ? (asset.request_spec.headers as Record<string, string>)['Content-Type']
+                          : undefined
+                      }
+                      data-testid="request-body"
+                    />
                   </div>
                 ) : null}
               </div>
@@ -201,11 +207,16 @@ export function AssetDetailPanel({ asset, className }: AssetDetailPanelProps) {
                 {asset.response_spec.body ? (
                   <div>
                     <h3 className="text-sm font-semibold mb-2">Body</h3>
-                    <pre className="bg-muted p-4 rounded-md max-h-96 overflow-auto" data-testid="response-body">
-                      <code className="text-sm">
-                        {formatHttpBody(asset.response_spec.body)}
-                      </code>
-                    </pre>
+                    <CodeBlock
+                      code={formatHttpBody(asset.response_spec.body)}
+                      contentType={
+                        asset.response_spec.headers &&
+                        typeof asset.response_spec.headers === 'object'
+                          ? (asset.response_spec.headers as Record<string, string>)['Content-Type']
+                          : undefined
+                      }
+                      data-testid="response-body"
+                    />
                   </div>
                 ) : null}
               </div>

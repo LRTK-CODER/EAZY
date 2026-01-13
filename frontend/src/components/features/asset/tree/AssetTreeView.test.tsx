@@ -319,4 +319,101 @@ describe('AssetTreeView', () => {
       expect(folderNode).toHaveAttribute('data-depth', '1');
     });
   });
+
+  // ============================================================================
+  // Phase 2.1: Search/Filtering Tests (TDD - RED)
+  // ============================================================================
+  describe('Search and Filtering', () => {
+    it('should filter tree when search query is provided', () => {
+      renderWithProviders(
+        <AssetTreeView assets={mockAssets} searchQuery="api" />
+      );
+
+      // Should show nodes matching "api"
+      expect(screen.getByText('example.com')).toBeInTheDocument();
+      // Should not show nodes not matching "api"
+      expect(screen.queryByText('auth')).not.toBeInTheDocument();
+    });
+
+    it('should filter by HTTP method when filterMethod is provided', async () => {
+      const { user } = renderWithProviders(
+        <AssetTreeView assets={mockAssets} filterMethod="GET" />
+      );
+
+      // Expand to see endpoints
+      await user.click(screen.getByText('example.com'));
+      await user.click(screen.getByText('api'));
+      await user.click(screen.getByText('users'));
+
+      // Should show only GET endpoints
+      expect(screen.getByText('GET')).toBeInTheDocument();
+      expect(screen.queryByText('POST')).not.toBeInTheDocument();
+    });
+
+    it('should combine search query and method filter with AND logic', async () => {
+      const { user } = renderWithProviders(
+        <AssetTreeView assets={mockAssets} searchQuery="users" filterMethod="POST" />
+      );
+
+      // With searchQuery="users" and filterMethod="POST", only /api/users POST should remain
+      // Mock data has: /api/users (GET, POST), /auth/login (POST), /v1/data (GET)
+      // Only /api/users POST matches both filters
+
+      // Expand all nodes iteratively until we find the endpoint
+      let maxIterations = 10;
+      while (maxIterations > 0) {
+        const items = screen.getAllByRole('treeitem');
+        let expanded = false;
+        for (const item of items) {
+          if (item.getAttribute('aria-expanded') === 'false') {
+            await user.click(item);
+            expanded = true;
+            break;
+          }
+        }
+        if (!expanded) break;
+        maxIterations--;
+      }
+
+      // After expanding all nodes, check for POST endpoint
+      const postBadges = screen.queryAllByText('POST');
+      const getBadges = screen.queryAllByText('GET');
+
+      // Debug: log what we found
+      // screen.debug();
+
+      expect(postBadges.length).toBeGreaterThan(0);
+      expect(getBadges.length).toBe(0);
+    });
+
+    it('should show empty state when no results match filter', () => {
+      renderWithProviders(
+        <AssetTreeView assets={mockAssets} searchQuery="nonexistent" />
+      );
+
+      expect(screen.getByText(/no matching assets/i)).toBeInTheDocument();
+    });
+
+    it('should highlight matching text in search results', () => {
+      renderWithProviders(
+        <AssetTreeView assets={mockAssets} searchQuery="api" />
+      );
+
+      // Check for highlighted text (mark element or special class)
+      // Multiple highlights may exist (e.g., api.example.org and example.com/api)
+      const highlightedElements = screen.getAllByTestId('search-highlight-api');
+      expect(highlightedElements.length).toBeGreaterThan(0);
+      expect(highlightedElements[0]).toBeInTheDocument();
+    });
+
+    it('should expand parent nodes when child matches search', () => {
+      renderWithProviders(
+        <AssetTreeView assets={mockAssets} searchQuery="users" />
+      );
+
+      // Parent nodes should be auto-expanded to show matching children
+      expect(screen.getByText('api')).toBeInTheDocument();
+      expect(screen.getByText('users')).toBeInTheDocument();
+    });
+  });
 });

@@ -79,6 +79,40 @@ export function getSourceBadgeVariant(source?: string): 'default' | 'secondary' 
 }
 
 /**
+ * Highlight matching text in a string
+ */
+export function highlightMatch(text: string, query?: string): React.ReactNode {
+  if (!query || !text) {
+    return text;
+  }
+
+  const lowerText = text.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+  const index = lowerText.indexOf(lowerQuery);
+
+  if (index === -1) {
+    return text;
+  }
+
+  const before = text.slice(0, index);
+  const match = text.slice(index, index + query.length);
+  const after = text.slice(index + query.length);
+
+  return (
+    <>
+      {before}
+      <mark
+        className="bg-yellow-200 dark:bg-yellow-800 text-inherit rounded-sm px-0.5"
+        data-testid={`search-highlight-${lowerQuery}`}
+      >
+        {match}
+      </mark>
+      {after}
+    </>
+  );
+}
+
+/**
  * Props for TreeNode component
  */
 export interface TreeNodeProps {
@@ -94,6 +128,8 @@ export interface TreeNodeProps {
   showTypeBadge?: boolean;
   /** Whether to show the asset source badge (default: false) */
   showSourceBadge?: boolean;
+  /** Search query for highlighting matching text */
+  searchQuery?: string;
   /** Additional className */
   className?: string;
 }
@@ -109,6 +145,7 @@ export const TreeNode = React.memo(function TreeNode({
   onSelect,
   showTypeBadge = false,
   showSourceBadge = false,
+  searchQuery,
   className,
 }: TreeNodeProps) {
   const Icon = getNodeIcon(node.type, node.isExpanded);
@@ -193,7 +230,7 @@ export const TreeNode = React.memo(function TreeNode({
           {node.method}
         </Badge>
       ) : (
-        <span className="truncate">{node.name}</span>
+        <span className="truncate">{highlightMatch(node.name, searchQuery)}</span>
       )}
 
       {/* Optional Type Badge (for endpoints) */}
