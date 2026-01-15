@@ -167,16 +167,22 @@ export const TreeNode = React.memo(function TreeNode({
           onSelect(node);
           break;
         case 'ArrowRight':
+          // Only expand if collapsed and has children
           if (node.hasChildren && !node.isExpanded) {
             e.preventDefault();
+            e.stopPropagation();
             onToggle(node.id);
           }
+          // If already expanded, let parent handle navigation to first child
           break;
         case 'ArrowLeft':
+          // Only collapse if expanded and has children
           if (node.hasChildren && node.isExpanded) {
             e.preventDefault();
+            e.stopPropagation();
             onToggle(node.id);
           }
+          // If already collapsed, let parent handle navigation to parent node
           break;
       }
     },
@@ -193,7 +199,7 @@ export const TreeNode = React.memo(function TreeNode({
       tabIndex={0}
       className={cn(
         'flex items-center gap-1 px-2 py-1 cursor-pointer rounded-sm text-sm',
-        'hover:bg-accent focus:bg-accent focus:outline-none',
+        'hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
         isSelected && 'bg-accent',
         className
       )}

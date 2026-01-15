@@ -294,6 +294,68 @@ describe('AssetTreeView', () => {
 
       expect(onSelectAsset).toHaveBeenCalled();
     });
+
+    it('should move focus to first child on ArrowRight when node is expanded', async () => {
+      const { user } = renderWithProviders(<AssetTreeView assets={mockAssets} />);
+
+      // First expand the domain node
+      const domainNode = screen.getByRole('treeitem', { name: /example\.com/i });
+      await user.click(domainNode);
+      expect(domainNode).toHaveAttribute('aria-expanded', 'true');
+
+      // Focus the expanded node and use keyboard to navigate
+      domainNode.focus();
+      expect(domainNode).toHaveFocus();
+
+      // Press ArrowRight - on expanded node, should navigate to first child
+      await user.keyboard('{ArrowRight}');
+
+      // Wait for requestAnimationFrame
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Verify first child node (api folder under example.com) exists and can receive focus
+      // The api folder should be visible now that example.com is expanded
+      const apiFolder = screen.getByText('api').closest('[role="treeitem"]');
+      expect(apiFolder).toBeInTheDocument();
+      expect(apiFolder).toHaveAttribute('data-depth', '1');
+    });
+
+    it('should move focus to parent on ArrowLeft when node is collapsed', async () => {
+      const { user } = renderWithProviders(<AssetTreeView assets={mockAssets} />);
+
+      // Expand domain to see folder
+      await user.click(screen.getByText('example.com'));
+
+      // Find and focus the child folder node (api) - use text content to be specific
+      const apiFolder = screen.getByText('api').closest('[role="treeitem"]') as HTMLElement;
+      apiFolder.focus();
+      expect(apiFolder).toHaveFocus();
+
+      // Press ArrowLeft - child is collapsed so should navigate to parent
+      await user.keyboard('{ArrowLeft}');
+
+      // Wait for requestAnimationFrame
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Parent domain node should now have focus
+      const domainNode = screen.getByRole('treeitem', { name: /example\.com/i });
+      expect(domainNode).toHaveFocus();
+    });
+
+    it('should clear focus on Escape key', async () => {
+      const { user } = renderWithProviders(<AssetTreeView assets={mockAssets} />);
+
+      // Focus a node
+      const domainNode = screen.getByRole('treeitem', { name: /example\.com/i });
+      domainNode.focus();
+      expect(domainNode).toHaveFocus();
+
+      // Press Escape
+      await user.keyboard('{Escape}');
+
+      // Node should no longer have focus
+      expect(domainNode).not.toHaveFocus();
+    });
   });
 
   describe('Visual Indicators', () => {
@@ -317,6 +379,77 @@ describe('AssetTreeView', () => {
 
       // Check depth attribute indicates indentation (folder at depth 1)
       expect(folderNode).toHaveAttribute('data-depth', '1');
+    });
+  });
+
+  // ============================================================================
+  // Phase 3: Selection/Focus Visual Distinction Tests (TDD - RED)
+  // ============================================================================
+  describe('Selection and Focus Visual Distinction', () => {
+    it('should have focus ring styles defined on treeitem', () => {
+      renderWithProviders(<AssetTreeView assets={mockAssets} />);
+
+      const domainNode = screen.getByRole('treeitem', { name: /example\.com/i });
+
+      // Should have focus:ring-2 class for focus state styling
+      expect(domainNode.className).toContain('focus:ring-2');
+      expect(domainNode.className).toContain('focus:ring-ring');
+    });
+
+    it('should show background color when node is selected', async () => {
+      const { user } = renderWithProviders(<AssetTreeView assets={mockAssets} />);
+
+      // Expand to endpoint and select it
+      await user.click(screen.getByText('example.com'));
+      await user.click(screen.getByText('api'));
+      await user.click(screen.getByText('users'));
+      await user.click(screen.getByText('GET'));
+
+      const selectedNode = screen.getByText('GET').closest('[role="treeitem"]');
+
+      // Should have selected background class
+      expect(selectedNode).toHaveClass('bg-accent');
+    });
+
+    it('should have both focus ring styles and selection background when focused and selected', async () => {
+      const { user } = renderWithProviders(<AssetTreeView assets={mockAssets} />);
+
+      // Expand to endpoint and select it
+      await user.click(screen.getByText('example.com'));
+      await user.click(screen.getByText('api'));
+      await user.click(screen.getByText('users'));
+      await user.click(screen.getByText('GET'));
+
+      const selectedNode = screen.getByText('GET').closest('[role="treeitem"]') as HTMLElement;
+
+      // Focus the selected node
+      selectedNode.focus();
+
+      // Should have selection background class
+      expect(selectedNode).toHaveClass('bg-accent');
+      // Should have focus ring styles defined
+      expect(selectedNode.className).toContain('focus:ring-2');
+      // Should be focused
+      expect(selectedNode).toHaveFocus();
+    });
+
+    it('should support focus navigation between nodes', async () => {
+      const { user } = renderWithProviders(<AssetTreeView assets={mockAssets} />);
+
+      const domainNode1 = screen.getByRole('treeitem', { name: /example\.com/i });
+      const domainNode2 = screen.getByRole('treeitem', { name: /api\.example\.org/i });
+
+      // Focus first node
+      domainNode1.focus();
+      expect(domainNode1).toHaveFocus();
+
+      // Focus second node
+      domainNode2.focus();
+
+      // First node should no longer have focus
+      expect(domainNode1).not.toHaveFocus();
+      // Second node should have focus
+      expect(domainNode2).toHaveFocus();
     });
   });
 

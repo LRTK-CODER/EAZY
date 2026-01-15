@@ -151,21 +151,103 @@ export function AssetTreeView({
     [setSelectedAssetId, onSelectAsset]
   );
 
+  // Find the parent index for a given node index
+  const findParentIndex = useCallback(
+    (nodeIndex: number): number => {
+      const node = flatNodes[nodeIndex];
+      if (!node || node.depth === 0) return -1;
+
+      // Search backwards for the first node with depth - 1
+      for (let i = nodeIndex - 1; i >= 0; i--) {
+        if (flatNodes[i].depth === node.depth - 1) {
+          return i;
+        }
+      }
+      return -1;
+    },
+    [flatNodes]
+  );
+
+  // Find the first child index for a given node index
+  const findFirstChildIndex = useCallback(
+    (nodeIndex: number): number => {
+      const node = flatNodes[nodeIndex];
+      if (!node || !node.hasChildren || !node.isExpanded) return -1;
+
+      // The first child should be the next item with depth + 1
+      const nextIndex = nodeIndex + 1;
+      if (nextIndex < flatNodes.length && flatNodes[nextIndex].depth === node.depth + 1) {
+        return nextIndex;
+      }
+      return -1;
+    },
+    [flatNodes]
+  );
+
+  // Focus a specific element by index
+  const focusElement = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= flatNodes.length) return;
+
+      setFocusedIndex(index);
+      virtualizer.scrollToIndex(index);
+
+      // Use requestAnimationFrame to ensure DOM is updated
+      requestAnimationFrame(() => {
+        const container = parentRef.current;
+        if (container) {
+          const element = container.querySelector(`[data-index="${index}"] [role="treeitem"]`) as HTMLElement;
+          element?.focus();
+        }
+      });
+    },
+    [flatNodes.length, virtualizer]
+  );
+
   // Keyboard navigation for tree
   const handleTreeKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       const items = flatNodes;
       let newIndex = focusedIndex;
 
+      // Get currently focused element's index from data-index
+      const target = e.target as HTMLElement;
+      const indexWrapper = target.closest('[data-index]');
+      const currentIndex = indexWrapper ? parseInt(indexWrapper.getAttribute('data-index') || '-1', 10) : focusedIndex;
+
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
-          newIndex = Math.min(focusedIndex + 1, items.length - 1);
+          newIndex = Math.min(currentIndex + 1, items.length - 1);
           break;
         case 'ArrowUp':
           e.preventDefault();
-          newIndex = Math.max(focusedIndex - 1, 0);
+          newIndex = Math.max(currentIndex - 1, 0);
           break;
+        case 'ArrowRight': {
+          // If node is expanded, move to first child
+          const node = items[currentIndex];
+          if (node?.hasChildren && node.isExpanded) {
+            const childIndex = findFirstChildIndex(currentIndex);
+            if (childIndex !== -1) {
+              e.preventDefault();
+              newIndex = childIndex;
+            }
+          }
+          break;
+        }
+        case 'ArrowLeft': {
+          // If node is collapsed or has no children, move to parent
+          const node = items[currentIndex];
+          if (node && (!node.hasChildren || !node.isExpanded)) {
+            const parentIndex = findParentIndex(currentIndex);
+            if (parentIndex !== -1) {
+              e.preventDefault();
+              newIndex = parentIndex;
+            }
+          }
+          break;
+        }
         case 'Home':
           e.preventDefault();
           newIndex = 0;
@@ -174,22 +256,21 @@ export function AssetTreeView({
           e.preventDefault();
           newIndex = items.length - 1;
           break;
+        case 'Escape':
+          e.preventDefault();
+          // Blur the currently focused element
+          (e.target as HTMLElement).blur();
+          setFocusedIndex(-1);
+          return;
         default:
           return;
       }
 
-      if (newIndex !== focusedIndex && newIndex >= 0) {
-        setFocusedIndex(newIndex);
-        virtualizer.scrollToIndex(newIndex);
-        // Focus the element
-        const container = parentRef.current;
-        if (container) {
-          const element = container.querySelector(`[data-index="${newIndex}"]`) as HTMLElement;
-          element?.focus();
-        }
+      if (newIndex !== currentIndex && newIndex >= 0) {
+        focusElement(newIndex);
       }
     },
-    [flatNodes, focusedIndex, virtualizer]
+    [flatNodes, focusedIndex, findFirstChildIndex, findParentIndex, focusElement]
   );
 
   // Empty state - no assets at all

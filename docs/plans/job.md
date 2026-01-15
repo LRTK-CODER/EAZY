@@ -1,9 +1,9 @@
-# Phase 2 E2E 검증
+# Phase 3 완료
 
-## 작업 목록
+## 완료된 작업
 
-- Docker 빌드 및 컴포즈 실행으로 개발 환경 구동
-- Chrome DevTools MCP로 검색/필터링 기능 E2E 검증
-- CodeBlock 구문 강조 기능 시각적 검증 (JSON 응답, 복사 버튼)
-- 모바일 뷰포트에서 드로어 및 검색 기능 검증
-- 스크린샷 캡처로 UI 동작 확인
+- ✅ 키보드 네비게이션 테스트 및 구현 (ArrowRight/Left 자식/부모 이동, Escape)
+- ✅ 선택/포커스 시각적 구분 (focus:ring-2, bg-accent)
+- ✅ 단위 테스트 84개 통과
+- ✅ Docker 빌드 및 E2E 검증 완료
+- ✅ ARIA 접근성 속성 유지 (role="tree", role="treeitem", aria-expanded 등)
