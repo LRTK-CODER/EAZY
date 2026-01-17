@@ -19,6 +19,7 @@ from app.models.target import Target
 from app.models.asset import AssetType, AssetSource
 from app.services.crawler_service import CrawlerService
 from app.services.asset_service import AssetService
+from app.services.interfaces import ICrawler
 from app.core.lock import DistributedLock
 from app.core.structured_logger import get_logger
 from app.core.constants import CANCELLATION_CHECK_INTERVAL, LOCK_TTL, LOCK_PREFIX
@@ -103,7 +104,7 @@ class CrawlWorker(BaseWorker):
     def __init__(
         self,
         context: WorkerContext,
-        crawler_service: Optional[CrawlerService] = None,
+        crawler_service: Optional[ICrawler] = None,
         asset_service_factory: Optional[Callable[[AsyncSession], AssetService]] = None,
     ):
         """
@@ -111,7 +112,7 @@ class CrawlWorker(BaseWorker):
 
         Args:
             context: WorkerContext with shared dependencies
-            crawler_service: Optional CrawlerService instance (for testing)
+            crawler_service: Optional ICrawler implementation (for testing)
             asset_service_factory: Optional factory for AssetService (for testing)
         """
         super().__init__(context)

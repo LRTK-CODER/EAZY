@@ -112,29 +112,29 @@
 
 ## Phase 2: 인터페이스 정의 (Protocol)
 
-### 2.1 Crawler 인터페이스
+### 2.1 Crawler 인터페이스 ✅
 
 #### 🔴 RED - 실패하는 테스트 작성
 ```
-파일: tests/unit/services/test_interfaces.py
+파일: tests/services/test_interfaces.py (기존 구조 따름)
 ```
-- [ ] `test_icrawler_protocol_has_crawl_method` - ICrawler.crawl() 존재 확인
-- [ ] `test_crawler_service_implements_icrawler` - CrawlerService가 ICrawler 준수
-- [ ] `test_mock_crawler_implements_icrawler` - Mock 크롤러 테스트
+- [x] `test_icrawler_protocol_has_crawl_method` - ICrawler.crawl() 존재 확인
+- [x] `test_crawler_service_implements_icrawler` - CrawlerService가 ICrawler 준수
+- [x] `test_mock_crawler_implements_icrawler` - Mock 크롤러 테스트
 
 #### 🟢 GREEN - 테스트 통과 코드 작성
 ```
 파일: backend/app/services/interfaces.py
 ```
-- [ ] `ICrawler(Protocol)` 정의
+- [x] `ICrawler(Protocol)` 정의
   ```python
   class ICrawler(Protocol):
       async def crawl(self, url: str) -> Tuple[List[str], Dict[str, HttpData]]: ...
   ```
 
 #### 🔵 BLUE - 리팩토링
-- [ ] `CrawlWorker`에서 `ICrawler` 타입 힌트 사용
-- [ ] 테스트에서 Mock 크롤러 주입 패턴 적용
+- [x] `CrawlWorker`에서 `ICrawler` 타입 힌트 사용
+- [x] 테스트에서 Mock 크롤러 주입 패턴 적용 (기존 conftest.py 패턴 호환)
 
 ---
 
@@ -473,8 +473,8 @@ tests/unit/
 - [x] 1.2 타입 정의 (ParsedContent는 Phase 3로 이동)
 - [x] 1.3 커스텀 예외
 
-### Phase 2 진행률: 0%
-- [ ] 2.1 Crawler 인터페이스
+### Phase 2 진행률: 50% (1/2 완료)
+- [x] 2.1 Crawler 인터페이스
 - [ ] 2.2 ResponseParser 인터페이스
 
 ### Phase 3 진행률: 0%
