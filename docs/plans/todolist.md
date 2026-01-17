@@ -232,27 +232,33 @@
 
 ---
 
-### 3.2 HtmlResponseParser
+### 3.2 HtmlResponseParser ✅
 
 #### 🔴 RED - 실패하는 테스트 작성
 ```
-파일: tests/unit/services/parsers/test_html_parser.py
+파일: backend/tests/services/parsers/test_html_parser.py
 ```
-- [ ] `test_html_parser_supports_text_html` - text/html 지원
-- [ ] `test_html_parser_supports_text_css` - text/css 지원
-- [ ] `test_html_parser_supports_text_javascript` - text/javascript 지원
-- [ ] `test_html_parser_parses_text_content` - 텍스트 콘텐츠 파싱
-- [ ] `test_html_parser_truncates_large_body` - 큰 본문 자르기
+- [x] `test_html_parser_supports_text_html` - text/html 지원
+- [x] `test_html_parser_supports_text_css` - text/css 지원
+- [x] `test_html_parser_supports_text_javascript` - text/javascript 지원
+- [x] `test_html_parser_parses_text_content` - 텍스트 콘텐츠 파싱 (HTML, CSS, JS 각각)
+- [x] `test_html_parser_truncates_large_body` - 큰 본문 자르기
+- [x] 추가 테스트 15개 (charset, application/javascript, empty body, unicode, decode error, registry 통합 등)
 
 #### 🟢 GREEN - 테스트 통과 코드 작성
 ```
 파일: backend/app/services/parsers/html_parser.py
 ```
-- [ ] `HtmlResponseParser` 클래스 구현 (HTML, CSS, JS 통합)
+- [x] `HtmlResponseParser` 클래스 구현 (HTML, CSS, JS 통합)
+  - SUPPORTED_TYPES: text/html, text/css, text/javascript, application/javascript, application/x-javascript
+  - supports(): charset 파싱 후 base_type 확인
+  - parse(): UTF-8 디코딩, truncation 처리, ParsedContent 반환
 
 #### 🔵 BLUE - 리팩토링
-- [ ] Content-Type 목록 상수화
-- [ ] 코드 중복 제거
+- [x] Content-Type 목록 상수화 (frozenset)
+- [x] __init__.py에 HtmlResponseParser export 추가
+- [x] Ruff lint/format 통과
+- [x] Mypy 타입 체크 통과
 
 ---
 
@@ -498,10 +504,10 @@ tests/unit/
 - [x] 2.1 Crawler 인터페이스
 - [x] 2.2 ResponseParser 인터페이스
 
-### Phase 3 진행률: 40% (2/5 완료)
+### Phase 3 진행률: 60% (3/5 완료)
 - [x] 3.0 ParsedContent 타입 정의 (Phase 1.2에서 이동) ✅
 - [x] 3.1 JsonResponseParser ✅
-- [ ] 3.2 HtmlResponseParser
+- [x] 3.2 HtmlResponseParser ✅
 - [ ] 3.3 ImageResponseParser
 - [ ] 3.4 DefaultResponseParser
 

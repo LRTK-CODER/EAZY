@@ -15,6 +15,7 @@ from .base import (
     ResponseParser,
     ResponseParserRegistry,
 )
+from .html_parser import HtmlResponseParser
 from .json_parser import JsonResponseParser
 
 __all__ = [
@@ -23,4 +24,5 @@ __all__ = [
     "DefaultResponseParser",
     "ResponseData",
     "JsonResponseParser",
+    "HtmlResponseParser",
 ]
