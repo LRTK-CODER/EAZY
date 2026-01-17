@@ -133,36 +133,6 @@ class TestResponseParserRegistry:
         assert result is parser1  # 첫 번째 등록된 파서
 
 
-class TestDefaultResponseParser:
-    """DefaultResponseParser 동작 테스트."""
-
-    def test_default_parser_supports_any_content_type(self):
-        """모든 content-type을 지원하는지 확인."""
-        from app.services.parsers.base import DefaultResponseParser
-
-        parser = DefaultResponseParser()
-        assert parser.supports("application/json") is True
-        assert parser.supports("text/html") is True
-        assert parser.supports("image/png") is True
-        assert parser.supports("") is True
-
-    @pytest.mark.asyncio
-    async def test_default_parser_parse_returns_none(self):
-        """parse()가 None을 반환하는지 확인."""
-        from app.services.parsers.base import DefaultResponseParser, ResponseData
-
-        parser = DefaultResponseParser()
-        response = ResponseData(
-            url="http://example.com",
-            status=200,
-            content_type="application/octet-stream",
-            headers={},
-            body=b"binary data",
-        )
-        result = await parser.parse(response)
-        assert result is None
-
-
 class TestResponseData:
     """ResponseData 구조 테스트."""
 

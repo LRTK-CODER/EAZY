@@ -80,36 +80,6 @@ class ResponseParser(Protocol):
         ...
 
 
-class DefaultResponseParser:
-    """기본 파서 - 모든 Content-Type에 대해 None 반환.
-
-    알 수 없는 Content-Type에 대한 fallback으로 사용됩니다.
-    Registry에서 적합한 파서를 찾지 못했을 때 반환됩니다.
-    """
-
-    def supports(self, content_type: str) -> bool:
-        """모든 Content-Type 지원 (fallback).
-
-        Args:
-            content_type: HTTP Content-Type 헤더 값
-
-        Returns:
-            항상 True
-        """
-        return True
-
-    async def parse(self, response: ResponseData) -> Optional[ParsedContent]:
-        """파싱하지 않고 None 반환.
-
-        Args:
-            response: HTTP 응답 데이터
-
-        Returns:
-            항상 None (알 수 없는 Content-Type)
-        """
-        return None
-
-
 class ResponseParserRegistry:
     """파서 레지스트리 - Content-Type에 맞는 파서를 찾아 반환.
 
@@ -126,6 +96,9 @@ class ResponseParserRegistry:
 
     def __init__(self) -> None:
         """레지스트리 초기화."""
+        # Lazy import to avoid circular dependency
+        from app.services.parsers.default_parser import DefaultResponseParser
+
         self._parsers: List[ResponseParser] = []
         self._default: ResponseParser = DefaultResponseParser()
 

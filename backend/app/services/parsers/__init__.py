@@ -10,11 +10,11 @@ Example:
     >>> result = await parser.parse(response_data)
 """
 from .base import (
-    DefaultResponseParser,
     ResponseData,
     ResponseParser,
     ResponseParserRegistry,
 )
+from .default_parser import DefaultResponseParser
 from .html_parser import HtmlResponseParser
 from .image_parser import ImageResponseParser
 from .json_parser import JsonResponseParser
