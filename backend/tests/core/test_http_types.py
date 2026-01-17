@@ -170,3 +170,102 @@ class TestHttpTypesUsage:
         }
 
         assert http_data["parameters"]["page"] == "1"
+
+
+class TestParsedContentType:
+    """ParsedContent TypedDict 구조 테스트"""
+
+    def test_parsed_content_type_has_required_keys(self):
+        """ParsedContent가 content_type, body, truncated, original_size 키를 가지는지 확인"""
+        from app.types.http import ParsedContent
+
+        hints = get_type_hints(ParsedContent)
+
+        assert "content_type" in hints, "ParsedContent should have 'content_type' key"
+        assert "body" in hints, "ParsedContent should have 'body' key"
+        assert "truncated" in hints, "ParsedContent should have 'truncated' key"
+        assert "original_size" in hints, "ParsedContent should have 'original_size' key"
+
+    def test_parsed_content_content_type_is_str(self):
+        """content_type 필드가 str 타입인지 확인"""
+        from app.types.http import ParsedContent
+
+        hints = get_type_hints(ParsedContent)
+        assert hints["content_type"] is str, "content_type should be str type"
+
+    def test_parsed_content_body_is_optional_str(self):
+        """body 필드가 Optional[str] 타입인지 확인"""
+        from app.types.http import ParsedContent
+
+        hints = get_type_hints(ParsedContent)
+        body_hint = hints["body"]
+        # Optional[str] = Union[str, None]
+        assert hasattr(body_hint, "__origin__"), "body should be Optional type"
+
+    def test_parsed_content_truncated_is_bool(self):
+        """truncated 필드가 bool 타입인지 확인"""
+        from app.types.http import ParsedContent
+
+        hints = get_type_hints(ParsedContent)
+        assert hints["truncated"] is bool, "truncated should be bool type"
+
+
+class TestParsedContentUsage:
+    """ParsedContent 실제 사용 테스트"""
+
+    def test_create_valid_parsed_content_with_body(self):
+        """body가 있는 유효한 ParsedContent 인스턴스 생성"""
+        from app.types.http import ParsedContent
+
+        content: ParsedContent = {
+            "content_type": "application/json",
+            "body": '{"key": "value"}',
+            "truncated": False,
+            "original_size": 18,
+        }
+
+        assert content["content_type"] == "application/json"
+        assert content["body"] == '{"key": "value"}'
+        assert content["truncated"] is False
+        assert content["original_size"] == 18
+
+    def test_create_valid_parsed_content_with_none_body(self):
+        """body가 None인 유효한 ParsedContent 인스턴스 생성"""
+        from app.types.http import ParsedContent
+
+        content: ParsedContent = {
+            "content_type": "application/octet-stream",
+            "body": None,
+            "truncated": False,
+            "original_size": 0,
+        }
+
+        assert content["body"] is None
+        assert content["original_size"] == 0
+
+    def test_create_truncated_parsed_content(self):
+        """truncated=True인 ParsedContent 인스턴스 생성"""
+        from app.types.http import ParsedContent
+
+        content: ParsedContent = {
+            "content_type": "text/html",
+            "body": "<html>...",
+            "truncated": True,
+            "original_size": 1048576,
+        }
+
+        assert content["truncated"] is True
+        assert content["original_size"] > len(content["body"] or "")
+
+    def test_parsed_content_with_various_content_types(self):
+        """다양한 content_type으로 ParsedContent 생성"""
+        from app.types.http import ParsedContent
+
+        for ct in ["application/json", "text/html; charset=utf-8", "image/png"]:
+            content: ParsedContent = {
+                "content_type": ct,
+                "body": None,
+                "truncated": False,
+                "original_size": 0,
+            }
+            assert content["content_type"] == ct

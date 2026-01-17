@@ -169,22 +169,38 @@
 
 ## Phase 3: 파서 전략 패턴 구현
 
-### 3.0 ParsedContent 타입 정의 (Phase 1.2에서 이동)
+### 3.0 ParsedContent 타입 정의 (Phase 1.2에서 이동) ✅
 
 #### 🔴 RED - 실패하는 테스트 작성
 ```
 파일: backend/tests/core/test_http_types.py (추가)
 ```
-- [ ] `test_parsed_content_type_structure` - content_type, body, truncated 구조 확인
+- [x] `test_parsed_content_type_has_required_keys` - content_type, body, truncated, original_size 키 확인
+- [x] `test_parsed_content_content_type_is_str` - content_type이 str 타입인지 확인
+- [x] `test_parsed_content_body_is_optional_str` - body가 Optional[str] 타입인지 확인
+- [x] `test_parsed_content_truncated_is_bool` - truncated가 bool 타입인지 확인
+- [x] `test_create_valid_parsed_content_with_body` - body가 있는 인스턴스 생성
+- [x] `test_create_valid_parsed_content_with_none_body` - body가 None인 인스턴스 생성
+- [x] `test_create_truncated_parsed_content` - truncated=True인 인스턴스 생성
+- [x] `test_parsed_content_with_various_content_types` - 다양한 content_type 테스트
 
 #### 🟢 GREEN - 테스트 통과 코드 작성
 ```
 파일: backend/app/types/http.py (추가)
 ```
-- [ ] `ParsedContent(TypedDict)` 정의
+- [x] `ParsedContent(TypedDict)` 정의
   - `content_type: str`
   - `body: Optional[str]`
   - `truncated: bool`
+  - `original_size: int` (추가: truncated 상황에서 원본 크기 제공)
+
+#### 🔵 BLUE - 리팩토링
+```
+파일: backend/app/services/parsers/base.py (수정)
+```
+- [x] `ResponseParser.parse()` 반환 타입을 `Optional[ParsedContent]`로 변경
+- [x] `DefaultResponseParser.parse()` 반환 타입 업데이트
+- [x] mypy 타입 체크 통과 확인
 
 ---
 
@@ -480,8 +496,8 @@ tests/unit/
 - [x] 2.1 Crawler 인터페이스
 - [x] 2.2 ResponseParser 인터페이스
 
-### Phase 3 진행률: 0%
-- [ ] 3.0 ParsedContent 타입 정의 (Phase 1.2에서 이동)
+### Phase 3 진행률: 20% (1/5 완료)
+- [x] 3.0 ParsedContent 타입 정의 (Phase 1.2에서 이동) ✅
 - [ ] 3.1 JsonResponseParser
 - [ ] 3.2 HtmlResponseParser
 - [ ] 3.3 ImageResponseParser

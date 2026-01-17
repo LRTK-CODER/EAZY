@@ -53,3 +53,21 @@ class HttpData(TypedDict, total=False):
     request: HttpRequestData
     response: HttpResponseData
     parameters: Optional[Dict[str, Any]]
+
+
+class ParsedContent(TypedDict):
+    """HTTP 응답 파싱 결과.
+
+    ResponseParser가 반환하는 파싱된 콘텐츠 구조입니다.
+
+    Attributes:
+        content_type: 원본 응답의 Content-Type
+        body: 파싱된 본문 (텍스트, JSON 문자열, base64 등) 또는 None
+        truncated: 본문이 크기 제한으로 잘렸는지 여부
+        original_size: 원본 본문의 바이트 크기
+    """
+
+    content_type: str
+    body: Optional[str]
+    truncated: bool
+    original_size: int

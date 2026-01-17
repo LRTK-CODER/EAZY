@@ -4,7 +4,9 @@ HTTP 응답 파싱을 위한 Strategy 패턴 인터페이스를 제공합니다.
 Phase 3에서 구체적인 파서 구현(Json, Html, Image, Default)이 추가됩니다.
 """
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Dict, List, Optional, Protocol
+
+from app.types.http import ParsedContent
 
 
 @dataclass(frozen=True)
@@ -49,9 +51,10 @@ class ResponseParser(Protocol):
         ...     def supports(self, content_type: str) -> bool:
         ...         return "application/json" in content_type
         ...
-        ...     async def parse(self, response: ResponseData) -> Optional[Any]:
+        ...     async def parse(self, response: ResponseData) -> Optional[ParsedContent]:
         ...         import json
-        ...         return json.loads(response.body)
+        ...         data = json.loads(response.body)
+        ...         return {"content_type": response.content_type, "body": json.dumps(data), "truncated": False, "original_size": len(response.body)}
     """
 
     def supports(self, content_type: str) -> bool:
@@ -65,14 +68,14 @@ class ResponseParser(Protocol):
         """
         ...
 
-    async def parse(self, response: ResponseData) -> Optional[Any]:
+    async def parse(self, response: ResponseData) -> Optional[ParsedContent]:
         """응답 본문을 파싱하여 구조화된 데이터로 변환.
 
         Args:
             response: HTTP 응답 데이터
 
         Returns:
-            파싱된 데이터 또는 None (Phase 3에서 ParsedContent로 변경)
+            ParsedContent 또는 None (파싱 불가 시)
         """
         ...
 
@@ -95,14 +98,14 @@ class DefaultResponseParser:
         """
         return True
 
-    async def parse(self, response: ResponseData) -> Optional[Any]:
+    async def parse(self, response: ResponseData) -> Optional[ParsedContent]:
         """파싱하지 않고 None 반환.
 
         Args:
             response: HTTP 응답 데이터
 
         Returns:
-            항상 None
+            항상 None (알 수 없는 Content-Type)
         """
         return None
 
