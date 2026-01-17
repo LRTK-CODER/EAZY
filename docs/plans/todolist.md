@@ -204,29 +204,31 @@
 
 ---
 
-### 3.1 JsonResponseParser
+### 3.1 JsonResponseParser ✅
 
 #### 🔴 RED - 실패하는 테스트 작성
 ```
-파일: tests/unit/services/parsers/test_json_parser.py
+파일: backend/tests/services/parsers/test_json_parser.py
 ```
-- [ ] `test_json_parser_supports_application_json` - application/json 지원
-- [ ] `test_json_parser_parses_valid_json` - 유효한 JSON 파싱
-- [ ] `test_json_parser_handles_invalid_json` - 잘못된 JSON 처리
-- [ ] `test_json_parser_truncates_large_body` - 큰 본문 자르기
-- [ ] `test_json_parser_returns_parsed_content_type` - 반환 타입 확인
+- [x] `test_json_parser_supports_application_json` - application/json 지원
+- [x] `test_json_parser_parses_valid_json` - 유효한 JSON 파싱
+- [x] `test_json_parser_handles_invalid_json` - 잘못된 JSON 처리
+- [x] `test_json_parser_truncates_large_body` - 큰 본문 자르기
+- [x] `test_json_parser_returns_parsed_content_type` - 반환 타입 확인
+- [x] 추가 테스트 (charset, unicode, nested, empty body, original_size, integration) - 총 15개
 
 #### 🟢 GREEN - 테스트 통과 코드 작성
 ```
 파일: backend/app/services/parsers/json_parser.py
 ```
-- [ ] `JsonResponseParser` 클래스 구현
+- [x] `JsonResponseParser` 클래스 구현
   - `supports(content_type: str) -> bool`
-  - `async parse(response: Response) -> ParsedContent`
+  - `async parse(response: ResponseData) -> ParsedContent`
 
 #### 🔵 BLUE - 리팩토링
-- [ ] 에러 로깅 추가
-- [ ] 성능 최적화 (필요시)
+- [x] __init__.py에 JsonResponseParser export 추가
+- [x] Ruff lint/format 통과
+- [x] Mypy 타입 체크 통과
 
 ---
 
@@ -496,9 +498,9 @@ tests/unit/
 - [x] 2.1 Crawler 인터페이스
 - [x] 2.2 ResponseParser 인터페이스
 
-### Phase 3 진행률: 20% (1/5 완료)
+### Phase 3 진행률: 40% (2/5 완료)
 - [x] 3.0 ParsedContent 타입 정의 (Phase 1.2에서 이동) ✅
-- [ ] 3.1 JsonResponseParser
+- [x] 3.1 JsonResponseParser ✅
 - [ ] 3.2 HtmlResponseParser
 - [ ] 3.3 ImageResponseParser
 - [ ] 3.4 DefaultResponseParser
