@@ -381,14 +381,14 @@ class TestLockTTL:
 
     def test_lock_ttl_constant_exists(self):
         """LOCK_TTL 상수 존재 확인"""
-        from app.workers.crawl_worker import LOCK_TTL
+        from app.core.constants import LOCK_TTL
 
         assert LOCK_TTL is not None
         assert LOCK_TTL > 0
 
     def test_lock_ttl_matches_orphan_recovery(self):
         """잠금 TTL이 OrphanRecovery와 일치"""
-        from app.workers.crawl_worker import LOCK_TTL
+        from app.core.constants import LOCK_TTL
 
         # LOCK_TTL should be 600 seconds (10 minutes)
         # matching OrphanRecovery's threshold
@@ -474,14 +474,14 @@ class TestLockKey:
 
     def test_lock_prefix_constant_exists(self):
         """LOCK_PREFIX 상수 존재 확인"""
-        from app.workers.crawl_worker import LOCK_PREFIX
+        from app.core.constants import LOCK_PREFIX
 
         assert LOCK_PREFIX is not None
         assert "lock" in LOCK_PREFIX.lower()
 
     def test_lock_key_format(self):
         """잠금 키 형식 확인"""
-        from app.workers.crawl_worker import LOCK_PREFIX
+        from app.core.constants import LOCK_PREFIX
 
         target_id = 123
         expected_key = f"{LOCK_PREFIX}target:{target_id}"

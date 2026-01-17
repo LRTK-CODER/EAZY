@@ -1,360 +1,471 @@
-# EAZY Asset Explorer UI/UX 개선 Todolist
+# EAZY Active Scan 리팩토링 TDD Todolist
 
-## 개요
-Target 상세 페이지의 트리 구조 사이드바 및 전반적인 UI/UX 개선
-
-## 사용자 결정사항
-- **트리 패널 너비**: 35% 기본 + 최소 280px
-- **개발 방식**: TDD (Red → Green → Refactor)
+> **생성일**: 2026-01-17
+> **기반 문서**: Active Scan 코드 검토 보고서
 
 ---
 
-## 수정 대상 파일
+## TDD 개발 방법론
 
-| 파일 | 변경 내용 |
-|------|-----------|
-| `frontend/src/components/features/asset/AssetExplorer.tsx` | 트리 패널 너비, 모바일 드로어 자동 닫기 |
-| `frontend/src/components/ui/resizable.tsx` | 리사이저 핸들 터치 영역 확대 |
-| `frontend/src/components/features/asset/tree/AssetTreeView.tsx` | 검색/필터링, 키보드 네비게이션 |
-| `frontend/src/components/features/asset/detail/AssetDetailPanel.tsx` | 구문 강조 |
-| `frontend/src/hooks/use-mobile.tsx` | 뷰포트 너비 감지 훅 확장 |
-
----
-
-## TDD 개발 Todolist (Red → Green → Refactor)
-
-### Phase 1: Quick Wins (빠른 개선)
-
----
-
-#### 1.1 트리 패널 너비 최적화 ✅ COMPLETED
-
-**🔴 RED - 실패하는 테스트 작성**
-- [x] 테스트 파일 생성: AssetExplorer.test.tsx
-- [x] 테스트: 1024px 화면에서 트리 패널이 최소 280px 이상인지 검증
-- [x] 테스트: 1920px 화면에서 트리 패널이 35% (672px)로 표시되는지 검증
-- [x] 테스트: localStorage에 저장된 레이아웃이 올바르게 복원되는지 검증
-- [x] 테스트 실행 → 모든 테스트 실패 확인 (RED)
-
-**🟢 GREEN - 테스트를 통과하는 최소한의 코드 작성**
-- [x] TREE_MIN_WIDTH_PX 상수 정의 (280)
-- [x] TREE_DEFAULT_PERCENT 상수 정의 (35)
-- [x] getMinSize 함수 구현 (뷰포트 너비 기반 최소 퍼센트 계산)
-- [x] DesktopLayout의 defaultSize를 35%로 변경
-- [x] usePanelLayout 훅에 픽셀 최소값 로직 추가
-- [x] 테스트 실행 → 모든 테스트 통과 확인 (GREEN)
-
-**🔵 REFACTOR - 코드 정리 및 개선**
-- [x] 매직 넘버들을 constants 파일로 추출
-- [x] 중복 코드 제거
-- [x] 타입 정의 개선
-- [x] 코드 리뷰 및 정리
-- [x] 테스트 재실행 → 여전히 통과 확인
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    TDD Cycle                                │
+│                                                             │
+│   🔴 RED          🟢 GREEN        🔵 BLUE (Refactor)       │
+│   ─────────────   ─────────────   ─────────────────────    │
+│   실패하는        테스트 통과     코드 정리 및              │
+│   테스트 작성     최소 코드       리팩토링                  │
+│                                                             │
+│   [Test First] → [Make It Work] → [Make It Right]          │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-#### 1.2 모바일 드로어 자동 닫기 ✅ COMPLETED
+## Phase 1: 기반 구조 (상수, 타입, 에러)
 
-**🔴 RED - 실패하는 테스트 작성**
-- [x] 테스트: 모바일에서 노드 선택 시 Sheet가 자동으로 닫히는지 검증
-- [x] 테스트: 드로어 닫힘 후 선택된 노드가 상세 패널에 표시되는지 검증
-- [x] 테스트: 트리거 버튼이 현재 선택된 노드 정보를 표시하는지 검증
-- [x] 테스트 실행 → 모든 테스트 실패 확인 (RED)
+### 1.1 상수 중앙화
 
-**🟢 GREEN - 테스트를 통과하는 최소한의 코드 작성**
-- [x] MobileLayout에 isSheetOpen 상태 추가
-- [x] selectedAssetId 변경 감지 useEffect 추가
-- [x] Sheet의 open prop을 isSheetOpen 상태와 연결
-- [x] onOpenChange 핸들러 구현
-- [x] 테스트 실행 → 모든 테스트 통과 확인 (GREEN)
+#### 🔴 RED - 실패하는 테스트 작성
+```
+파일: tests/unit/core/test_constants.py
+```
+- [x] `test_max_body_size_constant_exists` - MAX_BODY_SIZE 상수 존재 확인
+- [x] `test_page_timeout_constant_exists` - PAGE_TIMEOUT_MS 상수 존재 확인
+- [x] `test_lock_ttl_constant_exists` - LOCK_TTL 상수 존재 확인
+- [x] `test_cancellation_interval_constant_exists` - CANCELLATION_CHECK_INTERVAL 상수 존재 확인
 
-**🔵 REFACTOR - 코드 정리 및 개선**
-- [x] 트리거 버튼에 현재 선택된 노드 이름 표시 추가
-- [x] 상태 관리 로직을 커스텀 훅으로 추출 (useMobileSheet)
-- [x] 컴포넌트 가독성 개선
-- [x] 테스트 재실행 → 여전히 통과 확인
+#### 🟢 GREEN - 테스트 통과 코드 작성
+```
+파일: backend/app/core/constants.py
+```
+- [x] `CrawlerConstants` 클래스 생성 (모듈 수준 상수로 구현)
+  - `MAX_BODY_SIZE = 10 * 1024`
+  - `PAGE_TIMEOUT_MS = 30000`
+  - `LOCK_TTL = 600`
+  - `CANCELLATION_CHECK_INTERVAL = 5.0`
+  - `LOCK_PREFIX = "eazy:lock:"`
 
----
-
-#### 1.3 리사이저 핸들 터치 영역 확대 ✅ COMPLETED
-
-**🔴 RED - 실패하는 테스트 작성**
-- [x] 테스트 파일 생성: resizable.test.tsx
-- [x] 테스트: 리사이저 핸들의 클릭 가능 영역이 12px 이상인지 검증
-- [x] 테스트: 호버 시 시각적 피드백(배경색 변화)이 표시되는지 검증
-- [x] 테스트 실행 → 모든 테스트 실패 확인 (RED)
-
-**🟢 GREEN - 테스트를 통과하는 최소한의 코드 작성**
-- [x] resizable.tsx의 w-px → w-1 변경
-- [x] after:w-1 → after:w-3 변경 (히트 영역 확대)
-- [x] hover:bg-primary/20 클래스 추가
-- [x] transition-colors 클래스 추가
-- [x] 테스트 실행 → 모든 테스트 통과 확인 (GREEN)
-
-**🔵 REFACTOR - 코드 정리 및 개선**
-- [x] 핸들 아이콘 크기 h-4 w-3 → h-6 w-4로 증가
-- [x] 스타일 변수를 상수로 추출
-- [x] 호버/포커스 상태 일관성 검토
-- [x] 테스트 재실행 → 여전히 통과 확인
+#### 🔵 BLUE - 리팩토링
+- [x] `crawler_service.py`에서 상수 import로 교체
+- [x] `asset_service.py`에서 상수 import로 교체
+- [x] `crawl_worker.py`에서 상수 import로 교체
+- [x] 중복 상수 정의 제거
 
 ---
 
-#### 🧪 Phase 1 E2E 검증 (Chrome DevTools MCP) ✅ COMPLETED
+### 1.2 타입 정의 (TypedDict)
 
-**사전 준비**
-- [x] `npm run dev`로 개발 서버 실행 (http://localhost:5173)
-- [x] Chrome DevTools MCP 연결 확인
+#### 🔴 RED - 실패하는 테스트 작성
+```
+파일: tests/unit/types/test_http_types.py
+```
+- [ ] `test_http_request_data_type_has_required_keys` - method, headers 키 확인
+- [ ] `test_http_response_data_type_has_required_keys` - status, headers, body 키 확인
+- [ ] `test_http_data_type_structure` - request, response, parameters 구조 확인
+- [ ] `test_parsed_content_type_structure` - content_type, body, truncated 구조 확인
 
-**1.1 트리 패널 너비 검증**
-- [x] `navigate_page`로 Target 상세 페이지 이동 (`/projects/1/targets/1/results`)
-- [x] `resize_page`로 데스크탑 최소 크기 설정 (width: 1024, height: 768)
-- [x] `take_snapshot`으로 트리 패널 요소 확인
-- [x] `take_screenshot`으로 1024px 레이아웃 캡처
-- [x] 트리 패널 너비가 280px 이상인지 시각적 확인
-- [x] `resize_page`로 대형 화면 설정 (width: 1920, height: 1080)
-- [x] `take_screenshot`으로 1920px 레이아웃 캡처
-- [x] 트리 패널이 약 35% (672px)인지 확인
+#### 🟢 GREEN - 테스트 통과 코드 작성
+```
+파일: backend/app/types/http.py
+```
+- [ ] `HttpRequestData(TypedDict)` 정의
+- [ ] `HttpResponseData(TypedDict)` 정의
+- [ ] `HttpData(TypedDict)` 정의
+- [ ] `ParsedContent(TypedDict)` 정의
 
-**1.2 모바일 드로어 검증**
-- [x] `resize_page`로 모바일 크기 설정 (width: 375, height: 812) - iPhone X
-- [x] `take_snapshot`으로 모바일 레이아웃 확인
-- [x] `click`으로 "Tree" 버튼 클릭하여 드로어 열기
-- [x] `take_screenshot`으로 드로어 열린 상태 캡처
-- [x] `click`으로 트리 노드 선택
-- [x] 드로어가 자동으로 닫히는지 확인
-- [x] `take_screenshot`으로 선택 후 상태 캡처
-- [x] 상세 패널에 선택된 노드 정보가 표시되는지 확인
-
-**1.3 리사이저 핸들 검증**
-- [x] `resize_page`로 데스크탑 크기 복원 (width: 1440, height: 900)
-- [x] `take_snapshot`으로 리사이저 핸들 요소 찾기
-- [x] `hover`로 리사이저 핸들에 마우스 오버
-- [x] `take_screenshot`으로 호버 상태 피드백 확인
-- [x] 핸들의 시각적 크기가 충분한지 확인
+#### 🔵 BLUE - 리팩토링
+- [ ] `crawler_service.py` 반환 타입을 TypedDict로 교체
+- [ ] `asset_service.py` 파라미터 타입을 TypedDict로 교체
+- [ ] 기존 `Dict[str, Any]` 타입 힌트 제거
 
 ---
 
-### Phase 2: 기능 개선
+### 1.3 커스텀 예외 클래스
+
+#### 🔴 RED - 실패하는 테스트 작성
+```
+파일: tests/unit/core/test_exceptions.py
+```
+- [ ] `test_scan_error_is_base_exception` - ScanError가 Exception 상속 확인
+- [ ] `test_target_not_found_error_inheritance` - TargetNotFoundError가 ScanError 상속
+- [ ] `test_duplicate_scan_error_inheritance` - DuplicateScanError가 ScanError 상속
+- [ ] `test_unsafe_url_error_inheritance` - UnsafeUrlError가 ScanError 상속
+- [ ] `test_exception_message_formatting` - 예외 메시지 포맷 확인
+
+#### 🟢 GREEN - 테스트 통과 코드 작성
+```
+파일: backend/app/core/exceptions.py
+```
+- [ ] `ScanError(Exception)` 기본 예외 클래스
+- [ ] `TargetNotFoundError(ScanError)` 대상 미존재
+- [ ] `DuplicateScanError(ScanError)` 중복 스캔
+- [ ] `UnsafeUrlError(ScanError)` 안전하지 않은 URL
+
+#### 🔵 BLUE - 리팩토링
+- [ ] `task.py` API 엔드포인트에서 예외별 HTTP 상태 코드 매핑
+- [ ] `crawl_worker.py`에서 커스텀 예외 사용
+- [ ] `task_service.py`에서 커스텀 예외 raise
 
 ---
 
-#### 2.1 검색/필터링 기능 ✅ COMPLETED
+## Phase 2: 인터페이스 정의 (Protocol)
 
-**🔴 RED - 실패하는 테스트 작성**
-- [x] 테스트 파일 생성: AssetTreeView.test.tsx (검색 관련)
-- [x] 테스트: 검색어 입력 시 트리가 필터링되는지 검증
-- [x] 테스트: HTTP 메서드 필터 클릭 시 해당 메서드만 표시되는지 검증
-- [x] 테스트: 검색어와 필터를 조합했을 때 올바르게 AND 조건으로 동작하는지 검증
-- [x] 테스트: 검색 결과가 없을 때 빈 상태 메시지가 표시되는지 검증
-- [x] 테스트: 검색어 하이라이팅 검증
-- [x] 테스트: 검색 시 부모 노드 자동 확장 검증
-- [x] 테스트 실행 → 모든 테스트 실패 확인 (RED)
+### 2.1 Crawler 인터페이스
 
-**🟢 GREEN - 테스트를 통과하는 최소한의 코드 작성**
-- [x] AssetTreeView에 searchQuery, filterMethod props 추가
-- [x] filterAssets 함수 구현 (검색 + 필터 로직)
-- [x] 검색 결과 없을 때 빈 상태 UI 렌더링
-- [x] TreeNode에 검색어 하이라이팅 기능 추가 (highlightMatch)
-- [x] 검색 시 부모 노드 자동 확장 (getExpandedNodesForSearch)
-- [x] SearchFilterBar 컴포넌트 생성 (검색 Input + HTTP 메서드 Badge)
-- [x] AssetExplorer의 TreePanelContent에 SearchFilterBar 통합
-- [x] 테스트 실행 → 모든 테스트 통과 확인 (GREEN)
+#### 🔴 RED - 실패하는 테스트 작성
+```
+파일: tests/unit/services/test_interfaces.py
+```
+- [ ] `test_icrawler_protocol_has_crawl_method` - ICrawler.crawl() 존재 확인
+- [ ] `test_crawler_service_implements_icrawler` - CrawlerService가 ICrawler 준수
+- [ ] `test_mock_crawler_implements_icrawler` - Mock 크롤러 테스트
 
-**🔵 REFACTOR - 코드 정리 및 개선**
-- [x] 필터링 로직을 useAssetFilter 커스텀 훅으로 추출
-- [x] 검색 입력 디바운싱 추가 (useDebounce 훅, 300ms)
-- [x] 접근성 개선 (aria-label, role 등)
-- [x] 테스트 재실행 → 여전히 통과 확인 (24 tests passed)
+#### 🟢 GREEN - 테스트 통과 코드 작성
+```
+파일: backend/app/services/interfaces.py
+```
+- [ ] `ICrawler(Protocol)` 정의
+  ```python
+  class ICrawler(Protocol):
+      async def crawl(self, url: str) -> Tuple[List[str], Dict[str, HttpData]]: ...
+  ```
+
+#### 🔵 BLUE - 리팩토링
+- [ ] `CrawlWorker`에서 `ICrawler` 타입 힌트 사용
+- [ ] 테스트에서 Mock 크롤러 주입 패턴 적용
 
 ---
 
-#### 2.2 응답 본문 구문 강조 ✅ COMPLETED
+### 2.2 ResponseParser 인터페이스
 
-**🔴 RED - 실패하는 테스트 작성**
-- [x] 테스트 파일 생성: CodeBlock.test.tsx
-- [x] 테스트: JSON 응답이 구문 강조되어 표시되는지 검증
-- [x] 테스트: 다크/라이트 모드에서 올바른 테마가 적용되는지 검증
-- [x] 테스트: 복사 버튼 클릭 시 클립보드에 복사되는지 검증
-- [x] 테스트: 언어 자동 감지가 올바르게 동작하는지 검증
-- [x] 테스트 실행 → 모든 테스트 실패 확인 (RED)
+#### 🔴 RED - 실패하는 테스트 작성
+```
+파일: tests/unit/services/parsers/test_parser_protocol.py
+```
+- [ ] `test_response_parser_has_supports_method` - supports() 메서드 존재
+- [ ] `test_response_parser_has_parse_method` - parse() 메서드 존재
+- [ ] `test_parser_registry_get_parser_returns_parser` - 레지스트리 동작 확인
+- [ ] `test_parser_registry_returns_default_for_unknown` - 알 수 없는 타입은 Default 반환
 
-**🟢 GREEN - 테스트를 통과하는 최소한의 코드 작성**
-- [x] 의존성 설치: npm install prism-react-renderer
-- [x] CodeBlock 컴포넌트 생성
-- [x] detectLanguage 유틸 함수 구현 (content-type 기반)
-- [x] 복사 버튼 구현 (navigator.clipboard API)
-- [x] AssetDetailPanel에 CodeBlock 적용
-- [x] 테스트 실행 → 모든 테스트 통과 확인 (GREEN, 151 tests)
+#### 🟢 GREEN - 테스트 통과 코드 작성
+```
+파일: backend/app/services/parsers/base.py
+```
+- [ ] `ResponseParser(Protocol)` 정의
+- [ ] `ResponseParserRegistry` 클래스 정의
+  - `register(parser: ResponseParser)`
+  - `get_parser(content_type: str) -> ResponseParser`
 
-**🔵 REFACTOR - 코드 정리 및 개선**
-- [x] 대용량 응답(100KB+) 성능 최적화 (truncation 적용)
-- [x] 테마 전환 시 깜빡임 방지 (auto 테마 지원)
-- [x] 복사 완료 피드백 표시
-- [x] 테스트 재실행 → 여전히 통과 확인 (151 tests passed)
-
----
-
-#### 🧪 Phase 2 E2E 검증 (Chrome DevTools MCP) ✅ COMPLETED
-
-**사전 준비**
-- [x] Docker 컴포즈로 개발 환경 실행 (http://localhost:80)
-- [x] 테스트용 Asset 데이터가 있는 Target 페이지 준비
-
-**2.1 검색/필터링 기능 검증**
-- [x] `navigate_page`로 Target 상세 페이지 이동
-- [x] `take_snapshot`으로 검색 입력 필드 요소 확인
-- [x] `fill`로 검색어 입력 ("dream")
-- [x] `take_screenshot`으로 필터링된 트리 캡처
-- [x] 트리에 검색어와 일치하는 노드만 표시되는지 확인
-- [x] 검색어 하이라이팅 동작 확인 (주황색 강조)
-- [x] 부모 노드 자동 확장 확인
-- [x] `click`으로 검색어 지우기(X) 버튼 클릭
-- [x] 필터가 해제되고 전체 트리가 복원되는지 확인
-
-**2.2 응답 본문 구문 강조 검증**
-- [x] CodeBlock 컴포넌트 단위 테스트 통과 (29 tests)
-- [x] detectLanguage 유틸 단위 테스트 통과 (40 tests)
-- [x] AssetDetailPanel 통합 테스트 통과 (29 tests)
-- [x] E2E 시각적 검증 완료 (단위 테스트로 커버리지 확보)
-
-**모바일 검증**
-- [x] 단위 테스트로 모바일 드로어 자동 닫기 검증 완료
-- [x] E2E 시각적 검증 완료 (단위 테스트로 커버리지 확보)
+#### 🔵 BLUE - 리팩토링
+- [ ] 레지스트리 싱글톤 패턴 적용 (선택사항)
+- [ ] 파서 자동 등록 메커니즘 구현 (선택사항)
 
 ---
 
-### Phase 3: 고급 UX ✅ COMPLETED
+## Phase 3: 파서 전략 패턴 구현
+
+### 3.1 JsonResponseParser
+
+#### 🔴 RED - 실패하는 테스트 작성
+```
+파일: tests/unit/services/parsers/test_json_parser.py
+```
+- [ ] `test_json_parser_supports_application_json` - application/json 지원
+- [ ] `test_json_parser_parses_valid_json` - 유효한 JSON 파싱
+- [ ] `test_json_parser_handles_invalid_json` - 잘못된 JSON 처리
+- [ ] `test_json_parser_truncates_large_body` - 큰 본문 자르기
+- [ ] `test_json_parser_returns_parsed_content_type` - 반환 타입 확인
+
+#### 🟢 GREEN - 테스트 통과 코드 작성
+```
+파일: backend/app/services/parsers/json_parser.py
+```
+- [ ] `JsonResponseParser` 클래스 구현
+  - `supports(content_type: str) -> bool`
+  - `async parse(response: Response) -> ParsedContent`
+
+#### 🔵 BLUE - 리팩토링
+- [ ] 에러 로깅 추가
+- [ ] 성능 최적화 (필요시)
 
 ---
 
-#### 3.1 키보드 네비게이션 확장 ✅ COMPLETED
+### 3.2 HtmlResponseParser
 
-**🔴 RED - 실패하는 테스트 작성**
-- [x] 테스트: ArrowRight로 확장된 노드에서 첫 번째 자식으로 이동하는지 검증
-- [x] 테스트: ArrowLeft로 축소된 노드에서 부모로 이동하는지 검증
-- [x] 테스트: Enter 키로 엔드포인트 노드 선택이 되는지 검증
-- [x] 테스트: Escape 키로 포커스 해제되는지 검증
-- [x] 테스트 실행 → 모든 테스트 실패 확인 (RED)
+#### 🔴 RED - 실패하는 테스트 작성
+```
+파일: tests/unit/services/parsers/test_html_parser.py
+```
+- [ ] `test_html_parser_supports_text_html` - text/html 지원
+- [ ] `test_html_parser_supports_text_css` - text/css 지원
+- [ ] `test_html_parser_supports_text_javascript` - text/javascript 지원
+- [ ] `test_html_parser_parses_text_content` - 텍스트 콘텐츠 파싱
+- [ ] `test_html_parser_truncates_large_body` - 큰 본문 자르기
 
-**🟢 GREEN - 테스트를 통과하는 최소한의 코드 작성**
-- [x] findParentIndex 헬퍼 함수 구현
-- [x] findFirstChildIndex 헬퍼 함수 구현
-- [x] handleTreeKeyDown에 ArrowRight 로직 확장 (확장됨 → 자식 이동)
-- [x] handleTreeKeyDown에 ArrowLeft 로직 확장 (축소됨 → 부모 이동)
-- [x] Escape 키 핸들러 추가 (포커스 해제)
-- [x] 테스트 실행 → 모든 테스트 통과 확인 (GREEN)
+#### 🟢 GREEN - 테스트 통과 코드 작성
+```
+파일: backend/app/services/parsers/html_parser.py
+```
+- [ ] `HtmlResponseParser` 클래스 구현 (HTML, CSS, JS 통합)
 
-**🔵 REFACTOR - 코드 정리 및 개선**
-- [x] focusElement 헬퍼 함수로 포커스 로직 추출
-- [x] ARIA 속성 유지 (role="tree", role="treeitem", aria-expanded, aria-selected, aria-level)
-- [x] 테스트 재실행 → 여전히 통과 확인 (84 tests passed)
-
----
-
-#### 3.2 선택/포커스 상태 시각적 구분 ✅ COMPLETED
-
-**🔴 RED - 실패하는 테스트 작성**
-- [x] 테스트: 포커스된 노드에 focus:ring-2 스타일이 정의되어 있는지 검증
-- [x] 테스트: 선택된 노드에 배경색(bg-accent)이 적용되는지 검증
-- [x] 테스트: 포커스와 선택이 동시에 적용될 때 두 스타일이 모두 보이는지 검증
-- [x] 테스트: 포커스 이동 시 이전 노드의 포커스 상태가 제거되는지 검증
-- [x] 테스트 실행 → 모든 테스트 실패 확인 (RED)
-
-**🟢 GREEN - 테스트를 통과하는 최소한의 코드 작성**
-- [x] TreeNode에 focus:ring-2 focus:ring-ring focus:ring-offset-1 클래스 추가
-- [x] 선택 스타일 유지: bg-accent
-- [x] 테스트 실행 → 모든 테스트 통과 확인 (GREEN)
-
-**🔵 REFACTOR - 코드 정리 및 개선**
-- [x] 스타일이 다크/라이트 모드에서 정상 동작 확인
-- [x] 테스트 재실행 → 여전히 통과 확인 (84 tests passed)
+#### 🔵 BLUE - 리팩토링
+- [ ] Content-Type 목록 상수화
+- [ ] 코드 중복 제거
 
 ---
 
-#### 🧪 Phase 3 E2E 검증 (Chrome DevTools MCP) ✅ COMPLETED
+### 3.3 ImageResponseParser
 
-**사전 준비**
-- [x] Docker 빌드 및 컴포즈 재실행 (http://localhost)
-- [x] Asset 트리 데이터가 있는 Target 페이지 준비
+#### 🔴 RED - 실패하는 테스트 작성
+```
+파일: tests/unit/services/parsers/test_image_parser.py
+```
+- [ ] `test_image_parser_supports_image_types` - image/* 지원
+- [ ] `test_image_parser_encodes_to_base64` - Base64 인코딩 확인
+- [ ] `test_image_parser_truncates_large_image` - 큰 이미지 자르기
+- [ ] `test_image_parser_handles_binary_data` - 바이너리 데이터 처리
 
-**3.1 키보드 네비게이션 검증**
-- [x] 트리 노드 클릭으로 포커스 설정
-- [x] ArrowRight로 축소된 노드 확장 동작 확인
-- [x] ArrowRight로 확장된 노드에서 첫 번째 자식으로 이동 확인
-- [x] ArrowLeft로 확장된 노드 축소 동작 확인
-- [x] ArrowLeft로 축소된 노드에서 부모로 이동 확인
-- [x] Escape로 포커스 해제 확인
+#### 🟢 GREEN - 테스트 통과 코드 작성
+```
+파일: backend/app/services/parsers/image_parser.py
+```
+- [ ] `ImageResponseParser` 클래스 구현
 
-**3.2 선택/포커스 상태 시각적 구분 검증**
-- [x] 엔드포인트 노드 선택 시 selected + focused 상태 확인
-- [x] ArrowUp으로 다른 노드에 포커스 이동 후 선택/포커스 분리 확인
-- [x] 선택된 노드(배경색)와 포커스된 노드(ring)가 시각적으로 구분됨 확인
-- [x] 상세 패널에 선택된 엔드포인트 정보 표시 확인
-
-**접근성 검증**
-- [x] role="tree" 속성 확인
-- [x] role="treeitem" 속성 확인
-- [x] aria-expanded, aria-selected, aria-level 속성 확인
+#### 🔵 BLUE - 리팩토링
+- [ ] 지원 이미지 타입 목록 상수화
 
 ---
 
-## 검증 방법
+### 3.4 DefaultResponseParser
 
-### 단위 테스트 실행
+#### 🔴 RED - 실패하는 테스트 작성
+```
+파일: tests/unit/services/parsers/test_default_parser.py
+```
+- [ ] `test_default_parser_supports_any_type` - 모든 타입 지원 (fallback)
+- [ ] `test_default_parser_returns_none_body` - body를 None으로 반환
+- [ ] `test_default_parser_preserves_content_type` - content_type 보존
+
+#### 🟢 GREEN - 테스트 통과 코드 작성
+```
+파일: backend/app/services/parsers/default_parser.py
+```
+- [ ] `DefaultResponseParser` 클래스 구현
+
+#### 🔵 BLUE - 리팩토링
+- [ ] 로깅 추가 (알 수 없는 타입 경고)
+
+---
+
+## Phase 4: 통합 및 CrawlerService 리팩토링
+
+### 4.1 CrawlerService 리팩토링
+
+#### 🔴 RED - 실패하는 테스트 작성
+```
+파일: tests/unit/services/test_crawler_service_refactored.py
+```
+- [ ] `test_crawler_uses_parser_registry` - 파서 레지스트리 사용 확인
+- [ ] `test_crawler_delegates_to_json_parser` - JSON 파서 위임 확인
+- [ ] `test_crawler_delegates_to_html_parser` - HTML 파서 위임 확인
+- [ ] `test_crawler_delegates_to_image_parser` - 이미지 파서 위임 확인
+- [ ] `test_crawler_uses_default_for_unknown` - 알 수 없는 타입 처리
+
+#### 🟢 GREEN - 테스트 통과 코드 작성
+```
+파일: backend/app/services/crawler_service.py (수정)
+```
+- [ ] `ResponseParserRegistry` 주입
+- [ ] `handle_response()` 내부 로직을 파서 호출로 교체
+- [ ] 기존 if-elif 분기 제거
+
+#### 🔵 BLUE - 리팩토링
+- [ ] 코드 라인 수 감소 확인 (179줄 → 목표 100줄 이하)
+- [ ] 메서드 분리 (필요시)
+- [ ] 문서화 (docstring 업데이트)
+
+---
+
+### 4.2 API 에러 핸들링 개선
+
+#### 🔴 RED - 실패하는 테스트 작성
+```
+파일: tests/unit/api/test_task_error_handling.py
+```
+- [ ] `test_trigger_scan_returns_404_for_missing_target` - 타겟 없음 → 404
+- [ ] `test_trigger_scan_returns_409_for_duplicate_scan` - 중복 스캔 → 409
+- [ ] `test_trigger_scan_returns_400_for_unsafe_url` - 위험한 URL → 400
+- [ ] `test_trigger_scan_returns_500_for_unexpected_error` - 예상치 못한 에러 → 500
+
+#### 🟢 GREEN - 테스트 통과 코드 작성
+```
+파일: backend/app/api/v1/endpoints/task.py (수정)
+```
+- [ ] `trigger_scan()` 엔드포인트에서 커스텀 예외 처리
+- [ ] 예외별 HTTP 상태 코드 매핑
+
+#### 🔵 BLUE - 리팩토링
+- [ ] 에러 응답 스키마 통일
+- [ ] 에러 핸들러 미들웨어 추출 (선택사항)
+
+---
+
+## Phase 5: 설정 중앙화 (선택사항)
+
+### 5.1 pydantic-settings 적용
+
+#### 🔴 RED - 실패하는 테스트 작성
+```
+파일: tests/unit/core/test_crawler_settings.py
+```
+- [ ] `test_crawler_settings_loads_defaults` - 기본값 로드
+- [ ] `test_crawler_settings_reads_env_vars` - 환경변수 읽기
+- [ ] `test_crawler_settings_validates_values` - 값 검증
+
+#### 🟢 GREEN - 테스트 통과 코드 작성
+```
+파일: backend/app/core/config.py (추가)
+```
+- [ ] `CrawlerSettings(BaseSettings)` 클래스 정의
+
+#### 🔵 BLUE - 리팩토링
+- [ ] 기존 constants.py와 통합 또는 분리 결정
+- [ ] .env.example 업데이트
+
+---
+
+## 검증 체크리스트
+
+### 테스트 실행
 ```bash
-cd frontend
-npm run test              # 전체 테스트
-npm run test -- --watch   # 감시 모드
-npm run test -- --coverage  # 커버리지 리포트
+# 전체 테스트
+pytest tests/ -v
+
+# 단위 테스트만
+pytest tests/unit/ -v
+
+# 커버리지 포함
+pytest tests/ --cov=app --cov-report=html
 ```
 
-### E2E 테스트 (수동)
-1. `npm run dev`로 개발 서버 실행
-2. Target 상세 페이지 접속
-3. 브라우저 DevTools에서 뷰포트 크기 조절
-4. 각 화면 크기(1024px, 1440px, 1920px)에서 트리 패널 너비 확인
-5. 모바일 에뮬레이션으로 드로어 동작 확인
-
-### 접근성 테스트
+### 코드 품질 검사
 ```bash
-npx pa11y http://localhost:5173/projects/1/targets/1/results
+# 타입 체크
+mypy backend/app/
+
+# 린팅
+ruff check backend/app/
+
+# 포맷팅
+ruff format backend/app/
+```
+
+### 통합 테스트
+- [ ] Active Scan 트리거 → Task 생성 확인
+- [ ] 크롤링 완료 → Asset 저장 확인
+- [ ] 에러 발생 시 적절한 HTTP 상태 코드 반환 확인
+
+---
+
+## 파일 구조 (최종)
+
+```
+backend/app/
+├── core/
+│   ├── constants.py          # NEW: 상수 중앙화
+│   ├── exceptions.py         # NEW: 커스텀 예외
+│   └── config.py             # NEW: 설정 (선택)
+├── types/
+│   └── http.py               # NEW: TypedDict 정의
+├── services/
+│   ├── interfaces.py         # NEW: Protocol 정의
+│   ├── crawler_service.py    # MODIFY: 파서 사용
+│   ├── asset_service.py      # MODIFY: 상수/타입 사용
+│   └── parsers/              # NEW: 파서 디렉토리
+│       ├── __init__.py
+│       ├── base.py           # ResponseParser, Registry
+│       ├── json_parser.py
+│       ├── html_parser.py
+│       ├── image_parser.py
+│       └── default_parser.py
+├── workers/
+│   └── crawl_worker.py       # MODIFY: 상수/예외 사용
+└── api/v1/endpoints/
+    └── task.py               # MODIFY: 에러 핸들링
+
+tests/unit/
+├── core/
+│   ├── test_constants.py     # NEW
+│   └── test_exceptions.py    # NEW
+├── types/
+│   └── test_http_types.py    # NEW
+├── services/
+│   ├── test_interfaces.py    # NEW
+│   └── parsers/              # NEW
+│       ├── test_parser_protocol.py
+│       ├── test_json_parser.py
+│       ├── test_html_parser.py
+│       ├── test_image_parser.py
+│       └── test_default_parser.py
+└── api/
+    └── test_task_error_handling.py  # NEW
 ```
 
 ---
 
-## 의존성 추가 (Phase 2)
+## 예상 소요 시간
 
-```bash
-# 구문 강조 라이브러리 (택 1)
-npm install shiki
-# 또는
-npm install prism-react-renderer
-```
+| Phase | 항목 | Red | Green | Blue | 합계 |
+|-------|------|-----|-------|------|------|
+| 1 | 상수 중앙화 | 30분 | 30분 | 1시간 | 2시간 |
+| 1 | 타입 정의 | 30분 | 1시간 | 1시간 | 2.5시간 |
+| 1 | 커스텀 예외 | 30분 | 30분 | 1시간 | 2시간 |
+| 2 | 인터페이스 정의 | 1시간 | 1시간 | 30분 | 2.5시간 |
+| 3 | 파서 구현 (4개) | 2시간 | 3시간 | 1시간 | 6시간 |
+| 4 | CrawlerService 리팩토링 | 1시간 | 2시간 | 1시간 | 4시간 |
+| 4 | API 에러 핸들링 | 30분 | 1시간 | 30분 | 2시간 |
+| **합계** | | **6시간** | **9시간** | **6시간** | **21시간** |
 
 ---
 
-## 파일 구조
+## 참조 파일
 
-```
-frontend/src/
-├── components/
-│   ├── features/asset/
-│   │   ├── AssetExplorer.tsx          # Phase 1.1, 1.2
-│   │   ├── AssetExplorer.test.tsx     # 테스트
-│   │   ├── tree/
-│   │   │   ├── AssetTreeView.tsx      # Phase 2.1, 3.1
-│   │   │   ├── AssetTreeView.test.tsx # 테스트
-│   │   │   └── TreeNode.tsx           # Phase 3.2
-│   │   └── detail/
-│   │       └── AssetDetailPanel.tsx   # Phase 2.2
-│   └── ui/
-│       ├── resizable.tsx              # Phase 1.3
-│       ├── resizable.test.tsx         # 테스트
-│       └── code-block.tsx             # Phase 2.2 (신규)
-├── hooks/
-│   ├── use-mobile.tsx                 # Phase 1.1
-│   ├── use-asset-filter.ts            # Phase 2.1 (신규)
-│   └── use-tree-keyboard-navigation.ts # Phase 3.1 (신규)
-└── utils/
-    └── detect-language.ts             # Phase 2.2 (신규)
-```
+### 수정 대상
+- `/backend/app/services/crawler_service.py` - 파싱 로직 (리팩토링 대상)
+- `/backend/app/services/asset_service.py` - 상수/타입 적용
+- `/backend/app/workers/crawl_worker.py` - 상수/예외 적용
+- `/backend/app/api/v1/endpoints/task.py` - 에러 핸들링
+
+### 신규 생성
+- `/backend/app/core/constants.py`
+- `/backend/app/core/exceptions.py`
+- `/backend/app/types/http.py`
+- `/backend/app/services/interfaces.py`
+- `/backend/app/services/parsers/*.py`
+
+---
+
+## 진행 상황 추적
+
+### Phase 1 진행률: 33% (1/3 완료)
+- [x] 1.1 상수 중앙화
+- [ ] 1.2 타입 정의
+- [ ] 1.3 커스텀 예외
+
+### Phase 2 진행률: 0%
+- [ ] 2.1 Crawler 인터페이스
+- [ ] 2.2 ResponseParser 인터페이스
+
+### Phase 3 진행률: 0%
+- [ ] 3.1 JsonResponseParser
+- [ ] 3.2 HtmlResponseParser
+- [ ] 3.3 ImageResponseParser
+- [ ] 3.4 DefaultResponseParser
+
+### Phase 4 진행률: 0%
+- [ ] 4.1 CrawlerService 리팩토링
+- [ ] 4.2 API 에러 핸들링
+
+### Phase 5 진행률: 0%
+- [ ] 5.1 pydantic-settings 적용

@@ -5,14 +5,13 @@ import base64
 
 from app.utils.url_parser import parse_query_params
 from app.core.structured_logger import get_logger
+from app.core.constants import MAX_BODY_SIZE, PAGE_TIMEOUT_MS
 
 logger = get_logger(__name__)
 
 
 class CrawlerService:
     """Web crawler using Playwright with HTTP interception."""
-
-    MAX_BODY_SIZE = 10 * 1024  # 10KB limit
 
     async def crawl(self, url: str) -> tuple[List[str], Dict[str, Dict[str, Any]]]:
         """
@@ -48,9 +47,9 @@ class CrawlerService:
                             post_data = request.post_data
                             if post_data:
                                 # Truncate if too large
-                                if len(post_data) > self.MAX_BODY_SIZE:
+                                if len(post_data) > MAX_BODY_SIZE:
                                     body = (
-                                        post_data[: self.MAX_BODY_SIZE]
+                                        post_data[: MAX_BODY_SIZE]
                                         + "... [TRUNCATED]"
                                     )
                                 else:
@@ -100,9 +99,9 @@ class CrawlerService:
                             body_text = await response.text()
 
                             # Truncate if too large
-                            if len(body_text) > self.MAX_BODY_SIZE:
+                            if len(body_text) > MAX_BODY_SIZE:
                                 body = (
-                                    body_text[: self.MAX_BODY_SIZE] + "... [TRUNCATED]"
+                                    body_text[: MAX_BODY_SIZE] + "... [TRUNCATED]"
                                 )
                             else:
                                 # Try to parse as JSON for API responses
@@ -123,8 +122,8 @@ class CrawlerService:
                             body_bytes = await response.body()
 
                             # Truncate if too large
-                            if len(body_bytes) > self.MAX_BODY_SIZE:
-                                body_bytes = body_bytes[: self.MAX_BODY_SIZE]
+                            if len(body_bytes) > MAX_BODY_SIZE:
+                                body_bytes = body_bytes[: MAX_BODY_SIZE]
 
                             # Encode as Base64 string for JSON serialization
                             body = base64.b64encode(body_bytes).decode("utf-8")
@@ -152,7 +151,7 @@ class CrawlerService:
 
             try:
                 # Navigate to page
-                await page.goto(url, wait_until="networkidle", timeout=30000)
+                await page.goto(url, wait_until="networkidle", timeout=PAGE_TIMEOUT_MS)
 
                 # Extract all <a> hrefs (existing logic)
                 elements = await page.locator("a").all()

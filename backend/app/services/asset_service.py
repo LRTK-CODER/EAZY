@@ -6,11 +6,11 @@ from urllib.parse import urlparse
 
 from app.models.asset import Asset, AssetDiscovery, AssetType, AssetSource
 from app.core.utils import utc_now
+from app.core.constants import MAX_BODY_SIZE
 
 
 class AssetService:
     BATCH_SIZE = 50
-    MAX_BODY_SIZE = 10 * 1024  # 10KB limit
 
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -84,10 +84,10 @@ class AssetService:
             body = spec["body"]
             # Convert to string if needed
             if isinstance(body, str):
-                if len(body) > self.MAX_BODY_SIZE:
+                if len(body) > MAX_BODY_SIZE:
                     # Truncate to fit within MAX_BODY_SIZE including suffix
                     truncate_suffix = "... [TRUNCATED]"
-                    truncate_at = self.MAX_BODY_SIZE - len(truncate_suffix)
+                    truncate_at = MAX_BODY_SIZE - len(truncate_suffix)
                     spec["body"] = body[:truncate_at] + truncate_suffix
 
         return spec

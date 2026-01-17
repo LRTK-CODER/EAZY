@@ -180,7 +180,7 @@ class TestCrawlWorkerLockIntegration:
     @pytest.mark.asyncio
     async def test_crawl_worker_uses_lock(self):
         """CrawlWorker가 분산 잠금을 사용"""
-        from app.workers.crawl_worker import LOCK_PREFIX, LOCK_TTL
+        from app.core.constants import LOCK_PREFIX, LOCK_TTL
 
         # Verify constants
         assert LOCK_PREFIX == "eazy:lock:"
@@ -189,7 +189,7 @@ class TestCrawlWorkerLockIntegration:
     @pytest.mark.asyncio
     async def test_lock_key_format_consistency(self):
         """잠금 키 형식 일관성"""
-        from app.workers.crawl_worker import LOCK_PREFIX
+        from app.core.constants import LOCK_PREFIX
 
         target_id = 123
         expected_key = f"{LOCK_PREFIX}target:{target_id}"
@@ -349,7 +349,7 @@ class TestComponentExports:
 
     def test_crawl_worker_lock_constants(self):
         """crawl_worker 잠금 상수"""
-        from app.workers.crawl_worker import LOCK_TTL, LOCK_PREFIX
+        from app.core.constants import LOCK_TTL, LOCK_PREFIX
 
         assert LOCK_TTL == 600
         assert LOCK_PREFIX == "eazy:lock:"

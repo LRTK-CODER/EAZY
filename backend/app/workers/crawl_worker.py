@@ -21,16 +21,10 @@ from app.services.crawler_service import CrawlerService
 from app.services.asset_service import AssetService
 from app.core.lock import DistributedLock
 from app.core.structured_logger import get_logger
+from app.core.constants import CANCELLATION_CHECK_INTERVAL, LOCK_TTL, LOCK_PREFIX
 
 
 logger = get_logger(__name__)
-
-# Cancellation check interval in seconds
-CANCELLATION_CHECK_INTERVAL = 5.0
-
-# Lock configuration (matching OrphanRecovery threshold)
-LOCK_TTL = 600  # 10 minutes
-LOCK_PREFIX = "eazy:lock:"
 
 # SSRF Prevention - Blocked schemes and hosts
 BLOCKED_SCHEMES = {"file", "gopher", "ftp", "data"}
