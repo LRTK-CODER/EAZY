@@ -1,19 +1,29 @@
 """
 Central constants for EAZY backend.
 
+Phase 5.1: pydantic-settings 통합
+- 환경변수로 오버라이드 가능한 값은 Settings에서 가져옴
+- 변경 불필요한 상수(LOCK_PREFIX)는 그대로 유지
+
 Usage:
     from app.core.constants import MAX_BODY_SIZE, LOCK_TTL
 
-Example:
-    if len(body) > MAX_BODY_SIZE:
-        body = body[:MAX_BODY_SIZE] + "... [TRUNCATED]"
+    # 또는 직접 settings 사용 (권장):
+    from app.core.config import settings
+    settings.CRAWLER_MAX_BODY_SIZE
 """
 
-# === Crawler Constants ===
-MAX_BODY_SIZE: int = 10 * 1024  # 10KB - HTTP body 크기 제한
-PAGE_TIMEOUT_MS: int = 30000  # 30초 - 페이지 로드 타임아웃 (밀리초)
+from typing import Final
 
-# === Worker Constants ===
-LOCK_TTL: int = 600  # 10분 - 분산 락 TTL (초)
-CANCELLATION_CHECK_INTERVAL: float = 5.0  # 5초 - 작업 취소 확인 간격
-LOCK_PREFIX: str = "eazy:lock:"  # Redis 락 키 접두사
+from app.core.config import settings
+
+# === Crawler Constants (from Settings - 환경변수 오버라이드 가능) ===
+MAX_BODY_SIZE: int = settings.CRAWLER_MAX_BODY_SIZE
+PAGE_TIMEOUT_MS: int = settings.CRAWLER_PAGE_TIMEOUT_MS
+
+# === Worker Constants (from Settings - 환경변수 오버라이드 가능) ===
+LOCK_TTL: int = settings.WORKER_LOCK_TTL
+CANCELLATION_CHECK_INTERVAL: float = settings.WORKER_CANCELLATION_CHECK_INTERVAL
+
+# === True Constants (변경 불필요 - 환경변수 오버라이드 불필요) ===
+LOCK_PREFIX: Final[str] = "eazy:lock:"

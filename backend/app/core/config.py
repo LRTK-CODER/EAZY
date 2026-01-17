@@ -1,9 +1,35 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "EAZY Backend"
+
+    # === Crawler Settings (from constants.py) ===
+    CRAWLER_MAX_BODY_SIZE: int = Field(
+        default=10 * 1024,  # 10KB
+        ge=1024,  # 최소 1KB
+        description="Maximum HTTP body size in bytes",
+    )
+    CRAWLER_PAGE_TIMEOUT_MS: int = Field(
+        default=30000,  # 30초
+        ge=1000,  # 최소 1초
+        le=300000,  # 최대 5분
+        description="Page load timeout in milliseconds",
+    )
+
+    # === Worker Settings (from constants.py) ===
+    WORKER_LOCK_TTL: int = Field(
+        default=600,  # 10분
+        ge=60,  # 최소 1분
+        description="Distributed lock TTL in seconds",
+    )
+    WORKER_CANCELLATION_CHECK_INTERVAL: float = Field(
+        default=5.0,  # 5초
+        ge=1.0,  # 최소 1초
+        description="Task cancellation check interval in seconds",
+    )
 
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"

@@ -396,25 +396,50 @@
 
 ## Phase 5: 설정 중앙화 (선택사항)
 
-### 5.1 pydantic-settings 적용
+### 5.1 pydantic-settings 적용 ✅
 
 #### 🔴 RED - 실패하는 테스트 작성
 ```
-파일: tests/unit/core/test_crawler_settings.py
+파일: tests/core/test_crawler_settings.py
 ```
-- [ ] `test_crawler_settings_loads_defaults` - 기본값 로드
-- [ ] `test_crawler_settings_reads_env_vars` - 환경변수 읽기
-- [ ] `test_crawler_settings_validates_values` - 값 검증
+- [x] `test_loads_default_max_body_size` - CRAWLER_MAX_BODY_SIZE 기본값 10KB
+- [x] `test_loads_default_page_timeout` - CRAWLER_PAGE_TIMEOUT_MS 기본값 30000ms
+- [x] `test_loads_default_lock_ttl` - WORKER_LOCK_TTL 기본값 600초
+- [x] `test_loads_default_cancellation_interval` - WORKER_CANCELLATION_CHECK_INTERVAL 기본값 5.0초
+- [x] `test_reads_max_body_size_from_env` - 환경변수 읽기
+- [x] `test_reads_page_timeout_from_env` - 환경변수 읽기
+- [x] `test_env_var_overrides_default` - 환경변수 오버라이드
+- [x] `test_rejects_negative_max_body_size` - 음수 값 거부
+- [x] `test_rejects_zero_page_timeout` - 0ms 거부
+- [x] `test_rejects_too_short_lock_ttl` - 60초 미만 거부
+- [x] `test_rejects_invalid_type` - 타입 오류 거부
+- [x] `test_accepts_valid_range_values` - 유효 범위 수용
+- [x] `test_converts_string_to_int` - 문자열 → 정수 변환
+- [x] `test_converts_string_to_float` - 문자열 → 실수 변환
+- [x] `test_defaults_match_current_constants` - 기존 constants 호환
+- [x] `test_settings_instance_is_usable` - 싱글톤 인스턴스 확인
+- [x] `test_lock_prefix_remains_constant` - 상수 유지 확인
 
 #### 🟢 GREEN - 테스트 통과 코드 작성
 ```
-파일: backend/app/core/config.py (추가)
+파일: backend/app/core/config.py (수정)
 ```
-- [ ] `CrawlerSettings(BaseSettings)` 클래스 정의
+- [x] Settings 클래스에 CRAWLER_*, WORKER_* 설정 추가 (Field validation 포함)
+  - `CRAWLER_MAX_BODY_SIZE: int = Field(default=10 * 1024, ge=1024)`
+  - `CRAWLER_PAGE_TIMEOUT_MS: int = Field(default=30000, ge=1000, le=300000)`
+  - `WORKER_LOCK_TTL: int = Field(default=600, ge=60)`
+  - `WORKER_CANCELLATION_CHECK_INTERVAL: float = Field(default=5.0, ge=1.0)`
+
+```
+파일: backend/app/core/constants.py (수정)
+```
+- [x] Settings에서 값을 가져오도록 수정 (기존 import 호환 유지)
+- [x] LOCK_PREFIX는 `Final[str]`로 상수 유지
 
 #### 🔵 BLUE - 리팩토링
-- [ ] 기존 constants.py와 통합 또는 분리 결정
-- [ ] .env.example 업데이트
+- [x] .env.example 업데이트 (CRAWLER_*, WORKER_* 설정 추가)
+- [x] mypy 타입 체크 통과
+- [x] ruff 린팅 통과
 
 ---
 
@@ -551,5 +576,5 @@ tests/unit/
 - [x] 4.1 CrawlerService 리팩토링 ✅
 - [x] 4.2 API 에러 핸들링 ✅
 
-### Phase 5 진행률: 0%
-- [ ] 5.1 pydantic-settings 적용
+### Phase 5 진행률: 100% (1/1 완료) ✅
+- [x] 5.1 pydantic-settings 적용 ✅
