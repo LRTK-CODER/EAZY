@@ -22,6 +22,7 @@ from app.services.asset_service import AssetService
 from app.core.lock import DistributedLock
 from app.core.structured_logger import get_logger
 from app.core.constants import CANCELLATION_CHECK_INTERVAL, LOCK_TTL, LOCK_PREFIX
+from app.core.exceptions import TargetNotFoundError
 
 
 logger = get_logger(__name__)
@@ -141,7 +142,7 @@ class CrawlWorker(BaseWorker):
         # Fetch target
         target = await self.session.get(Target, target_id)
         if not target:
-            raise ValueError(f"Target {target_id} not found")
+            raise TargetNotFoundError(target_id=target_id)
 
         # SSRF Prevention: Validate URL before crawling
         if not is_safe_url(target.url):

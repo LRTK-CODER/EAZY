@@ -322,8 +322,11 @@ class TestCrawlWorkerExecute:
         worker = CrawlWorker(context, crawler_service=mock_crawler_service)
         task_data = {"db_task_id": task.id, "target_id": 99999}  # Non-existent target
 
-        with pytest.raises(ValueError, match="Target 99999 not found"):
+        from app.core.exceptions import TargetNotFoundError
+
+        with pytest.raises(TargetNotFoundError) as exc_info:
             await worker.execute(task_data, task)
+        assert exc_info.value.target_id == 99999
 
 
 class TestCrawlWorkerCancellation:

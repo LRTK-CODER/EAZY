@@ -5,6 +5,7 @@ from typing import Optional, List
 from app.models.asset import Asset
 from app.models.task import Task, TaskType, TaskStatus
 from app.core.queue import TaskManager
+from app.core.exceptions import TargetNotFoundError
 
 
 class TaskService:

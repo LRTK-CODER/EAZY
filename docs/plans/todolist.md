@@ -85,27 +85,28 @@
 
 #### 🔴 RED - 실패하는 테스트 작성
 ```
-파일: tests/unit/core/test_exceptions.py
+파일: backend/tests/core/test_exceptions.py
 ```
-- [ ] `test_scan_error_is_base_exception` - ScanError가 Exception 상속 확인
-- [ ] `test_target_not_found_error_inheritance` - TargetNotFoundError가 ScanError 상속
-- [ ] `test_duplicate_scan_error_inheritance` - DuplicateScanError가 ScanError 상속
-- [ ] `test_unsafe_url_error_inheritance` - UnsafeUrlError가 ScanError 상속
-- [ ] `test_exception_message_formatting` - 예외 메시지 포맷 확인
+- [x] `test_scan_error_is_base_exception` - ScanError가 Exception 상속 확인
+- [x] `test_target_not_found_error_inheritance` - TargetNotFoundError가 ScanError 상속
+- [x] `test_duplicate_scan_error_inheritance` - DuplicateScanError가 ScanError 상속
+- [x] `test_unsafe_url_error_inheritance` - UnsafeUrlError가 ScanError 상속
+- [x] `test_exception_message_formatting` - 예외 메시지 포맷 확인
+- [x] `test_exception_has_status_code` - 예외별 HTTP 상태 코드 확인 (추가)
 
 #### 🟢 GREEN - 테스트 통과 코드 작성
 ```
 파일: backend/app/core/exceptions.py
 ```
-- [ ] `ScanError(Exception)` 기본 예외 클래스
-- [ ] `TargetNotFoundError(ScanError)` 대상 미존재
-- [ ] `DuplicateScanError(ScanError)` 중복 스캔
-- [ ] `UnsafeUrlError(ScanError)` 안전하지 않은 URL
+- [x] `ScanError(Exception)` 기본 예외 클래스 (status_code=500)
+- [x] `TargetNotFoundError(ScanError)` 대상 미존재 (status_code=404)
+- [x] `DuplicateScanError(ScanError)` 중복 스캔 (status_code=409)
+- [x] `UnsafeUrlError(ScanError)` 안전하지 않은 URL (status_code=400)
 
 #### 🔵 BLUE - 리팩토링
-- [ ] `task.py` API 엔드포인트에서 예외별 HTTP 상태 코드 매핑
-- [ ] `crawl_worker.py`에서 커스텀 예외 사용
-- [ ] `task_service.py`에서 커스텀 예외 raise
+- [x] `task.py` API 엔드포인트에서 예외별 HTTP 상태 코드 매핑
+- [x] `crawl_worker.py`에서 커스텀 예외 사용 (TargetNotFoundError)
+- [x] `task_service.py`에서 import 추가 (Task 관련 ValueError는 유지)
 
 ---
 
@@ -164,6 +165,25 @@
 ---
 
 ## Phase 3: 파서 전략 패턴 구현
+
+### 3.0 ParsedContent 타입 정의 (Phase 1.2에서 이동)
+
+#### 🔴 RED - 실패하는 테스트 작성
+```
+파일: backend/tests/core/test_http_types.py (추가)
+```
+- [ ] `test_parsed_content_type_structure` - content_type, body, truncated 구조 확인
+
+#### 🟢 GREEN - 테스트 통과 코드 작성
+```
+파일: backend/app/types/http.py (추가)
+```
+- [ ] `ParsedContent(TypedDict)` 정의
+  - `content_type: str`
+  - `body: Optional[str]`
+  - `truncated: bool`
+
+---
 
 ### 3.1 JsonResponseParser
 
@@ -448,16 +468,17 @@ tests/unit/
 
 ## 진행 상황 추적
 
-### Phase 1 진행률: 67% (2/3 완료)
+### Phase 1 진행률: 100% (3/3 완료) ✅
 - [x] 1.1 상수 중앙화
 - [x] 1.2 타입 정의 (ParsedContent는 Phase 3로 이동)
-- [ ] 1.3 커스텀 예외
+- [x] 1.3 커스텀 예외
 
 ### Phase 2 진행률: 0%
 - [ ] 2.1 Crawler 인터페이스
 - [ ] 2.2 ResponseParser 인터페이스
 
 ### Phase 3 진행률: 0%
+- [ ] 3.0 ParsedContent 타입 정의 (Phase 1.2에서 이동)
 - [ ] 3.1 JsonResponseParser
 - [ ] 3.2 HtmlResponseParser
 - [ ] 3.3 ImageResponseParser
