@@ -6,6 +6,7 @@ import base64
 from app.utils.url_parser import parse_query_params
 from app.core.structured_logger import get_logger
 from app.core.constants import MAX_BODY_SIZE, PAGE_TIMEOUT_MS
+from app.types.http import HttpData, HttpRequestData, HttpResponseData
 
 logger = get_logger(__name__)
 
@@ -13,7 +14,7 @@ logger = get_logger(__name__)
 class CrawlerService:
     """Web crawler using Playwright with HTTP interception."""
 
-    async def crawl(self, url: str) -> tuple[List[str], Dict[str, Dict[str, Any]]]:
+    async def crawl(self, url: str) -> tuple[List[str], Dict[str, HttpData]]:
         """
         Crawl a single page and capture HTTP data.
 
@@ -23,10 +24,10 @@ class CrawlerService:
         Returns:
             Tuple of:
             - List of unique URLs found
-            - Dict mapping URL -> {request, response} data
+            - Dict mapping URL -> HttpData (request, response, parameters)
         """
         links: Set[str] = set()
-        http_data: Dict[str, Dict[str, Any]] = {}
+        http_data: Dict[str, HttpData] = {}
 
         async with async_playwright() as p:
             browser = await p.chromium.launch()

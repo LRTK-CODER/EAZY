@@ -58,26 +58,26 @@
 
 #### 🔴 RED - 실패하는 테스트 작성
 ```
-파일: tests/unit/types/test_http_types.py
+파일: tests/core/test_http_types.py (tests/unit/types는 Python 내장 모듈과 충돌)
 ```
-- [ ] `test_http_request_data_type_has_required_keys` - method, headers 키 확인
-- [ ] `test_http_response_data_type_has_required_keys` - status, headers, body 키 확인
-- [ ] `test_http_data_type_structure` - request, response, parameters 구조 확인
-- [ ] `test_parsed_content_type_structure` - content_type, body, truncated 구조 확인
+- [x] `test_http_request_data_type_has_required_keys` - method, headers 키 확인
+- [x] `test_http_response_data_type_has_required_keys` - status, headers, body 키 확인
+- [x] `test_http_data_type_structure` - request, response, parameters 구조 확인
+- [ ] `test_parsed_content_type_structure` - content_type, body, truncated 구조 확인 (Phase 3로 이동)
 
 #### 🟢 GREEN - 테스트 통과 코드 작성
 ```
 파일: backend/app/types/http.py
 ```
-- [ ] `HttpRequestData(TypedDict)` 정의
-- [ ] `HttpResponseData(TypedDict)` 정의
-- [ ] `HttpData(TypedDict)` 정의
-- [ ] `ParsedContent(TypedDict)` 정의
+- [x] `HttpRequestData(TypedDict)` 정의
+- [x] `HttpResponseData(TypedDict)` 정의
+- [x] `HttpData(TypedDict)` 정의
+- [ ] `ParsedContent(TypedDict)` 정의 (Phase 3로 이동)
 
 #### 🔵 BLUE - 리팩토링
-- [ ] `crawler_service.py` 반환 타입을 TypedDict로 교체
-- [ ] `asset_service.py` 파라미터 타입을 TypedDict로 교체
-- [ ] 기존 `Dict[str, Any]` 타입 힌트 제거
+- [x] `crawler_service.py` 반환 타입을 TypedDict로 교체
+- [x] `asset_service.py` 파라미터 타입을 TypedDict로 교체
+- [x] 기존 `Dict[str, Any]` 타입 힌트 제거
 
 ---
 
@@ -448,9 +448,9 @@ tests/unit/
 
 ## 진행 상황 추적
 
-### Phase 1 진행률: 33% (1/3 완료)
+### Phase 1 진행률: 67% (2/3 완료)
 - [x] 1.1 상수 중앙화
-- [ ] 1.2 타입 정의
+- [x] 1.2 타입 정의 (ParsedContent는 Phase 3로 이동)
 - [ ] 1.3 커스텀 예외
 
 ### Phase 2 진행률: 0%

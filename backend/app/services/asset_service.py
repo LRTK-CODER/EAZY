@@ -1,5 +1,5 @@
 import hashlib
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List, Tuple, Union, cast
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from urllib.parse import urlparse
@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from app.models.asset import Asset, AssetDiscovery, AssetType, AssetSource
 from app.core.utils import utc_now
 from app.core.constants import MAX_BODY_SIZE
+from app.types.http import HttpRequestData, HttpResponseData
 
 
 class AssetService:
@@ -63,8 +64,8 @@ class AssetService:
         return hashlib.sha256(identifier.encode()).hexdigest()
 
     def _truncate_body(
-        self, spec: Optional[Dict[str, Any]]
-    ) -> Optional[Dict[str, Any]]:
+        self, spec: Optional[Union[HttpRequestData, HttpResponseData, Dict[str, Any]]]
+    ) -> Optional[Union[HttpRequestData, HttpResponseData, Dict[str, Any]]]:
         """
         Truncate body field in request/response spec if it exceeds MAX_BODY_SIZE.
 
@@ -101,9 +102,9 @@ class AssetService:
         type: AssetType = AssetType.URL,
         source: AssetSource = AssetSource.HTML,
         parent_asset_id: Optional[int] = None,
-        # NEW PARAMETERS
-        request_spec: Optional[Dict[str, Any]] = None,
-        response_spec: Optional[Dict[str, Any]] = None,
+        # HTTP data parameters (TypedDict types)
+        request_spec: Optional[HttpRequestData] = None,
+        response_spec: Optional[HttpResponseData] = None,
         parameters: Optional[Dict[str, Any]] = None,
     ) -> Asset:
         """
@@ -129,8 +130,8 @@ class AssetService:
         content_hash = self._generate_content_hash(method, url)
 
         # Truncate bodies if needed
-        request_spec = self._truncate_body(request_spec)
-        response_spec = self._truncate_body(response_spec)
+        truncated_request = self._truncate_body(request_spec)
+        truncated_response = self._truncate_body(response_spec)
 
         # Check for existing asset
         statement = select(Asset).where(Asset.content_hash == content_hash)
@@ -146,10 +147,10 @@ class AssetService:
             asset.last_task_id = task_id
 
             # Update HTTP data (overwrite with latest)
-            if request_spec is not None:
-                asset.request_spec = request_spec
-            if response_spec is not None:
-                asset.response_spec = response_spec
+            if truncated_request is not None:
+                asset.request_spec = cast(Dict[str, Any], truncated_request)
+            if truncated_response is not None:
+                asset.response_spec = cast(Dict[str, Any], truncated_response)
             if parameters is not None:
                 asset.parameters = parameters
         else:
@@ -165,9 +166,9 @@ class AssetService:
                 last_task_id=task_id,
                 first_seen_at=current_time,
                 last_seen_at=current_time,
-                # NEW FIELDS
-                request_spec=request_spec,
-                response_spec=response_spec,
+                # HTTP data fields (truncated if needed)
+                request_spec=cast(Optional[Dict[str, Any]], truncated_request),
+                response_spec=cast(Optional[Dict[str, Any]], truncated_response),
                 parameters=parameters,
             )
 
