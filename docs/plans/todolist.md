@@ -331,30 +331,31 @@
 
 ## Phase 4: 통합 및 CrawlerService 리팩토링
 
-### 4.1 CrawlerService 리팩토링
+### 4.1 CrawlerService 리팩토링 ✅
 
 #### 🔴 RED - 실패하는 테스트 작성
 ```
-파일: tests/unit/services/test_crawler_service_refactored.py
+파일: tests/services/test_crawler_service_refactored.py
 ```
-- [ ] `test_crawler_uses_parser_registry` - 파서 레지스트리 사용 확인
-- [ ] `test_crawler_delegates_to_json_parser` - JSON 파서 위임 확인
-- [ ] `test_crawler_delegates_to_html_parser` - HTML 파서 위임 확인
-- [ ] `test_crawler_delegates_to_image_parser` - 이미지 파서 위임 확인
-- [ ] `test_crawler_uses_default_for_unknown` - 알 수 없는 타입 처리
+- [x] `test_crawler_uses_parser_registry` - 파서 레지스트리 사용 확인
+- [x] `test_crawler_delegates_to_json_parser` - JSON 파서 위임 확인
+- [x] `test_crawler_delegates_to_html_parser` - HTML 파서 위임 확인
+- [x] `test_crawler_delegates_to_image_parser` - 이미지 파서 위임 확인
+- [x] `test_crawler_uses_default_for_unknown` - 알 수 없는 타입 처리
+- [x] `test_crawler_creates_default_registry_if_none_provided` - 기본 레지스트리 생성 확인 (추가)
 
 #### 🟢 GREEN - 테스트 통과 코드 작성
 ```
 파일: backend/app/services/crawler_service.py (수정)
 ```
-- [ ] `ResponseParserRegistry` 주입
-- [ ] `handle_response()` 내부 로직을 파서 호출로 교체
-- [ ] 기존 if-elif 분기 제거
+- [x] `ResponseParserRegistry` 주입 (`__init__` 메서드 추가)
+- [x] `handle_response()` 내부 로직을 파서 호출로 교체
+- [x] 기존 if-elif 분기 제거
 
 #### 🔵 BLUE - 리팩토링
-- [ ] 코드 라인 수 감소 확인 (179줄 → 목표 100줄 이하)
-- [ ] 메서드 분리 (필요시)
-- [ ] 문서화 (docstring 업데이트)
+- [x] 코드 라인 수 감소 확인 (179줄 → 153줄, 26줄 감소)
+- [x] 불필요한 import 제거 (`json`, `base64`)
+- [x] 문서화 (docstring 업데이트)
 
 ---
 
@@ -535,8 +536,8 @@ tests/unit/
 - [x] 3.3 ImageResponseParser ✅
 - [x] 3.4 DefaultResponseParser ✅
 
-### Phase 4 진행률: 0%
-- [ ] 4.1 CrawlerService 리팩토링
+### Phase 4 진행률: 50% (1/2 완료)
+- [x] 4.1 CrawlerService 리팩토링 ✅
 - [ ] 4.2 API 에러 핸들링
 
 ### Phase 5 진행률: 0%

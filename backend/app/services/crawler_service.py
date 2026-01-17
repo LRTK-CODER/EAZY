@@ -1,22 +1,53 @@
+"""CrawlerService - Web crawler with HTTP interception and parser delegation."""
+
 from typing import List, Set, Dict, Any, Optional
 from playwright.async_api import async_playwright, Request, Response
-import json
-import base64
 
 from app.utils.url_parser import parse_query_params
 from app.core.structured_logger import get_logger
 from app.core.constants import MAX_BODY_SIZE, PAGE_TIMEOUT_MS
-from app.types.http import HttpData, HttpRequestData, HttpResponseData
+from app.types.http import HttpData
+from app.services.parsers import (
+    ResponseParserRegistry,
+    ResponseData,
+    JsonResponseParser,
+    HtmlResponseParser,
+    ImageResponseParser,
+)
 
 logger = get_logger(__name__)
 
 
 class CrawlerService:
-    """Web crawler using Playwright with HTTP interception."""
+    """Web crawler using Playwright with HTTP interception.
+
+    Uses ResponseParserRegistry to delegate content-type specific parsing
+    to specialized parsers (JSON, HTML, Image, Default).
+
+    Args:
+        parser_registry: Optional ResponseParserRegistry. If not provided,
+            creates a default registry with standard parsers.
+    """
+
+    def __init__(
+        self,
+        parser_registry: Optional[ResponseParserRegistry] = None,
+    ) -> None:
+        """Initialize CrawlerService with optional parser registry.
+
+        Args:
+            parser_registry: Optional ResponseParserRegistry for content parsing.
+                If not provided, creates a default registry with standard parsers.
+        """
+        if parser_registry is None:
+            parser_registry = ResponseParserRegistry()
+            parser_registry.register(JsonResponseParser())
+            parser_registry.register(HtmlResponseParser())
+            parser_registry.register(ImageResponseParser())
+        self._parser_registry = parser_registry
 
     async def crawl(self, url: str) -> tuple[List[str], Dict[str, HttpData]]:
-        """
-        Crawl a single page and capture HTTP data.
+        """Crawl a single page and capture HTTP data.
 
         Args:
             url: Target URL to crawl
@@ -34,31 +65,24 @@ class CrawlerService:
             context = await browser.new_context(ignore_https_errors=True)
             page = await context.new_page()
 
-            # Request interceptor
             async def handle_request(request: Request) -> None:
                 """Capture outgoing HTTP requests."""
+                req_url = request.url
                 try:
-                    req_url = request.url
                     headers = dict(request.headers)
 
-                    # Extract body (POST/PUT/PATCH only)
                     body: Optional[str] = None
                     if request.method in ["POST", "PUT", "PATCH"]:
                         try:
                             post_data = request.post_data
                             if post_data:
-                                # Truncate if too large
                                 if len(post_data) > MAX_BODY_SIZE:
-                                    body = (
-                                        post_data[: MAX_BODY_SIZE]
-                                        + "... [TRUNCATED]"
-                                    )
+                                    body = post_data[:MAX_BODY_SIZE] + "... [TRUNCATED]"
                                 else:
                                     body = post_data
                         except Exception:
                             pass
 
-                    # Store request data
                     if req_url not in http_data:
                         http_data[req_url] = {}
 
@@ -67,71 +91,32 @@ class CrawlerService:
                         "headers": headers,
                         "body": body,
                     }
-
                 except Exception as e:
-                    logger.warning(
-                        "Request interception error", error=str(e), url=req_url
-                    )
+                    logger.warning("Request interception error", error=str(e), url=req_url)
 
-            # Response interceptor
             async def handle_response(response: Response) -> None:
-                """Capture incoming HTTP responses."""
+                """Capture incoming HTTP responses using parser registry."""
+                resp_url = response.url
                 try:
-                    resp_url = response.url
                     headers = dict(response.headers)
-
-                    # Capture all common web content types
-                    body: Optional[Any] = None
                     content_type = headers.get("content-type", "")
 
-                    # Handle text-based responses (JSON, HTML, CSS, JS)
-                    if any(
-                        ct in content_type
-                        for ct in [
-                            "application/json",
-                            "text/html",
-                            "text/css",
-                            "text/javascript",
-                            "application/javascript",
-                            "application/x-javascript",
-                        ]
-                    ):
-                        try:
-                            body_text = await response.text()
+                    # Create ResponseData for parser
+                    response_data = ResponseData(
+                        url=resp_url,
+                        status=response.status,
+                        content_type=content_type,
+                        headers=headers,
+                        body=await response.body(),
+                    )
 
-                            # Truncate if too large
-                            if len(body_text) > MAX_BODY_SIZE:
-                                body = (
-                                    body_text[: MAX_BODY_SIZE] + "... [TRUNCATED]"
-                                )
-                            else:
-                                # Try to parse as JSON for API responses
-                                if "application/json" in content_type:
-                                    try:
-                                        body = json.loads(body_text)
-                                    except json.JSONDecodeError:
-                                        body = body_text
-                                else:
-                                    # HTML, CSS, JS responses stored as plain text
-                                    body = body_text
-                        except Exception:
-                            pass
+                    # Get appropriate parser and parse
+                    parser = self._parser_registry.get_parser(content_type)
+                    parsed = await parser.parse(response_data)
 
-                    # Handle binary responses (images) - encode as Base64
-                    elif "image/" in content_type:
-                        try:
-                            body_bytes = await response.body()
+                    # Extract body from parsed result
+                    body: Optional[Any] = parsed["body"] if parsed else None
 
-                            # Truncate if too large
-                            if len(body_bytes) > MAX_BODY_SIZE:
-                                body_bytes = body_bytes[: MAX_BODY_SIZE]
-
-                            # Encode as Base64 string for JSON serialization
-                            body = base64.b64encode(body_bytes).decode("utf-8")
-                        except Exception:
-                            pass
-
-                    # Store response data
                     if resp_url not in http_data:
                         http_data[resp_url] = {}
 
@@ -140,31 +125,21 @@ class CrawlerService:
                         "headers": headers,
                         "body": body,
                     }
-
                 except Exception as e:
-                    logger.warning(
-                        "Response interception error", error=str(e), url=resp_url
-                    )
+                    logger.warning("Response interception error", error=str(e), url=resp_url)
 
-            # Register event listeners
             page.on("request", handle_request)
             page.on("response", handle_response)
 
             try:
-                # Navigate to page
                 await page.goto(url, wait_until="networkidle", timeout=PAGE_TIMEOUT_MS)
 
-                # Extract all <a> hrefs (existing logic)
                 elements = await page.locator("a").all()
                 for element in elements:
                     href = await element.get_attribute("href")
                     if href:
                         links.add(href)
-
-                        # Parse query parameters
                         params = parse_query_params(href)
-
-                        # Store in http_data
                         if href not in http_data:
                             http_data[href] = {}
                         http_data[href]["parameters"] = params if params else None
