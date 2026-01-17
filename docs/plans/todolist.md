@@ -359,27 +359,38 @@
 
 ---
 
-### 4.2 API 에러 핸들링 개선
+### 4.2 API 에러 핸들링 개선 ✅
 
 #### 🔴 RED - 실패하는 테스트 작성
 ```
-파일: tests/unit/api/test_task_error_handling.py
+파일: backend/tests/api/test_task_error_handling.py
 ```
-- [ ] `test_trigger_scan_returns_404_for_missing_target` - 타겟 없음 → 404
-- [ ] `test_trigger_scan_returns_409_for_duplicate_scan` - 중복 스캔 → 409
-- [ ] `test_trigger_scan_returns_400_for_unsafe_url` - 위험한 URL → 400
-- [ ] `test_trigger_scan_returns_500_for_unexpected_error` - 예상치 못한 에러 → 500
+- [x] `test_trigger_scan_returns_404_for_missing_target` - 타겟 없음 → 404
+- [x] `test_trigger_scan_returns_409_for_duplicate_scan` - 중복 스캔 → 409
+- [x] `test_trigger_scan_returns_400_for_unsafe_url` - 위험한 URL → 400
+- [x] `test_trigger_scan_returns_500_for_unexpected_error` - 예상치 못한 에러 → 500
+- [x] `test_500_error_does_not_leak_internal_details` - 내부 정보 노출 방지 (추가)
+- [x] `test_error_response_schema` - 에러 응답 스키마 테스트 (추가)
 
 #### 🟢 GREEN - 테스트 통과 코드 작성
 ```
-파일: backend/app/api/v1/endpoints/task.py (수정)
+파일: backend/app/schemas/error.py (신규)
+파일: backend/app/core/url_validator.py (신규)
+파일: backend/app/core/exceptions.py (수정)
+파일: backend/app/services/task_service.py (수정)
+파일: backend/app/main.py (수정)
 ```
-- [ ] `trigger_scan()` 엔드포인트에서 커스텀 예외 처리
-- [ ] 예외별 HTTP 상태 코드 매핑
+- [x] `ErrorResponse` 스키마 정의 (RFC 7807 기반)
+- [x] `ScanError`에 `error_code`, `to_dict()` 메서드 추가
+- [x] `validate_url()` 공유 유틸리티 생성
+- [x] `task_service.py`에 Target/URL/중복 검증 로직 추가
+- [x] 글로벌 exception handler 등록 (`main.py`)
 
 #### 🔵 BLUE - 리팩토링
-- [ ] 에러 응답 스키마 통일
-- [ ] 에러 핸들러 미들웨어 추출 (선택사항)
+- [x] 에러 응답 스키마 통일 (error, message, status_code, detail)
+- [x] 글로벌 exception handler로 try/except 블록 제거 (`task.py`)
+- [x] 로깅 추가 (4xx → WARNING, 5xx → ERROR)
+- [x] 내부 정보 노출 방지 (500 에러 시 generic 메시지 반환)
 
 ---
 
@@ -536,9 +547,9 @@ tests/unit/
 - [x] 3.3 ImageResponseParser ✅
 - [x] 3.4 DefaultResponseParser ✅
 
-### Phase 4 진행률: 50% (1/2 완료)
+### Phase 4 진행률: 100% (2/2 완료) ✅
 - [x] 4.1 CrawlerService 리팩토링 ✅
-- [ ] 4.2 API 에러 핸들링
+- [x] 4.2 API 에러 핸들링 ✅
 
 ### Phase 5 진행률: 0%
 - [ ] 5.1 pydantic-settings 적용

@@ -5,7 +5,6 @@ from redis.asyncio import Redis
 
 from app.core.db import get_session
 from app.core.redis import get_redis
-from app.core.exceptions import ScanError
 from app.services.task_service import TaskService
 from app.models.task import Task, TaskRead
 from app.models.asset import AssetRead
@@ -22,15 +21,16 @@ async def trigger_scan(
 ) -> dict:
     """
     Trigger a crawl/scan task for a specific target.
+
+    Raises:
+        TargetNotFoundError (404): If target doesn't exist
+        UnsafeUrlError (400): If target URL is unsafe
+        DuplicateScanError (409): If scan already in progress
     """
     task_service = TaskService(session, redis)
-    try:
-        task = await task_service.create_scan_task(project_id, target_id)
-        return {"status": "pending", "task_id": task.id}
-    except ScanError as e:
-        raise HTTPException(status_code=e.status_code, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Exceptions are handled by global exception handlers in main.py
+    task = await task_service.create_scan_task(project_id, target_id)
+    return {"status": "pending", "task_id": task.id}
 
 
 @router.get("/tasks/{task_id}", response_model=TaskRead)

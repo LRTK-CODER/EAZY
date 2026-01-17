@@ -44,6 +44,10 @@ async def test_get_latest_task_returns_most_recent(
     client: AsyncClient, db_session: AsyncSession
 ):
     """Test returns most recent task (ORDER BY created_at DESC) - RED Phase"""
+    from app.models.task import Task, TaskStatus
+    from app.core.utils import utc_now
+    from sqlmodel import select
+
     # Setup
     resp = await client.post("/api/v1/projects/", json={"name": "Recent Task Proj"})
     project_id = resp.json()["id"]
@@ -54,17 +58,33 @@ async def test_get_latest_task_returns_most_recent(
     )
     target_id = resp.json()["id"]
 
-    # Trigger multiple scans
+    # Trigger first scan
     resp1 = await client.post(f"/api/v1/projects/{project_id}/targets/{target_id}/scan")
     task_id_1 = resp1.json()["task_id"]
 
+    # Complete first task so we can trigger another
+    result = await db_session.exec(select(Task).where(Task.id == task_id_1))
+    task1 = result.one()
+    task1.status = TaskStatus.COMPLETED
+    task1.completed_at = utc_now()
+    await db_session.commit()
+
+    # Trigger second scan
     resp2 = await client.post(f"/api/v1/projects/{project_id}/targets/{target_id}/scan")
     task_id_2 = resp2.json()["task_id"]
 
+    # Complete second task
+    result = await db_session.exec(select(Task).where(Task.id == task_id_2))
+    task2 = result.one()
+    task2.status = TaskStatus.COMPLETED
+    task2.completed_at = utc_now()
+    await db_session.commit()
+
+    # Trigger third scan
     resp3 = await client.post(f"/api/v1/projects/{project_id}/targets/{target_id}/scan")
     task_id_3 = resp3.json()["task_id"]
 
-    # Get latest task - should FAIL: 404 Not Found
+    # Get latest task
     resp = await client.get(f"/api/v1/targets/{target_id}/latest-task")
     assert resp.status_code == 200
 

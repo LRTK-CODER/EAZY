@@ -1,8 +1,13 @@
-from fastapi import APIRouter, FastAPI
+import logging
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.cors import get_cors_origins, validate_cors_config
+from app.core.exceptions import ScanError
 from app.api.v1.endpoints import project, task
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="EAZY Backend",
@@ -41,6 +46,39 @@ api_router.include_router(project.router, prefix="/projects", tags=["projects"])
 api_router.include_router(task.router, tags=["tasks"])
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
+# Global Exception Handlers
+@app.exception_handler(ScanError)
+async def scan_error_handler(request: Request, exc: ScanError) -> JSONResponse:
+    """Handle all ScanError subclasses with appropriate HTTP status codes."""
+    log_level = logging.WARNING if exc.status_code < 500 else logging.ERROR
+    logger.log(
+        log_level,
+        "ScanError: %s (status=%d, error=%s)",
+        exc.message,
+        exc.status_code,
+        exc.error_code,
+    )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=exc.to_dict(),
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Handle unexpected exceptions without leaking internal details."""
+    logger.exception("Unexpected error: %s", str(exc))
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "INTERNAL_ERROR",
+            "message": "An unexpected error occurred",
+            "status_code": 500,
+            "detail": None,
+        },
+    )
 
 
 @app.get("/health")

@@ -79,8 +79,10 @@ async def client(db_session, redis_client: Redis) -> AsyncGenerator[AsyncClient,
     app.dependency_overrides[get_session] = override_get_session
     app.dependency_overrides[get_redis] = override_get_redis
 
+    # Use raise_app_exceptions=False to allow testing exception handlers
     async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
+        transport=ASGITransport(app=app, raise_app_exceptions=False),
+        base_url="http://test",
     ) as ac:
         yield ac
 

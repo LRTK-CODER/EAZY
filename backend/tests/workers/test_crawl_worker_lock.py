@@ -207,6 +207,7 @@ class TestCrawlWorkerLockIntegration:
     ):
         """target을 찾을 수 없으면 잠금 없이 에러"""
         from app.workers.crawl_worker import CrawlWorker
+        from app.core.exceptions import TargetNotFoundError
 
         mock_session.get = AsyncMock(return_value=None)
 
@@ -220,7 +221,7 @@ class TestCrawlWorkerLockIntegration:
 
         task_data = {"target_id": 999, "db_task_id": 1}
 
-        with pytest.raises(ValueError, match="Target 999 not found"):
+        with pytest.raises(TargetNotFoundError, match="Target not found: 999"):
             await worker.execute(task_data, sample_task)
 
     @pytest.mark.asyncio
