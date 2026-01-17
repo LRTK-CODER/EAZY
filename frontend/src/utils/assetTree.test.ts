@@ -39,16 +39,16 @@ describe('buildAssetTree', () => {
       expect(result).toEqual([]);
     });
 
-    it('should create single domain node for single asset', () => {
+    it('should create single origin node for single asset', () => {
       const assets = [createMockAsset({ url: 'https://example.com/api' })];
       const result = buildAssetTree(assets);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('domain');
-      expect(result[0].name).toBe('example.com');
+      expect(result[0].name).toBe('https://example.com');
     });
 
-    it('should group assets by domain', () => {
+    it('should group assets by origin (protocol + domain)', () => {
       const assets = [
         createMockAsset({ id: 1, url: 'https://example.com/api/users' }),
         createMockAsset({ id: 2, url: 'https://example.com/api/posts' }),
@@ -57,7 +57,7 @@ describe('buildAssetTree', () => {
       const result = buildAssetTree(assets);
 
       expect(result).toHaveLength(2);
-      expect(result.map((n) => n.name).sort()).toEqual(['example.com', 'other.com']);
+      expect(result.map((n) => n.name).sort()).toEqual(['https://example.com', 'https://other.com']);
     });
 
     it('should create nested folder structure from path', () => {
@@ -66,8 +66,8 @@ describe('buildAssetTree', () => {
       ];
       const result = buildAssetTree(assets);
 
-      // example.com > api > v1 > users
-      expect(result[0].name).toBe('example.com');
+      // https://example.com > api > v1 > users
+      expect(result[0].name).toBe('https://example.com');
       expect(result[0].children[0].name).toBe('api');
       expect(result[0].children[0].children[0].name).toBe('v1');
       expect(result[0].children[0].children[0].children[0].name).toBe('users');
@@ -174,14 +174,14 @@ describe('buildAssetTree', () => {
       ];
       const result = buildAssetTree(assets);
 
-      expect(result[0].name).toBe('example.com');
+      expect(result[0].name).toBe('https://example.com');
       // Root should have endpoint directly or as special node
       expect(result[0].children.length).toBeGreaterThanOrEqual(0);
     });
   });
 
   describe('Node Properties', () => {
-    it('should set correct node type for domains', () => {
+    it('should set correct node type for origins', () => {
       const assets = [createMockAsset()];
       const result = buildAssetTree(assets);
 
@@ -292,6 +292,35 @@ describe('buildAssetTree', () => {
       expect(() => buildAssetTree(assets)).not.toThrow();
     });
 
+    it('should use targetOrigin as fallback for malformed URLs', () => {
+      const assets = [
+        createMockAsset({
+          url: 'not-a-valid-url',
+          path: '/api/users',
+        }),
+      ];
+
+      const result = buildAssetTree(assets, 'https://dreamhack.io');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('https://dreamhack.io');
+      expect(result[0].type).toBe('domain');
+    });
+
+    it('should use "unknown" when no targetOrigin provided for malformed URLs', () => {
+      const assets = [
+        createMockAsset({
+          url: 'not-a-valid-url',
+          path: '/api/users',
+        }),
+      ];
+
+      const result = buildAssetTree(assets);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('unknown');
+    });
+
     it('should handle empty path', () => {
       const assets = [
         createMockAsset({
@@ -302,7 +331,19 @@ describe('buildAssetTree', () => {
       const result = buildAssetTree(assets);
 
       expect(result).toHaveLength(1);
-      expect(result[0].name).toBe('example.com');
+      expect(result[0].name).toBe('https://example.com');
+    });
+
+    it('should separate http and https as different origins', () => {
+      const assets = [
+        createMockAsset({ id: 1, url: 'https://example.com/api', path: '/api' }),
+        createMockAsset({ id: 2, url: 'http://example.com/api', path: '/api' }),
+      ];
+      const result = buildAssetTree(assets);
+
+      // http and https should be separate nodes
+      expect(result).toHaveLength(2);
+      expect(result.map(r => r.name).sort()).toEqual(['http://example.com', 'https://example.com']);
     });
 
     it('should handle very long paths', () => {

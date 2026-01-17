@@ -79,6 +79,8 @@ export function useMobileSheet(selectedAssetId: number | null) {
 interface AssetExplorerProps {
   /** Array of assets to display */
   assets: Asset[];
+  /** Target URL for fallback domain extraction */
+  targetUrl?: string;
   /** Loading state */
   isLoading?: boolean;
 }
@@ -89,7 +91,7 @@ const SEARCH_DEBOUNCE_DELAY = 300;
 /**
  * Tree panel content with AssetTreeView and SearchFilterBar
  */
-function TreePanelContent({ assets }: { assets: Asset[] }) {
+function TreePanelContent({ assets, targetOrigin }: { assets: Asset[]; targetOrigin?: string }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMethod, setFilterMethod] = useState<HttpMethod | null>(null);
 
@@ -126,6 +128,7 @@ function TreePanelContent({ assets }: { assets: Asset[] }) {
       <div className="flex-1 overflow-hidden">
         <AssetTreeView
           assets={assets}
+          targetOrigin={targetOrigin}
           searchQuery={debouncedSearchQuery}
           filterMethod={filterMethod ?? undefined}
           className="h-full"
@@ -173,7 +176,7 @@ function LoadingSkeleton() {
 /**
  * Desktop layout with resizable panels
  */
-function DesktopLayout({ assets }: { assets: Asset[] }) {
+function DesktopLayout({ assets, targetOrigin }: { assets: Asset[]; targetOrigin?: string }) {
   if (assets.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -197,7 +200,7 @@ function DesktopLayout({ assets }: { assets: Asset[] }) {
         maxSize="50"
         data-testid="asset-explorer-tree-panel"
       >
-        <TreePanelContent assets={assets} />
+        <TreePanelContent assets={assets} targetOrigin={targetOrigin} />
       </Panel>
 
       <PanelSeparator
@@ -224,7 +227,7 @@ function DesktopLayout({ assets }: { assets: Asset[] }) {
 /**
  * Tablet layout with vertical resizable panels
  */
-function TabletLayout({ assets }: { assets: Asset[] }) {
+function TabletLayout({ assets, targetOrigin }: { assets: Asset[]; targetOrigin?: string }) {
   if (assets.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -249,7 +252,7 @@ function TabletLayout({ assets }: { assets: Asset[] }) {
           maxSize="60"
           data-testid="asset-explorer-tree-panel-tablet"
         >
-          <TreePanelContent assets={assets} />
+          <TreePanelContent assets={assets} targetOrigin={targetOrigin} />
         </Panel>
 
         <PanelSeparator
@@ -278,7 +281,7 @@ function TabletLayout({ assets }: { assets: Asset[] }) {
  * Mobile layout with sheet drawer
  * Sheet automatically closes when an asset is selected
  */
-function MobileLayout({ assets }: { assets: Asset[] }) {
+function MobileLayout({ assets, targetOrigin }: { assets: Asset[]; targetOrigin?: string }) {
   const { selectedAssetId } = useAssetExplorer();
   const { isOpen, setIsOpen } = useMobileSheet(selectedAssetId);
 
@@ -328,7 +331,7 @@ function MobileLayout({ assets }: { assets: Asset[] }) {
             <SheetHeader className="sr-only">
               <SheetTitle>Asset Tree</SheetTitle>
             </SheetHeader>
-            <TreePanelContent assets={assets} />
+            <TreePanelContent assets={assets} targetOrigin={targetOrigin} />
           </SheetContent>
         </Sheet>
         <span className="text-sm text-muted-foreground">
@@ -343,11 +346,27 @@ function MobileLayout({ assets }: { assets: Asset[] }) {
 }
 
 /**
+ * Extract origin from URL (protocol + hostname + port)
+ */
+function extractOriginFromUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+  try {
+    const parsed = new URL(url);
+    return parsed.origin;  // e.g., "https://example.com"
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Inner component that uses the context
  */
-function AssetExplorerInner({ assets, isLoading }: AssetExplorerProps) {
+function AssetExplorerInner({ assets, targetUrl, isLoading }: AssetExplorerProps) {
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
+
+  // Extract domain from target URL for fallback
+  const targetOrigin = useMemo(() => extractOriginFromUrl(targetUrl), [targetUrl]);
 
   if (isLoading) {
     return (
@@ -362,9 +381,9 @@ function AssetExplorerInner({ assets, isLoading }: AssetExplorerProps) {
   }
 
   const getLayout = () => {
-    if (isMobile) return <MobileLayout assets={assets} />;
-    if (isTablet) return <TabletLayout assets={assets} />;
-    return <DesktopLayout assets={assets} />;
+    if (isMobile) return <MobileLayout assets={assets} targetOrigin={targetOrigin} />;
+    if (isTablet) return <TabletLayout assets={assets} targetOrigin={targetOrigin} />;
+    return <DesktopLayout assets={assets} targetOrigin={targetOrigin} />;
   };
 
   return (
@@ -383,10 +402,10 @@ function AssetExplorerInner({ assets, isLoading }: AssetExplorerProps) {
  * Main component for exploring assets in a tree view with detail panel
  * Wraps content in AssetExplorerProvider for state management
  */
-export function AssetExplorer({ assets, isLoading = false }: AssetExplorerProps) {
+export function AssetExplorer({ assets, targetUrl, isLoading = false }: AssetExplorerProps) {
   return (
     <AssetExplorerProvider>
-      <AssetExplorerInner assets={assets} isLoading={isLoading} />
+      <AssetExplorerInner assets={assets} targetUrl={targetUrl} isLoading={isLoading} />
     </AssetExplorerProvider>
   );
 }

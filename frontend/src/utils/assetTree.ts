@@ -59,15 +59,17 @@ export interface FlatNode {
 }
 
 /**
- * Extract domain from URL
+ * Extract origin from URL (protocol + hostname + port)
+ * @param url - URL to extract origin from
+ * @param fallbackOrigin - Optional fallback origin to use if URL parsing fails
  */
-function extractDomain(url: string): string {
+function extractOrigin(url: string, fallbackOrigin?: string): string {
   try {
     const parsed = new URL(url);
-    return parsed.hostname;
+    return parsed.origin;  // e.g., "https://example.com" or "http://example.com:8080"
   } catch {
-    // Handle malformed URLs
-    return 'unknown';
+    // Handle malformed URLs - use fallback origin if provided
+    return fallbackOrigin ?? 'unknown';
   }
 }
 
@@ -131,39 +133,40 @@ function findOrCreateChild(
  *       - Endpoint (HTTP method with asset)
  *
  * @param assets - Flat array of assets
- * @returns Array of root tree nodes (domains)
+ * @param targetOrigin - Optional fallback origin for malformed URLs
+ * @returns Array of root tree nodes (origins)
  */
-export function buildAssetTree(assets: Asset[]): TreeNode[] {
+export function buildAssetTree(assets: Asset[], targetOrigin?: string): TreeNode[] {
   if (assets.length === 0) {
     return [];
   }
 
-  // Group assets by domain
-  const domainMap = new Map<string, TreeNode>();
+  // Group assets by origin (protocol + domain)
+  const originMap = new Map<string, TreeNode>();
 
   for (const asset of assets) {
-    const domain = extractDomain(asset.url);
+    const origin = extractOrigin(asset.url, targetOrigin);
 
-    // Get or create domain node
-    let domainNode = domainMap.get(domain);
-    if (!domainNode) {
-      domainNode = {
-        id: generateNodeId('domain', domain),
-        name: domain,
-        path: domain,
+    // Get or create origin node
+    let originNode = originMap.get(origin);
+    if (!originNode) {
+      originNode = {
+        id: generateNodeId('domain', origin),
+        name: origin,
+        path: origin,
         type: 'domain',
         children: [],
         depth: 0,
         isExpanded: false,
       };
-      domainMap.set(domain, domainNode);
+      originMap.set(origin, originNode);
     }
 
     // Parse path segments
     const segments = parsePathSegments(asset.path);
 
     // Navigate/create folder structure
-    let currentNode = domainNode;
+    let currentNode = originNode;
     let currentPath = '';
 
     for (let i = 0; i < segments.length; i++) {
@@ -216,7 +219,7 @@ export function buildAssetTree(assets: Asset[]): TreeNode[] {
     node.children.forEach(sortChildren);
   };
 
-  const result = Array.from(domainMap.values());
+  const result = Array.from(originMap.values());
   result.forEach(sortChildren);
 
   // Sort domains alphabetically

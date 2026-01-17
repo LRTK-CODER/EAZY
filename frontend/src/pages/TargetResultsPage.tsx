@@ -156,7 +156,7 @@ function TargetResultsContent({ projectId, targetId }: TargetResultsContentProps
 
       {/* Assets Section */}
       <div className="h-[calc(100vh-280px)] min-h-[400px] border rounded-md overflow-hidden mb-6">
-        <AssetExplorer assets={assets ?? []} isLoading={isAssetsLoading} />
+        <AssetExplorer assets={assets ?? []} targetUrl={target.url} isLoading={isAssetsLoading} />
       </div>
 
       {/* Back to Project Button */}

@@ -109,15 +109,15 @@ describe('AssetTreeView', () => {
     it('should render domain nodes', () => {
       renderWithProviders(<AssetTreeView assets={mockAssets} />);
 
-      expect(screen.getByText('example.com')).toBeInTheDocument();
-      expect(screen.getByText('api.example.org')).toBeInTheDocument();
+      expect(screen.getByText('https://example.com')).toBeInTheDocument();
+      expect(screen.getByText('https://api.example.org')).toBeInTheDocument();
     });
 
     it('should render folder nodes when expanded', async () => {
       const { user } = renderWithProviders(<AssetTreeView assets={mockAssets} />);
 
       // Click to expand domain
-      const domainNode = screen.getByText('example.com');
+      const domainNode = screen.getByText('https://example.com');
       await user.click(domainNode);
 
       // Should show folder nodes
@@ -128,7 +128,7 @@ describe('AssetTreeView', () => {
       const { user } = renderWithProviders(<AssetTreeView assets={mockAssets} />);
 
       // Expand domain -> folder -> endpoint
-      await user.click(screen.getByText('example.com'));
+      await user.click(screen.getByText('https://example.com'));
       await user.click(screen.getByText('api'));
       await user.click(screen.getByText('users'));
 
@@ -148,7 +148,7 @@ describe('AssetTreeView', () => {
     it('should toggle node expansion on click', async () => {
       const { user } = renderWithProviders(<AssetTreeView assets={mockAssets} />);
 
-      const domainNode = screen.getByText('example.com');
+      const domainNode = screen.getByText('https://example.com');
 
       // Initially collapsed - no children visible
       expect(screen.queryByText('api')).not.toBeInTheDocument();
@@ -189,7 +189,7 @@ describe('AssetTreeView', () => {
       );
 
       // Expand to endpoint
-      await user.click(screen.getByText('example.com'));
+      await user.click(screen.getByText('https://example.com'));
       await user.click(screen.getByText('api'));
       await user.click(screen.getByText('users'));
 
@@ -203,7 +203,7 @@ describe('AssetTreeView', () => {
       const { user } = renderWithProviders(<AssetTreeView assets={mockAssets} />);
 
       // Expand to endpoint
-      await user.click(screen.getByText('example.com'));
+      await user.click(screen.getByText('https://example.com'));
       await user.click(screen.getByText('api'));
       await user.click(screen.getByText('users'));
 
@@ -282,7 +282,7 @@ describe('AssetTreeView', () => {
       );
 
       // Expand to endpoint
-      await user.click(screen.getByText('example.com'));
+      await user.click(screen.getByText('https://example.com'));
       await user.click(screen.getByText('api'));
       await user.click(screen.getByText('users'));
 
@@ -324,7 +324,7 @@ describe('AssetTreeView', () => {
       const { user } = renderWithProviders(<AssetTreeView assets={mockAssets} />);
 
       // Expand domain to see folder
-      await user.click(screen.getByText('example.com'));
+      await user.click(screen.getByText('https://example.com'));
 
       // Find and focus the child folder node (api) - use text content to be specific
       const apiFolder = screen.getByText('api').closest('[role="treeitem"]') as HTMLElement;
@@ -363,17 +363,17 @@ describe('AssetTreeView', () => {
       const { user } = renderWithProviders(<AssetTreeView assets={mockAssets} />);
 
       // Domain should have globe/server icon
-      expect(screen.getByTestId('icon-domain-example.com')).toBeInTheDocument();
+      expect(screen.getByTestId('icon-domain-https://example.com')).toBeInTheDocument();
 
       // Expand to see folder
-      await user.click(screen.getByText('example.com'));
+      await user.click(screen.getByText('https://example.com'));
       expect(screen.getByTestId('icon-folder-api')).toBeInTheDocument();
     });
 
     it('should indent nodes based on depth', async () => {
       const { user } = renderWithProviders(<AssetTreeView assets={mockAssets} />);
 
-      await user.click(screen.getByText('example.com'));
+      await user.click(screen.getByText('https://example.com'));
 
       const folderNode = screen.getByText('api').closest('[role="treeitem"]');
 
@@ -400,7 +400,7 @@ describe('AssetTreeView', () => {
       const { user } = renderWithProviders(<AssetTreeView assets={mockAssets} />);
 
       // Expand to endpoint and select it
-      await user.click(screen.getByText('example.com'));
+      await user.click(screen.getByText('https://example.com'));
       await user.click(screen.getByText('api'));
       await user.click(screen.getByText('users'));
       await user.click(screen.getByText('GET'));
@@ -415,7 +415,7 @@ describe('AssetTreeView', () => {
       const { user } = renderWithProviders(<AssetTreeView assets={mockAssets} />);
 
       // Expand to endpoint and select it
-      await user.click(screen.getByText('example.com'));
+      await user.click(screen.getByText('https://example.com'));
       await user.click(screen.getByText('api'));
       await user.click(screen.getByText('users'));
       await user.click(screen.getByText('GET'));
@@ -463,7 +463,7 @@ describe('AssetTreeView', () => {
       );
 
       // Should show nodes matching "api"
-      expect(screen.getByText('example.com')).toBeInTheDocument();
+      expect(screen.getByText('https://example.com')).toBeInTheDocument();
       // Should not show nodes not matching "api"
       expect(screen.queryByText('auth')).not.toBeInTheDocument();
     });
@@ -474,7 +474,7 @@ describe('AssetTreeView', () => {
       );
 
       // Expand to see endpoints
-      await user.click(screen.getByText('example.com'));
+      await user.click(screen.getByText('https://example.com'));
       await user.click(screen.getByText('api'));
       await user.click(screen.getByText('users'));
 

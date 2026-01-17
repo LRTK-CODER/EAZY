@@ -26,6 +26,8 @@ export type { HttpMethod } from '@/hooks/use-asset-filter';
 interface AssetTreeViewProps {
   /** Array of assets to display */
   assets: Asset[];
+  /** Fallback domain for malformed URLs (typically the target domain) */
+  targetOrigin?: string;
   /** Callback when an asset is selected */
   onSelectAsset?: (asset: Asset) => void;
   /** Whether to show asset type badges */
@@ -81,6 +83,7 @@ function getExpandedNodesForSearch(
 
 export function AssetTreeView({
   assets,
+  targetOrigin,
   onSelectAsset,
   showTypeBadge = false,
   showSourceBadge = false,
@@ -99,7 +102,7 @@ export function AssetTreeView({
   );
 
   // Build tree from filtered assets
-  const tree = useMemo(() => buildAssetTree(filteredAssets), [filteredAssets]);
+  const tree = useMemo(() => buildAssetTree(filteredAssets, targetOrigin), [filteredAssets, targetOrigin]);
 
   // Auto-expand nodes when searching
   const searchExpandedNodes = useMemo(() => {
