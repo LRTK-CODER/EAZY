@@ -138,29 +138,32 @@
 
 ---
 
-### 2.2 ResponseParser 인터페이스
+### 2.2 ResponseParser 인터페이스 ✅
 
 #### 🔴 RED - 실패하는 테스트 작성
 ```
-파일: tests/unit/services/parsers/test_parser_protocol.py
+파일: tests/services/parsers/test_parser_protocol.py
 ```
-- [ ] `test_response_parser_has_supports_method` - supports() 메서드 존재
-- [ ] `test_response_parser_has_parse_method` - parse() 메서드 존재
-- [ ] `test_parser_registry_get_parser_returns_parser` - 레지스트리 동작 확인
-- [ ] `test_parser_registry_returns_default_for_unknown` - 알 수 없는 타입은 Default 반환
+- [x] `test_response_parser_has_supports_method` - supports() 메서드 존재
+- [x] `test_response_parser_has_parse_method` - parse() 메서드 존재
+- [x] `test_parser_registry_get_parser_returns_parser` - 레지스트리 동작 확인
+- [x] `test_parser_registry_returns_default_for_unknown` - 알 수 없는 타입은 Default 반환
+- [x] 추가 테스트 16개 (총 20개 테스트 통과)
 
 #### 🟢 GREEN - 테스트 통과 코드 작성
 ```
 파일: backend/app/services/parsers/base.py
 ```
-- [ ] `ResponseParser(Protocol)` 정의
-- [ ] `ResponseParserRegistry` 클래스 정의
+- [x] `ResponseParser(Protocol)` 정의
+- [x] `ResponseParserRegistry` 클래스 정의
   - `register(parser: ResponseParser)`
   - `get_parser(content_type: str) -> ResponseParser`
+- [x] `ResponseData` dataclass 정의 (Playwright 추상화)
+- [x] `DefaultResponseParser` 클래스 정의
 
 #### 🔵 BLUE - 리팩토링
-- [ ] 레지스트리 싱글톤 패턴 적용 (선택사항)
-- [ ] 파서 자동 등록 메커니즘 구현 (선택사항)
+- [x] 의존성 주입 패턴 결정 (싱글톤 대신 - Phase 4에서 적용)
+- [ ] 파서 자동 등록 메커니즘 구현 (Phase 3에서)
 
 ---
 
@@ -473,9 +476,9 @@ tests/unit/
 - [x] 1.2 타입 정의 (ParsedContent는 Phase 3로 이동)
 - [x] 1.3 커스텀 예외
 
-### Phase 2 진행률: 50% (1/2 완료)
+### Phase 2 진행률: 100% (2/2 완료) ✅
 - [x] 2.1 Crawler 인터페이스
-- [ ] 2.2 ResponseParser 인터페이스
+- [x] 2.2 ResponseParser 인터페이스
 
 ### Phase 3 진행률: 0%
 - [ ] 3.0 ParsedContent 타입 정의 (Phase 1.2에서 이동)
