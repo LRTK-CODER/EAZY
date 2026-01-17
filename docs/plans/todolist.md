@@ -262,25 +262,32 @@
 
 ---
 
-### 3.3 ImageResponseParser
+### 3.3 ImageResponseParser ✅
 
 #### 🔴 RED - 실패하는 테스트 작성
 ```
-파일: tests/unit/services/parsers/test_image_parser.py
+파일: backend/tests/services/parsers/test_image_parser.py
 ```
-- [ ] `test_image_parser_supports_image_types` - image/* 지원
-- [ ] `test_image_parser_encodes_to_base64` - Base64 인코딩 확인
-- [ ] `test_image_parser_truncates_large_image` - 큰 이미지 자르기
-- [ ] `test_image_parser_handles_binary_data` - 바이너리 데이터 처리
+- [x] `test_image_parser_supports_image_types` - image/* 지원 (8개 타입: png, jpeg, gif, webp, svg+xml, x-icon, bmp, tiff)
+- [x] `test_image_parser_encodes_to_base64` - Base64 인코딩 확인
+- [x] `test_image_parser_truncates_large_image` - 큰 이미지 자르기 (바이너리 먼저)
+- [x] `test_image_parser_handles_binary_data` - 바이너리 데이터 처리
+- [x] 추가 테스트 19개 (supports 11개, parse 9개, integration 4개) - 총 23개
 
 #### 🟢 GREEN - 테스트 통과 코드 작성
 ```
 파일: backend/app/services/parsers/image_parser.py
 ```
-- [ ] `ImageResponseParser` 클래스 구현
+- [x] `ImageResponseParser` 클래스 구현
+  - SUPPORTED_TYPES: frozenset (8개 이미지 타입)
+  - supports(): base_type 확인 (charset 파라미터 제거)
+  - parse(): 바이너리 → Base64 인코딩, truncation 처리, ParsedContent 반환
 
 #### 🔵 BLUE - 리팩토링
-- [ ] 지원 이미지 타입 목록 상수화
+- [x] 지원 이미지 타입 목록 상수화 (frozenset)
+- [x] __init__.py에 ImageResponseParser export 추가
+- [x] Ruff lint/format 통과
+- [x] Mypy 타입 체크 통과
 
 ---
 
@@ -504,11 +511,11 @@ tests/unit/
 - [x] 2.1 Crawler 인터페이스
 - [x] 2.2 ResponseParser 인터페이스
 
-### Phase 3 진행률: 60% (3/5 완료)
+### Phase 3 진행률: 80% (4/5 완료)
 - [x] 3.0 ParsedContent 타입 정의 (Phase 1.2에서 이동) ✅
 - [x] 3.1 JsonResponseParser ✅
 - [x] 3.2 HtmlResponseParser ✅
-- [ ] 3.3 ImageResponseParser
+- [x] 3.3 ImageResponseParser ✅
 - [ ] 3.4 DefaultResponseParser
 
 ### Phase 4 진행률: 0%

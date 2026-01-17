@@ -16,6 +16,7 @@ from .base import (
     ResponseParserRegistry,
 )
 from .html_parser import HtmlResponseParser
+from .image_parser import ImageResponseParser
 from .json_parser import JsonResponseParser
 
 __all__ = [
@@ -25,4 +26,5 @@ __all__ = [
     "ResponseData",
     "JsonResponseParser",
     "HtmlResponseParser",
+    "ImageResponseParser",
 ]
