@@ -228,13 +228,24 @@ export const TreeNode = React.memo(function TreeNode({
 
       {/* Node Name or Method Badge */}
       {node.type === 'endpoint' && node.method ? (
-        <Badge
-          variant={getMethodVariant(node.method)}
-          className="text-xs"
-          data-testid="method-badge"
-        >
-          {node.method}
-        </Badge>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Badge
+            variant={getMethodVariant(node.method)}
+            className="text-xs shrink-0"
+            data-testid="method-badge"
+          >
+            {node.method}
+          </Badge>
+          {node.endpointSuffix && (
+            <span
+              className="text-muted-foreground text-xs font-mono truncate"
+              data-testid="endpoint-suffix"
+              title={node.endpointSuffix}
+            >
+              {node.endpointSuffix}
+            </span>
+          )}
+        </div>
       ) : (
         <span className="truncate">{highlightMatch(node.name, searchQuery)}</span>
       )}

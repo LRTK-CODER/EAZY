@@ -26,6 +26,8 @@ export interface TreeNode {
   method?: string;
   /** Associated asset (only for endpoint nodes) */
   asset?: Asset;
+  /** Display suffix for endpoint differentiation (query string, fragment) */
+  endpointSuffix?: string;
   /** Child nodes */
   children: TreeNode[];
   /** Depth level in tree (0 = root) */
@@ -50,6 +52,8 @@ export interface FlatNode {
   method?: string;
   /** Associated asset (for endpoints) */
   asset?: Asset;
+  /** Display suffix for endpoint differentiation (query string, fragment) */
+  endpointSuffix?: string;
   /** Depth level for indentation */
   depth: number;
   /** Whether this node has children */
@@ -93,6 +97,45 @@ function parsePathSegments(path: string): string[] {
 function generateNodeId(type: TreeNodeType, ...parts: string[]): string {
   const key = parts.join('-');
   return `${type}-${key}`;
+}
+
+/**
+ * Parse endpoint suffix for display differentiation
+ * Shows query string, fragment, or trailing slash to distinguish endpoints
+ *
+ * Examples:
+ * - /api/user → '' (no suffix, base endpoint)
+ * - /api/user/ → '/' (trailing slash endpoint)
+ * - /api/user?id=1 → '?id=1' (query string)
+ * - /api/user#section → '#section' (fragment)
+ * - /api/user?id=1#section → '?id=1#section' (both)
+ */
+function parseEndpointSuffix(url: string, path: string): string {
+  try {
+    // Use dummy base for relative URLs
+    const base = url.startsWith('http') ? undefined : 'https://example.com';
+    const parsed = new URL(url, base);
+    const parts: string[] = [];
+
+    // Check for trailing slash (indicates directory-style endpoint)
+    if (path.endsWith('/') && path !== '/') {
+      parts.push('/');
+    }
+
+    // Add query string if present
+    if (parsed.search) {
+      parts.push(parsed.search); // includes "?"
+    }
+
+    // Add fragment if present
+    if (parsed.hash) {
+      parts.push(parsed.hash); // includes "#"
+    }
+
+    return parts.join('');
+  } catch {
+    return '';
+  }
 }
 
 /**
@@ -192,6 +235,7 @@ export function buildAssetTree(assets: Asset[], targetOrigin?: string): TreeNode
     );
 
     if (!existingEndpoint) {
+      const endpointSuffix = parseEndpointSuffix(asset.url, asset.path);
       const endpointNode: TreeNode = {
         id: endpointId,
         name: asset.method,
@@ -199,6 +243,7 @@ export function buildAssetTree(assets: Asset[], targetOrigin?: string): TreeNode
         type: 'endpoint',
         method: asset.method,
         asset,
+        endpointSuffix,
         children: [],
         depth: currentNode.depth + 1,
         isExpanded: false,
@@ -247,6 +292,7 @@ export function flattenTreeForVirtualization(tree: TreeNode[]): FlatNode[] {
         type: node.type,
         method: node.method,
         asset: node.asset,
+        endpointSuffix: node.endpointSuffix,
         depth: node.depth,
         hasChildren: node.children.length > 0,
         isExpanded: node.isExpanded ?? false,
