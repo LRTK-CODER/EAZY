@@ -657,7 +657,9 @@ async def test_read_targets_includes_asset_count(
     # Create 3 Assets
     now = datetime.utcnow()
     for i in range(3):
-        content_hash = hashlib.sha256(f"GET:https://example.com/page{i}".encode()).hexdigest()
+        content_hash = hashlib.sha256(
+            f"GET:https://example.com/page{i}".encode()
+        ).hexdigest()
         asset = Asset(
             target_id=target_id,
             content_hash=content_hash,
@@ -689,7 +691,9 @@ async def test_read_targets_includes_asset_count(
     target_data = next((t for t in data if t["id"] == target_id), None)
     assert target_data is not None, "Target should be in the list"
     assert "asset_count" in target_data, "Response should include asset_count field"
-    assert target_data["asset_count"] == 3, f"Expected 3 assets, got {target_data.get('asset_count')}"
+    assert (
+        target_data["asset_count"] == 3
+    ), f"Expected 3 assets, got {target_data.get('asset_count')}"
 
 
 @pytest.mark.asyncio
@@ -717,7 +721,9 @@ async def test_read_targets_asset_count_zero_when_no_assets(client: AsyncClient)
     target_data = next((t for t in data if t["id"] == target_id), None)
     assert target_data is not None
     assert "asset_count" in target_data, "Response should include asset_count field"
-    assert target_data["asset_count"] == 0, f"Expected 0 assets, got {target_data.get('asset_count')}"
+    assert (
+        target_data["asset_count"] == 0
+    ), f"Expected 0 assets, got {target_data.get('asset_count')}"
 
 
 @pytest.mark.asyncio
@@ -749,7 +755,9 @@ async def test_read_single_target_includes_asset_count(
     # Create 5 Assets
     now = datetime.utcnow()
     for i in range(5):
-        content_hash = hashlib.sha256(f"GET:https://example.com/single{i}".encode()).hexdigest()
+        content_hash = hashlib.sha256(
+            f"GET:https://example.com/single{i}".encode()
+        ).hexdigest()
         asset = Asset(
             target_id=target_id,
             content_hash=content_hash,

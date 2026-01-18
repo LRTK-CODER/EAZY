@@ -162,7 +162,9 @@ class TestCrawlerSettingsIntegration:
         assert settings.CRAWLER_MAX_BODY_SIZE == 10 * 1024  # MAX_BODY_SIZE
         assert settings.CRAWLER_PAGE_TIMEOUT_MS == 30000  # PAGE_TIMEOUT_MS
         assert settings.WORKER_LOCK_TTL == 600  # LOCK_TTL
-        assert settings.WORKER_CANCELLATION_CHECK_INTERVAL == 5.0  # CANCELLATION_CHECK_INTERVAL
+        assert (
+            settings.WORKER_CANCELLATION_CHECK_INTERVAL == 5.0
+        )  # CANCELLATION_CHECK_INTERVAL
 
     def test_settings_instance_is_usable(self):
         """설정 인스턴스가 정상 동작"""

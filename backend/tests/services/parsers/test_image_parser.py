@@ -130,7 +130,9 @@ class TestImageResponseParserParse:
 
         parser = ImageResponseParser()
         # 임의의 바이너리 데이터 (JPEG 시그니처)
-        jpeg_bytes = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
+        jpeg_bytes = (
+            b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
+        )
         response = ResponseData(
             url="http://example.com/image.jpg",
             status=200,

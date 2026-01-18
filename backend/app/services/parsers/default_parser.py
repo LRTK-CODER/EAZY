@@ -3,6 +3,7 @@
 모든 Content-Type에 대해 메타데이터만 반환하는 fallback 파서입니다.
 Registry에서 적합한 파서를 찾지 못했을 때 사용됩니다.
 """
+
 import logging
 from typing import Optional
 

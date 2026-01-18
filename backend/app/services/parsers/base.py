@@ -3,6 +3,7 @@
 HTTP 응답 파싱을 위한 Strategy 패턴 인터페이스를 제공합니다.
 Phase 3에서 구체적인 파서 구현(Json, Html, Image, Default)이 추가됩니다.
 """
+
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Protocol
 

@@ -92,7 +92,9 @@ class CrawlerService:
                         "body": body,
                     }
                 except Exception as e:
-                    logger.warning("Request interception error", error=str(e), url=req_url)
+                    logger.warning(
+                        "Request interception error", error=str(e), url=req_url
+                    )
 
             async def handle_response(response: Response) -> None:
                 """Capture incoming HTTP responses using parser registry."""
@@ -126,7 +128,9 @@ class CrawlerService:
                         "body": body,
                     }
                 except Exception as e:
-                    logger.warning("Response interception error", error=str(e), url=resp_url)
+                    logger.warning(
+                        "Response interception error", error=str(e), url=resp_url
+                    )
 
             page.on("request", handle_request)
             page.on("response", handle_response)

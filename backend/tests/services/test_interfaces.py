@@ -95,8 +95,16 @@ class TestMockCrawlerImplementsICrawler:
                 ["http://example.com/page1", "http://example.com/page2"],
                 {
                     "http://example.com/page1": {
-                        "request": {"method": "GET", "headers": {"User-Agent": "Test"}, "body": None},
-                        "response": {"status": 200, "headers": {"Content-Type": "text/html"}, "body": "<html>"},
+                        "request": {
+                            "method": "GET",
+                            "headers": {"User-Agent": "Test"},
+                            "body": None,
+                        },
+                        "response": {
+                            "status": 200,
+                            "headers": {"Content-Type": "text/html"},
+                            "body": "<html>",
+                        },
                         "parameters": {"id": "123"},
                     }
                 },

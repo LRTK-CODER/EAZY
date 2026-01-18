@@ -2,6 +2,7 @@
 
 TDD RED Phase: 이 테스트들은 구현 전에 작성되어 실패해야 합니다.
 """
+
 import logging
 
 import pytest

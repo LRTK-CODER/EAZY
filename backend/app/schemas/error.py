@@ -22,29 +22,33 @@ class ErrorResponse(BaseModel):
     status_code: int
     detail: Optional[dict[str, Any]] = None
 
-    model_config = {"json_schema_extra": {"examples": [
-        {
-            "error": "TARGET_NOT_FOUND",
-            "message": "Target not found: 123",
-            "status_code": 404,
-            "detail": {"target_id": 123}
-        },
-        {
-            "error": "DUPLICATE_SCAN",
-            "message": "Scan already in progress for target: 456",
-            "status_code": 409,
-            "detail": {"target_id": 456}
-        },
-        {
-            "error": "UNSAFE_URL",
-            "message": "Unsafe URL detected: http://127.0.0.1/admin",
-            "status_code": 400,
-            "detail": {"url": "http://127.0.0.1/admin"}
-        },
-        {
-            "error": "INTERNAL_ERROR",
-            "message": "An unexpected error occurred",
-            "status_code": 500,
-            "detail": None
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "error": "TARGET_NOT_FOUND",
+                    "message": "Target not found: 123",
+                    "status_code": 404,
+                    "detail": {"target_id": 123},
+                },
+                {
+                    "error": "DUPLICATE_SCAN",
+                    "message": "Scan already in progress for target: 456",
+                    "status_code": 409,
+                    "detail": {"target_id": 456},
+                },
+                {
+                    "error": "UNSAFE_URL",
+                    "message": "Unsafe URL detected: http://127.0.0.1/admin",
+                    "status_code": 400,
+                    "detail": {"url": "http://127.0.0.1/admin"},
+                },
+                {
+                    "error": "INTERNAL_ERROR",
+                    "message": "An unexpected error occurred",
+                    "status_code": 500,
+                    "detail": None,
+                },
+            ]
         }
-    ]}}
+    }

@@ -2,6 +2,7 @@
 
 TDD RED Phase: 이 테스트들은 구현 전에 작성되어 실패해야 합니다.
 """
+
 import inspect
 import pytest
 from unittest.mock import AsyncMock, MagicMock
@@ -95,9 +96,7 @@ class TestResponseParserRegistry:
 
         # 첫 번째 파서: json만 지원
         first_parser = MagicMock()
-        first_parser.supports = MagicMock(
-            side_effect=lambda ct: "json" in ct
-        )
+        first_parser.supports = MagicMock(side_effect=lambda ct: "json" in ct)
 
         # 두 번째 파서: 모든 것 지원
         second_parser = MagicMock()

@@ -83,7 +83,9 @@ class TestCrawlerServiceParserRegistry:
                 await mock_response_handler(mock_response)
 
         # Assert - registry was used
-        assert mock_registry.get_parser.called, "CrawlerService should call registry.get_parser()"
+        assert (
+            mock_registry.get_parser.called
+        ), "CrawlerService should call registry.get_parser()"
 
     @pytest.mark.asyncio
     async def test_crawler_delegates_to_json_parser(self) -> None:

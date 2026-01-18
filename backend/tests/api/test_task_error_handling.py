@@ -35,7 +35,9 @@ class TestTargetNotFoundError:
             f"/api/v1/projects/{project_id}/targets/{non_existent_target_id}/scan"
         )
 
-        assert resp.status_code == 404, f"Expected 404, got {resp.status_code}: {resp.text}"
+        assert (
+            resp.status_code == 404
+        ), f"Expected 404, got {resp.status_code}: {resp.text}"
 
     @pytest.mark.asyncio
     async def test_404_error_response_contains_target_id(
@@ -68,7 +70,9 @@ class TestDuplicateScanError:
         should return 409 Conflict.
         """
         # Setup: Create project and target
-        resp = await client.post("/api/v1/projects/", json={"name": "Duplicate Test Proj"})
+        resp = await client.post(
+            "/api/v1/projects/", json={"name": "Duplicate Test Proj"}
+        )
         assert resp.status_code == 201
         project_id = resp.json()["id"]
 
@@ -89,7 +93,9 @@ class TestDuplicateScanError:
         resp = await client.post(
             f"/api/v1/projects/{project_id}/targets/{target_id}/scan"
         )
-        assert resp.status_code == 409, f"Expected 409, got {resp.status_code}: {resp.text}"
+        assert (
+            resp.status_code == 409
+        ), f"Expected 409, got {resp.status_code}: {resp.text}"
 
     @pytest.mark.asyncio
     async def test_trigger_scan_returns_409_for_running_task(
@@ -130,7 +136,9 @@ class TestDuplicateScanError:
         resp = await client.post(
             f"/api/v1/projects/{project_id}/targets/{target_id}/scan"
         )
-        assert resp.status_code == 409, f"Expected 409, got {resp.status_code}: {resp.text}"
+        assert (
+            resp.status_code == 409
+        ), f"Expected 409, got {resp.status_code}: {resp.text}"
 
     @pytest.mark.asyncio
     async def test_trigger_scan_allows_after_completed(
@@ -145,7 +153,9 @@ class TestDuplicateScanError:
         from sqlmodel import select
 
         # Setup
-        resp = await client.post("/api/v1/projects/", json={"name": "Completed Dup Proj"})
+        resp = await client.post(
+            "/api/v1/projects/", json={"name": "Completed Dup Proj"}
+        )
         project_id = resp.json()["id"]
 
         resp = await client.post(
@@ -172,7 +182,9 @@ class TestDuplicateScanError:
         resp = await client.post(
             f"/api/v1/projects/{project_id}/targets/{target_id}/scan"
         )
-        assert resp.status_code == 202, f"Expected 202, got {resp.status_code}: {resp.text}"
+        assert (
+            resp.status_code == 202
+        ), f"Expected 202, got {resp.status_code}: {resp.text}"
 
 
 class TestUnsafeUrlError:
@@ -200,7 +212,9 @@ class TestUnsafeUrlError:
         resp = await client.post(
             f"/api/v1/projects/{project_id}/targets/{target_id}/scan"
         )
-        assert resp.status_code == 400, f"Expected 400, got {resp.status_code}: {resp.text}"
+        assert (
+            resp.status_code == 400
+        ), f"Expected 400, got {resp.status_code}: {resp.text}"
 
     @pytest.mark.asyncio
     async def test_trigger_scan_returns_400_for_private_ip(
@@ -222,7 +236,9 @@ class TestUnsafeUrlError:
         resp = await client.post(
             f"/api/v1/projects/{project_id}/targets/{target_id}/scan"
         )
-        assert resp.status_code == 400, f"Expected 400, got {resp.status_code}: {resp.text}"
+        assert (
+            resp.status_code == 400
+        ), f"Expected 400, got {resp.status_code}: {resp.text}"
 
     @pytest.mark.asyncio
     async def test_trigger_scan_returns_400_for_loopback(
@@ -244,7 +260,9 @@ class TestUnsafeUrlError:
         resp = await client.post(
             f"/api/v1/projects/{project_id}/targets/{target_id}/scan"
         )
-        assert resp.status_code == 400, f"Expected 400, got {resp.status_code}: {resp.text}"
+        assert (
+            resp.status_code == 400
+        ), f"Expected 400, got {resp.status_code}: {resp.text}"
 
 
 class TestUnexpectedError:
@@ -272,7 +290,9 @@ class TestUnexpectedError:
             "app.services.task_service.TaskService.create_scan_task",
             new_callable=AsyncMock,
         ) as mock_create:
-            mock_create.side_effect = RuntimeError("Database connection lost: password=secret123")
+            mock_create.side_effect = RuntimeError(
+                "Database connection lost: password=secret123"
+            )
 
             resp = await client.post(
                 f"/api/v1/projects/{project_id}/targets/{target_id}/scan"
@@ -313,7 +333,9 @@ class TestUnexpectedError:
             response_text = resp.text.lower()
 
             # Should NOT contain sensitive keywords
-            assert "supersecret" not in response_text, "Password leaked in error response"
+            assert (
+                "supersecret" not in response_text
+            ), "Password leaked in error response"
             assert "postgres://" not in response_text, "Connection string leaked"
             assert "admin:" not in response_text, "Credentials leaked"
 
@@ -335,19 +357,13 @@ class TestErrorResponseSchema:
         project_id = resp.json()["id"]
 
         # Trigger 404 error
-        resp = await client.post(
-            f"/api/v1/projects/{project_id}/targets/99999/scan"
-        )
+        resp = await client.post(f"/api/v1/projects/{project_id}/targets/99999/scan")
 
         assert resp.status_code == 404
         data = resp.json()
 
         # At minimum, should have either 'detail' (FastAPI default) or 'error'/'message'
-        has_error_info = (
-            "detail" in data
-            or "error" in data
-            or "message" in data
-        )
+        has_error_info = "detail" in data or "error" in data or "message" in data
         assert has_error_info, f"Error response missing error info: {data}"
 
     @pytest.mark.asyncio

@@ -33,7 +33,9 @@ class TestHttpRequestDataType:
 
         hints = get_type_hints(HttpRequestData)
         # Dict[str, str] 체크
-        assert hasattr(hints["headers"], "__origin__"), "headers should be a generic type"
+        assert hasattr(
+            hints["headers"], "__origin__"
+        ), "headers should be a generic type"
 
     def test_http_request_data_body_is_optional(self):
         """body 필드가 Optional[str] 타입인지 확인"""
@@ -105,14 +107,18 @@ class TestHttpDataType:
         from app.types.http import HttpData, HttpRequestData
 
         hints = get_type_hints(HttpData)
-        assert hints["request"] is HttpRequestData, "request should be HttpRequestData type"
+        assert (
+            hints["request"] is HttpRequestData
+        ), "request should be HttpRequestData type"
 
     def test_http_data_response_is_http_response_data(self):
         """response 필드가 HttpResponseData 타입인지 확인"""
         from app.types.http import HttpData, HttpResponseData
 
         hints = get_type_hints(HttpData)
-        assert hints["response"] is HttpResponseData, "response should be HttpResponseData type"
+        assert (
+            hints["response"] is HttpResponseData
+        ), "response should be HttpResponseData type"
 
 
 class TestHttpTypesUsage:
