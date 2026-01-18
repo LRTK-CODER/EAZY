@@ -12,7 +12,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from app.services.crawler_service import CrawlerService
 from app.services.parsers import (
     ResponseParserRegistry,
-    ResponseData,
     JsonResponseParser,
     HtmlResponseParser,
     ImageResponseParser,

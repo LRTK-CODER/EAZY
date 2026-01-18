@@ -5,7 +5,6 @@ CrawlerService와 Mock 객체가 이를 만족하는지 테스트합니다.
 """
 
 import inspect
-from typing import get_type_hints
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

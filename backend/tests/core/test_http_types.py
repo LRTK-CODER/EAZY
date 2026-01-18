@@ -4,7 +4,7 @@ Test HTTP Types - TypedDict 구조 검증
 TDD RED Phase: HTTP 요청/응답 데이터 타입 정의 테스트
 """
 
-from typing import get_type_hints, Optional, Union, Dict, Any
+from typing import get_type_hints
 
 
 class TestHttpRequestDataType:

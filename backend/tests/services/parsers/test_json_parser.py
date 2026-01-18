@@ -7,7 +7,6 @@ import pytest
 
 from app.core.constants import MAX_BODY_SIZE
 from app.services.parsers.base import ResponseData
-from app.types.http import ParsedContent
 
 
 class TestJsonResponseParserSupports:
