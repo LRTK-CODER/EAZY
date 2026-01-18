@@ -64,6 +64,24 @@ vi.mock('@/components/features/asset/AssetExplorer', () => ({
   },
 }));
 
+// Mock ScanControl component
+vi.mock('@/components/features/target/tabs/OverviewTabContent', () => ({
+  OverviewTabContent: ({ projectId, targetId, targetName }: { projectId: number; targetId: number; targetName: string }) => (
+    <div data-testid="overview-tab-content">
+      <div data-testid="scan-control">ScanControl: {projectId}-{targetId}-{targetName}</div>
+    </div>
+  ),
+}));
+
+// Mock HistoryTabContent component
+vi.mock('@/components/features/target/tabs/HistoryTabContent', () => ({
+  HistoryTabContent: () => (
+    <div data-testid="history-tab-content">
+      <span>Coming Soon</span>
+    </div>
+  ),
+}));
+
 // Mock sonner toast
 vi.mock('sonner', () => ({
   toast: {
@@ -547,7 +565,7 @@ describe('TargetResultsPage Component', () => {
       });
     });
 
-    it('integrates AssetExplorer component with assets data', async () => {
+    it('integrates AssetExplorer component with assets data in Assets tab', async () => {
       vi.mocked(useParams).mockReturnValue({ projectId: '1', targetId: '2' });
       vi.mocked(useProject).mockReturnValue({
         data: mockProject,
@@ -565,7 +583,13 @@ describe('TargetResultsPage Component', () => {
         isError: false,
       } as any);
 
-      renderWithProviders(<TargetResultsPage />);
+      const { user } = renderWithProviders(<TargetResultsPage />);
+
+      // Switch to Assets tab
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: /assets/i })).toBeInTheDocument();
+      });
+      await user.click(screen.getByRole('tab', { name: /assets/i }));
 
       await waitFor(() => {
         const assetExplorer = screen.getByTestId('asset-explorer');
@@ -660,7 +684,7 @@ describe('TargetResultsPage Component', () => {
       expect(screen.getByText(/the target you're looking for doesn't exist/i)).toBeInTheDocument();
     });
 
-    it('displays empty state message when no assets found', async () => {
+    it('displays empty state message when no assets found in Assets tab', async () => {
       vi.mocked(useParams).mockReturnValue({ projectId: '1', targetId: '2' });
       vi.mocked(useProject).mockReturnValue({
         data: mockProject,
@@ -678,7 +702,13 @@ describe('TargetResultsPage Component', () => {
         isError: false,
       } as any);
 
-      renderWithProviders(<TargetResultsPage />);
+      const { user } = renderWithProviders(<TargetResultsPage />);
+
+      // Switch to Assets tab
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: /assets/i })).toBeInTheDocument();
+      });
+      await user.click(screen.getByRole('tab', { name: /assets/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/no assets discovered yet/i)).toBeInTheDocument();
@@ -729,6 +759,141 @@ describe('TargetResultsPage Component', () => {
       renderWithProviders(<TargetResultsPage />);
 
       expect(screen.getByText(/target not found/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Tabs Structure (Phase 3)', () => {
+    beforeEach(() => {
+      vi.mocked(useParams).mockReturnValue({ projectId: '1', targetId: '2' });
+      vi.mocked(useProject).mockReturnValue({
+        data: mockProject,
+        isLoading: false,
+        isError: false,
+      } as any);
+      vi.mocked(useTarget).mockReturnValue({
+        data: mockTarget,
+        isLoading: false,
+        isError: false,
+      } as any);
+      vi.mocked(useTargetAssets).mockReturnValue({
+        data: mockAssets,
+        isLoading: false,
+        isError: false,
+      } as any);
+    });
+
+    it('renders three tabs: Overview, Assets, Scan History', async () => {
+      renderWithProviders(<TargetResultsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: /overview/i })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /assets/i })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /scan history/i })).toBeInTheDocument();
+      });
+    });
+
+    it('shows Overview tab as default selected', async () => {
+      renderWithProviders(<TargetResultsPage />);
+
+      await waitFor(() => {
+        const overviewTab = screen.getByRole('tab', { name: /overview/i });
+        expect(overviewTab).toHaveAttribute('data-state', 'active');
+      });
+    });
+
+    it('renders OverviewTabContent in Overview tab by default', async () => {
+      renderWithProviders(<TargetResultsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('overview-tab-content')).toBeInTheDocument();
+        expect(screen.getByTestId('scan-control')).toBeInTheDocument();
+      });
+    });
+
+    it('switches to Assets tab and renders AssetExplorer', async () => {
+      const { user } = renderWithProviders(<TargetResultsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: /assets/i })).toBeInTheDocument();
+      });
+
+      const assetsTab = screen.getByRole('tab', { name: /assets/i });
+      await user.click(assetsTab);
+
+      await waitFor(() => {
+        expect(assetsTab).toHaveAttribute('data-state', 'active');
+        expect(screen.getByTestId('asset-explorer')).toBeInTheDocument();
+      });
+    });
+
+    it('switches to Scan History tab and shows Coming Soon message', async () => {
+      const { user } = renderWithProviders(<TargetResultsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: /scan history/i })).toBeInTheDocument();
+      });
+
+      const historyTab = screen.getByRole('tab', { name: /scan history/i });
+      await user.click(historyTab);
+
+      await waitFor(() => {
+        expect(historyTab).toHaveAttribute('data-state', 'active');
+        expect(screen.getByText(/coming soon/i)).toBeInTheDocument();
+      });
+    });
+
+    it('has accessible tab structure with tablist role', async () => {
+      renderWithProviders(<TargetResultsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('tablist')).toBeInTheDocument();
+
+        const tabs = screen.getAllByRole('tab');
+        expect(tabs).toHaveLength(3);
+      });
+    });
+
+    it('supports keyboard navigation between tabs', async () => {
+      const { user } = renderWithProviders(<TargetResultsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: /overview/i })).toBeInTheDocument();
+      });
+
+      const overviewTab = screen.getByRole('tab', { name: /overview/i });
+      overviewTab.focus();
+
+      // Press ArrowRight to move to next tab
+      await user.keyboard('{ArrowRight}');
+
+      await waitFor(() => {
+        const assetsTab = screen.getByRole('tab', { name: /assets/i });
+        expect(document.activeElement).toBe(assetsTab);
+      });
+    });
+
+    it('preserves tab state when switching between tabs', async () => {
+      const { user } = renderWithProviders(<TargetResultsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: /assets/i })).toBeInTheDocument();
+      });
+
+      // Switch to Assets tab
+      const assetsTab = screen.getByRole('tab', { name: /assets/i });
+      await user.click(assetsTab);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('asset-explorer')).toBeInTheDocument();
+      });
+
+      // Switch back to Overview tab
+      const overviewTab = screen.getByRole('tab', { name: /overview/i });
+      await user.click(overviewTab);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('overview-tab-content')).toBeInTheDocument();
+      });
     });
   });
 });

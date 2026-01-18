@@ -67,26 +67,26 @@
 
 ## Phase 3: TargetResultsPage 탭 구조
 
-### 3.1 Red (테스트 작성)
-- [ ] 탭 렌더링 테스트 (Overview, Assets, Scan History)
-- [ ] 탭 전환 테스트
-- [ ] Overview 탭 기본 선택 테스트
-- [ ] Assets 탭 AssetExplorer 렌더링 테스트
-- [ ] Scan History 탭 "Coming Soon" 표시 테스트
-- [ ] URL 해시와 탭 동기화 테스트 (선택사항)
+### 3.1 Red (테스트 작성) ✅
+- [x] 탭 렌더링 테스트 (Overview, Assets, Scan History)
+- [x] 탭 전환 테스트
+- [x] Overview 탭 기본 선택 테스트
+- [x] Assets 탭 AssetExplorer 렌더링 테스트
+- [x] Scan History 탭 "Coming Soon" 표시 테스트
+- [x] 접근성 테스트 (role="tablist", 키보드 네비게이션)
 
-### 3.2 Green (구현)
-- [ ] shadcn/ui Tabs 컴포넌트 활용
-- [ ] Overview 탭: ScanControl 통합
-- [ ] Assets 탭: 기존 AssetExplorer 이동
-- [ ] Scan History 탭: "Coming Soon" 플레이스홀더
-- [ ] 탭 상태 관리 (useState 또는 URL 해시)
-- [ ] 모든 테스트 통과 확인
+### 3.2 Green (구현) ✅
+- [x] shadcn/ui Tabs 컴포넌트 활용
+- [x] Overview 탭: ScanControl 통합
+- [x] Assets 탭: 기존 AssetExplorer 이동
+- [x] Scan History 탭: "Coming Soon" 플레이스홀더
+- [x] 탭 아이콘 추가 (lucide-react)
+- [x] 모든 테스트 통과 확인 (28/28)
 
-### 3.3 Blue (리팩토링)
-- [ ] 탭 컨텐츠 컴포넌트 분리
-- [ ] 반응형 레이아웃 검토
-- [ ] 로딩/에러 상태 처리 개선
+### 3.3 Blue (리팩토링) ✅
+- [x] OverviewTabContent 컴포넌트 분리
+- [x] HistoryTabContent 컴포넌트 분리
+- [x] 접근성 속성 완성 (aria-hidden)
 
 ---
 

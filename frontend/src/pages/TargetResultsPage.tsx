@@ -1,10 +1,12 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, LayoutDashboard, FolderTree, History } from 'lucide-react';
 import { parseNumericParam, isValidId } from '@/utils/params';
 import { useProject } from '@/hooks/useProjects';
 import { useTarget } from '@/hooks/useTargets';
 import { useTargetAssets } from '@/hooks/useAssets';
 import { AssetExplorer } from '@/components/features/asset/AssetExplorer';
+import { OverviewTabContent } from '@/components/features/target/tabs/OverviewTabContent';
+import { HistoryTabContent } from '@/components/features/target/tabs/HistoryTabContent';
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -13,6 +15,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -154,10 +157,48 @@ function TargetResultsContent({ projectId, targetId }: TargetResultsContentProps
         </a>
       </div>
 
-      {/* Assets Section */}
-      <div className="h-[calc(100vh-280px)] min-h-[400px] border rounded-md overflow-hidden mb-6">
-        <AssetExplorer assets={assets ?? []} targetUrl={target.url} isLoading={isAssetsLoading} />
-      </div>
+      {/* Tabs Section */}
+      <Tabs defaultValue="overview" className="mb-6">
+        <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+          <TabsTrigger value="overview" className="gap-2">
+            <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="assets" className="gap-2">
+            <FolderTree className="h-4 w-4" aria-hidden="true" />
+            Assets
+          </TabsTrigger>
+          <TabsTrigger value="history" className="gap-2">
+            <History className="h-4 w-4" aria-hidden="true" />
+            Scan History
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="mt-4">
+          <OverviewTabContent
+            projectId={projectId}
+            targetId={targetId}
+            targetName={target.name}
+          />
+        </TabsContent>
+
+        {/* Assets Tab */}
+        <TabsContent value="assets" className="mt-4">
+          <div className="h-[calc(100vh-320px)] min-h-[400px] border rounded-md overflow-hidden">
+            <AssetExplorer
+              assets={assets ?? []}
+              targetUrl={target.url}
+              isLoading={isAssetsLoading}
+            />
+          </div>
+        </TabsContent>
+
+        {/* Scan History Tab */}
+        <TabsContent value="history" className="mt-4">
+          <HistoryTabContent />
+        </TabsContent>
+      </Tabs>
 
       {/* Back to Project Button */}
       <div className="mt-6">
