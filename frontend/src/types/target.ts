@@ -27,6 +27,7 @@ export interface Target {
   scope: TargetScope;
   created_at: string;
   updated_at: string;
+  asset_count?: number;
 }
 
 /**

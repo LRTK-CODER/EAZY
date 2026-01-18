@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Loader2, Edit, Trash2, Play, BarChart } from 'lucide-react';
+import { Loader2, Edit, Trash2, BarChart } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { useTargets, useTriggerScan, targetKeys } from '@/hooks/useTargets';
+import { useTargets, targetKeys } from '@/hooks/useTargets';
 import { useLatestTasks } from '@/hooks/useTasks';
 import type { Target } from '@/types/target';
 import { Button } from '@/components/ui/button';
@@ -25,7 +24,7 @@ import {
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { EditTargetForm } from './EditTargetForm';
 import { DeleteTargetDialog } from './DeleteTargetDialog';
-import { ScanStatusBadge } from './ScanStatusBadge';
+import { TargetScanSummary } from './TargetScanSummary';
 
 interface TargetListProps {
   projectId: number;
@@ -51,7 +50,6 @@ const formatDate = (dateString: string) => {
 export function TargetList({ projectId }: TargetListProps) {
   const queryClient = useQueryClient();
   const { data: targets = [], isLoading, isError } = useTargets(projectId);
-  const triggerScan = useTriggerScan();
 
   // Batch fetch tasks for all targets (solves N+1 polling problem)
   const targetIds = useMemo(() => targets.map((t) => t.id), [targets]);
@@ -83,18 +81,6 @@ export function TargetList({ projectId }: TargetListProps) {
     setDeleteOpen(true);
   }, []);
 
-  const handleScan = useCallback(async (target: Target) => {
-    try {
-      await triggerScan.mutateAsync({
-        projectId: target.project_id,
-        targetId: target.id,
-      });
-      toast.success(`Scan started for ${target.name}`);
-    } catch {
-      toast.error(`Failed to start scan for ${target.name}`);
-    }
-  }, [triggerScan]);
-
   // Table with targets - show table structure even when loading/error/empty
   return (
     <>
@@ -106,7 +92,8 @@ export function TargetList({ projectId }: TargetListProps) {
                 <TableHead>Name</TableHead>
                 <TableHead>URL</TableHead>
                 <TableHead>Scope</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Assets</TableHead>
+                <TableHead>Last Scan</TableHead>
                 <TableHead>Created At</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -114,7 +101,7 @@ export function TargetList({ projectId }: TargetListProps) {
             <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={7} className="h-24 text-center">
                 <div className="flex items-center justify-center">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mr-2" />
                   <p className="text-sm text-muted-foreground">Loading targets...</p>
@@ -123,13 +110,13 @@ export function TargetList({ projectId }: TargetListProps) {
             </TableRow>
           ) : isError ? (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={7} className="h-24 text-center">
                 <p className="text-sm text-destructive">Error loading targets</p>
               </TableCell>
             </TableRow>
           ) : targets.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={7} className="h-24 text-center">
                 <p className="text-sm text-muted-foreground">No targets found</p>
               </TableCell>
             </TableRow>
@@ -143,8 +130,11 @@ export function TargetList({ projectId }: TargetListProps) {
                   {target.scope}
                 </Badge>
               </TableCell>
+              <TableCell className="text-muted-foreground">
+                {target.asset_count ?? 0}
+              </TableCell>
               <TableCell>
-                <ScanStatusBadge
+                <TargetScanSummary
                   task={tasksMap.get(target.id)}
                   isLoading={tasksLoading}
                 />
@@ -195,20 +185,6 @@ export function TargetList({ projectId }: TargetListProps) {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Delete</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleScan(target)}
-                          disabled={triggerScan.isPending}
-                        >
-                          <Play className="h-4 w-4" />
-                          <span className="sr-only">Scan target</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Scan</TooltipContent>
                     </Tooltip>
                   </div>
                 </TooltipProvider>

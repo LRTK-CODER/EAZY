@@ -45,3 +45,4 @@ class TargetRead(TargetBase):
     project_id: int
     created_at: datetime
     updated_at: datetime
+    asset_count: int = 0

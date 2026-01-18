@@ -1,3 +1,4 @@
+import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -6,7 +7,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { TargetList } from './TargetList';
 import * as targetService from '@/services/targetService';
 import * as useTasks from '@/hooks/useTasks';
-import { toast } from 'sonner';
 import type { Target, TargetScope } from '@/types/target';
 import type { Task, TaskStatus } from '@/types/task';
 
@@ -15,15 +15,6 @@ vi.mock('@/services/targetService');
 
 // Mock the useTasks hooks
 vi.mock('@/hooks/useTasks');
-
-// Mock sonner toast
-vi.mock('sonner', () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
-  Toaster: () => null,
-}));
 
 // Helper to render with providers
 const renderWithProviders = (ui: React.ReactElement) => {
@@ -50,7 +41,7 @@ const renderWithProviders = (ui: React.ReactElement) => {
   };
 };
 
-// Mock targets data
+// Mock targets data (with asset_count for Phase 4)
 const mockTargets: Target[] = [
   {
     id: 1,
@@ -61,6 +52,7 @@ const mockTargets: Target[] = [
     scope: 'DOMAIN' as TargetScope,
     created_at: '2026-01-01T10:00:00Z',
     updated_at: '2026-01-01T10:00:00Z',
+    asset_count: 42,
   },
   {
     id: 2,
@@ -71,6 +63,7 @@ const mockTargets: Target[] = [
     scope: 'SUBDOMAIN' as TargetScope,
     created_at: '2026-01-01T11:00:00Z',
     updated_at: '2026-01-01T11:00:00Z',
+    asset_count: 0,
   },
   {
     id: 3,
@@ -81,6 +74,7 @@ const mockTargets: Target[] = [
     scope: 'URL_ONLY' as TargetScope,
     created_at: '2026-01-01T12:00:00Z',
     updated_at: '2026-01-01T12:00:00Z',
+    asset_count: 156,
   },
 ];
 
@@ -140,6 +134,14 @@ describe('TargetList Component', () => {
       error: null,
     } as any);
 
+    // Mock useLatestTasks (plural) for batch task fetching
+    vi.mocked(useTasks.useLatestTasks).mockReturnValue({
+      tasksMap: new Map(),
+      isLoading: false,
+      hasActiveTasks: false,
+      queries: [],
+    } as any);
+
     // Mock useCancelTask by default
     vi.mocked(useTasks.useCancelTask).mockReturnValue({
       mutate: vi.fn(),
@@ -167,7 +169,8 @@ describe('TargetList Component', () => {
         expect(screen.getByText(/name/i)).toBeInTheDocument();
         expect(screen.getByText(/url/i)).toBeInTheDocument();
         expect(screen.getByText(/scope/i)).toBeInTheDocument();
-        expect(screen.getByText(/status/i)).toBeInTheDocument();
+        expect(screen.getByText(/assets/i)).toBeInTheDocument();
+        expect(screen.getByText(/last scan/i)).toBeInTheDocument();
         expect(screen.getByText(/created at/i)).toBeInTheDocument();
         expect(screen.getByText(/actions/i)).toBeInTheDocument();
       });
@@ -333,47 +336,19 @@ describe('TargetList Component', () => {
       });
     });
 
-    it('renders scan button in each row', async () => {
-      vi.mocked(targetService.getTargets).mockResolvedValue(mockTargets);
-
-      renderWithProviders(<TargetList projectId={1} />);
-
-      await waitFor(() => {
-        const scanButtons = screen.getAllByRole('button', { name: /scan/i });
-        expect(scanButtons).toHaveLength(mockTargets.length);
-      });
-    });
-
-    it('calls triggerScan when scan button is clicked', async () => {
-      const mockTriggerScan = vi.mocked(targetService.triggerScan).mockResolvedValue({
-        status: 'success',
-        task_id: 200,
-      });
-
-      vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
-
-      const { user } = renderWithProviders(<TargetList projectId={1} />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Target DOMAIN')).toBeInTheDocument();
-      });
-
-      const scanButton = screen.getByRole('button', { name: /scan/i });
-      await user.click(scanButton);
-
-      await waitFor(() => {
-        expect(mockTriggerScan).toHaveBeenCalledWith(1, 1);
-      });
-    });
+    // Note: Scan button tests removed in Phase 4 - scan functionality moved to Target detail page
   });
 
-  describe('Scan Status Badge', () => {
-    it('displays PENDING status badge correctly', async () => {
+  describe('Last Scan Status (TargetScanSummary)', () => {
+    it('displays PENDING status correctly', async () => {
       vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
-      vi.mocked(useTasks.useLatestTask).mockReturnValue({
-        data: mockPendingTask,
+      const tasksMap = new Map<number, Task>();
+      tasksMap.set(1, mockPendingTask);
+      vi.mocked(useTasks.useLatestTasks).mockReturnValue({
+        tasksMap,
         isLoading: false,
-        error: null,
+        hasActiveTasks: true,
+        queries: [],
       } as any);
 
       renderWithProviders(<TargetList projectId={1} />);
@@ -383,64 +358,69 @@ describe('TargetList Component', () => {
       });
     });
 
-    it('displays RUNNING status badge with loading icon', async () => {
+    it('displays RUNNING status with elapsed time', async () => {
       vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[1]]);
-      vi.mocked(useTasks.useLatestTask).mockReturnValue({
-        data: mockRunningTask,
+      const tasksMap = new Map<number, Task>();
+      tasksMap.set(2, { ...mockRunningTask, started_at: new Date().toISOString() });
+      vi.mocked(useTasks.useLatestTasks).mockReturnValue({
+        tasksMap,
         isLoading: false,
-        error: null,
+        hasActiveTasks: true,
+        queries: [],
       } as any);
 
       renderWithProviders(<TargetList projectId={1} />);
 
       await waitFor(() => {
-        const runningBadge = screen.getByText(/running/i);
-        expect(runningBadge).toBeInTheDocument();
-
-        // Check for loading icon (could be a spinner or similar)
-        const badgeContainer = runningBadge.closest('div');
-        expect(badgeContainer).toBeInTheDocument();
+        // TargetScanSummary shows elapsed time or Running status
+        expect(screen.getByRole('status')).toBeInTheDocument();
       });
     });
 
-    it('displays COMPLETED status badge with success indicator', async () => {
+    it('displays COMPLETED status correctly', async () => {
       vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[2]]);
-      vi.mocked(useTasks.useLatestTask).mockReturnValue({
-        data: mockCompletedTask,
+      const tasksMap = new Map<number, Task>();
+      tasksMap.set(3, mockCompletedTask);
+      vi.mocked(useTasks.useLatestTasks).mockReturnValue({
+        tasksMap,
         isLoading: false,
-        error: null,
+        hasActiveTasks: false,
+        queries: [],
       } as any);
 
       renderWithProviders(<TargetList projectId={1} />);
 
       await waitFor(() => {
-        const completedBadge = screen.getByText(/completed/i);
-        expect(completedBadge).toBeInTheDocument();
+        // TargetScanSummary shows relative time for completed tasks
+        expect(screen.getByRole('status')).toBeInTheDocument();
       });
     });
 
-    it('displays FAILED status badge with error indicator', async () => {
+    it('displays FAILED status correctly', async () => {
       vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
-      vi.mocked(useTasks.useLatestTask).mockReturnValue({
-        data: mockFailedTask,
+      const tasksMap = new Map<number, Task>();
+      tasksMap.set(1, mockFailedTask);
+      vi.mocked(useTasks.useLatestTasks).mockReturnValue({
+        tasksMap,
         isLoading: false,
-        error: null,
+        hasActiveTasks: false,
+        queries: [],
       } as any);
 
       renderWithProviders(<TargetList projectId={1} />);
 
       await waitFor(() => {
-        const failedBadge = screen.getByText(/failed/i);
-        expect(failedBadge).toBeInTheDocument();
+        expect(screen.getByText(/failed/i)).toBeInTheDocument();
       });
     });
 
-    it('shows no badge when no scan exists', async () => {
+    it('shows "-" when no scan exists', async () => {
       vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
-      vi.mocked(useTasks.useLatestTask).mockReturnValue({
-        data: null,
+      vi.mocked(useTasks.useLatestTasks).mockReturnValue({
+        tasksMap: new Map(),
         isLoading: false,
-        error: null,
+        hasActiveTasks: false,
+        queries: [],
       } as any);
 
       renderWithProviders(<TargetList projectId={1} />);
@@ -449,51 +429,8 @@ describe('TargetList Component', () => {
         expect(screen.getByText('Target DOMAIN')).toBeInTheDocument();
       });
 
-      // Should display "No scan" badge
-      expect(screen.getByText(/no scan/i)).toBeInTheDocument();
-    });
-  });
-
-  describe('Scan Success Notification', () => {
-    it('shows success toast after successful scan trigger', async () => {
-      vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
-      vi.mocked(targetService.triggerScan).mockResolvedValue({
-        status: 'success',
-        task_id: 200,
-      });
-
-      const { user } = renderWithProviders(<TargetList projectId={1} />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Target DOMAIN')).toBeInTheDocument();
-      });
-
-      const scanButton = screen.getByRole('button', { name: /scan/i });
-      await user.click(scanButton);
-
-      await waitFor(() => {
-        expect(toast.success).toHaveBeenCalledWith(expect.stringMatching(/scan.*started/i));
-      });
-    });
-
-    it('shows error toast when scan trigger fails', async () => {
-      vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
-      vi.mocked(targetService.triggerScan).mockRejectedValue(
-        new Error('Failed to trigger scan')
-      );
-
-      const { user } = renderWithProviders(<TargetList projectId={1} />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Target DOMAIN')).toBeInTheDocument();
-      });
-
-      const scanButton = screen.getByRole('button', { name: /scan/i });
-      await user.click(scanButton);
-
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/failed.*scan/i));
-      });
+      // TargetScanSummary shows "-" when no task exists
+      expect(screen.getByText('-')).toBeInTheDocument();
     });
   });
 
@@ -535,6 +472,146 @@ describe('TargetList Component', () => {
       // Should refetch targets
       await waitFor(() => {
         expect(mockGetTargets).toHaveBeenCalled();
+      });
+    });
+  });
+
+  // ============================================================================
+  // Phase 4: Column Structure Changes (TDD RED Phase)
+  // ============================================================================
+
+  describe('Phase 4: Column Headers', () => {
+    it('renders "Last Scan" header instead of "Status"', async () => {
+      vi.mocked(targetService.getTargets).mockResolvedValue(mockTargets);
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/last scan/i)).toBeInTheDocument();
+        // Status header should NOT be present
+        expect(screen.queryByRole('columnheader', { name: /^status$/i })).not.toBeInTheDocument();
+      });
+    });
+
+    it('renders "Assets" column header', async () => {
+      vi.mocked(targetService.getTargets).mockResolvedValue(mockTargets);
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/assets/i)).toBeInTheDocument();
+      });
+    });
+
+    it('renders all 7 column headers in correct order', async () => {
+      vi.mocked(targetService.getTargets).mockResolvedValue(mockTargets);
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        const headers = screen.getAllByRole('columnheader');
+        expect(headers).toHaveLength(7);
+        // Verify order: Name, URL, Scope, Assets, Last Scan, Created At, Actions
+        expect(headers[0]).toHaveTextContent(/name/i);
+        expect(headers[1]).toHaveTextContent(/url/i);
+        expect(headers[2]).toHaveTextContent(/scope/i);
+        expect(headers[3]).toHaveTextContent(/assets/i);
+        expect(headers[4]).toHaveTextContent(/last scan/i);
+        expect(headers[5]).toHaveTextContent(/created at/i);
+        expect(headers[6]).toHaveTextContent(/actions/i);
+      });
+    });
+  });
+
+  describe('Phase 4: Assets Column', () => {
+    it('displays asset_count for each target', async () => {
+      vi.mocked(targetService.getTargets).mockResolvedValue(mockTargets);
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('42')).toBeInTheDocument();
+        expect(screen.getByText('0')).toBeInTheDocument();
+        expect(screen.getByText('156')).toBeInTheDocument();
+      });
+    });
+
+    it('displays 0 when asset_count is undefined', async () => {
+      const targetWithoutAssetCount: Target = {
+        ...mockTargets[0],
+        asset_count: undefined,
+      };
+      vi.mocked(targetService.getTargets).mockResolvedValue([targetWithoutAssetCount]);
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        // Should display 0 as fallback
+        expect(screen.getByText('0')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Phase 4: Last Scan Column with TargetScanSummary', () => {
+    it('uses TargetScanSummary component (has role="status")', async () => {
+      vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
+      const tasksMap = new Map<number, Task>();
+      tasksMap.set(1, mockRunningTask);
+      vi.mocked(useTasks.useLatestTasks).mockReturnValue({
+        tasksMap,
+        isLoading: false,
+        hasActiveTasks: true,
+        queries: [],
+      } as any);
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        // TargetScanSummary renders with role="status"
+        expect(screen.getByRole('status')).toBeInTheDocument();
+      });
+    });
+
+    it('shows "-" when no task exists', async () => {
+      vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
+      vi.mocked(useTasks.useLatestTasks).mockReturnValue({
+        tasksMap: new Map(),
+        isLoading: false,
+        hasActiveTasks: false,
+        queries: [],
+      } as any);
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('-')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Phase 4: Scan Button Removed from Actions', () => {
+    it('does NOT render scan button in actions', async () => {
+      vi.mocked(targetService.getTargets).mockResolvedValue(mockTargets);
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        // Scan buttons should NOT exist
+        expect(screen.queryAllByRole('button', { name: /^scan$/i })).toHaveLength(0);
+      });
+    });
+
+    it('renders only View Results, Edit, Delete buttons in actions', async () => {
+      vi.mocked(targetService.getTargets).mockResolvedValue([mockTargets[0]]);
+
+      renderWithProviders(<TargetList projectId={1} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('link', { name: /view scan results/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
+        // Scan button should NOT exist
+        expect(screen.queryByRole('button', { name: /^scan$/i })).not.toBeInTheDocument();
       });
     });
   });

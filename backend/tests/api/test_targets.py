@@ -621,3 +621,160 @@ async def test_get_target_assets_sorted_by_last_seen_desc(
     assert timestamps == sorted(
         timestamps, reverse=True
     ), "Assets should be sorted by last_seen_at in descending order"
+
+
+# ============================================================================
+# Phase 4: Target Asset Count Tests (TDD RED Phase)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_read_targets_includes_asset_count(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Test: TargetRead 응답에 asset_count 필드가 포함되는지 확인."""
+    # Setup: Create Project + Target
+    proj_res = await client.post(
+        "/api/v1/projects/",
+        json={"name": "Asset Count Test Project", "description": "Testing asset_count"},
+    )
+    project_id = proj_res.json()["id"]
+
+    target_res = await client.post(
+        f"/api/v1/projects/{project_id}/targets/",
+        json={"name": "Test Target", "url": "https://example.com", "scope": "DOMAIN"},
+    )
+    target_id = target_res.json()["id"]
+
+    # Create Task
+    task = Task(
+        project_id=project_id, target_id=target_id, type="CRAWL", status="COMPLETED"
+    )
+    db_session.add(task)
+    await db_session.commit()
+    await db_session.refresh(task)
+
+    # Create 3 Assets
+    now = datetime.utcnow()
+    for i in range(3):
+        content_hash = hashlib.sha256(f"GET:https://example.com/page{i}".encode()).hexdigest()
+        asset = Asset(
+            target_id=target_id,
+            content_hash=content_hash,
+            type="URL",
+            source="HTML",
+            method="GET",
+            url=f"https://example.com/page{i}",
+            path=f"/page{i}",
+            first_seen_at=now,
+            last_seen_at=now,
+        )
+        db_session.add(asset)
+        await db_session.commit()
+        await db_session.refresh(asset)
+
+        discovery = AssetDiscovery(task_id=task.id, asset_id=asset.id)
+        db_session.add(discovery)
+
+    await db_session.commit()
+
+    # Execution: GET targets list
+    response = await client.get(f"/api/v1/projects/{project_id}/targets/")
+
+    # Assertions
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) >= 1
+
+    target_data = next((t for t in data if t["id"] == target_id), None)
+    assert target_data is not None, "Target should be in the list"
+    assert "asset_count" in target_data, "Response should include asset_count field"
+    assert target_data["asset_count"] == 3, f"Expected 3 assets, got {target_data.get('asset_count')}"
+
+
+@pytest.mark.asyncio
+async def test_read_targets_asset_count_zero_when_no_assets(client: AsyncClient):
+    """Test: Asset이 없는 경우 asset_count가 0인지 확인."""
+    # Setup: Create Project + Target (no Assets)
+    proj_res = await client.post(
+        "/api/v1/projects/",
+        json={"name": "Zero Asset Count Project"},
+    )
+    project_id = proj_res.json()["id"]
+
+    target_res = await client.post(
+        f"/api/v1/projects/{project_id}/targets/",
+        json={"name": "Empty Target", "url": "https://example.com", "scope": "DOMAIN"},
+    )
+    target_id = target_res.json()["id"]
+
+    # Execution: GET targets list
+    response = await client.get(f"/api/v1/projects/{project_id}/targets/")
+
+    # Assertions
+    assert response.status_code == 200
+    data = response.json()
+    target_data = next((t for t in data if t["id"] == target_id), None)
+    assert target_data is not None
+    assert "asset_count" in target_data, "Response should include asset_count field"
+    assert target_data["asset_count"] == 0, f"Expected 0 assets, got {target_data.get('asset_count')}"
+
+
+@pytest.mark.asyncio
+async def test_read_single_target_includes_asset_count(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Test: 단일 Target 조회 시에도 asset_count 포함."""
+    # Setup: Create Project + Target
+    proj_res = await client.post(
+        "/api/v1/projects/",
+        json={"name": "Single Target Asset Count Project"},
+    )
+    project_id = proj_res.json()["id"]
+
+    target_res = await client.post(
+        f"/api/v1/projects/{project_id}/targets/",
+        json={"name": "Single Target", "url": "https://example.com", "scope": "DOMAIN"},
+    )
+    target_id = target_res.json()["id"]
+
+    # Create Task
+    task = Task(
+        project_id=project_id, target_id=target_id, type="CRAWL", status="COMPLETED"
+    )
+    db_session.add(task)
+    await db_session.commit()
+    await db_session.refresh(task)
+
+    # Create 5 Assets
+    now = datetime.utcnow()
+    for i in range(5):
+        content_hash = hashlib.sha256(f"GET:https://example.com/single{i}".encode()).hexdigest()
+        asset = Asset(
+            target_id=target_id,
+            content_hash=content_hash,
+            type="URL",
+            source="HTML",
+            method="GET",
+            url=f"https://example.com/single{i}",
+            path=f"/single{i}",
+            first_seen_at=now,
+            last_seen_at=now,
+        )
+        db_session.add(asset)
+        await db_session.commit()
+        await db_session.refresh(asset)
+
+        discovery = AssetDiscovery(task_id=task.id, asset_id=asset.id)
+        db_session.add(discovery)
+
+    await db_session.commit()
+
+    # Execution: GET single target
+    response = await client.get(f"/api/v1/projects/{project_id}/targets/{target_id}")
+
+    # Assertions
+    assert response.status_code == 200
+    data = response.json()
+    assert "asset_count" in data, "Response should include asset_count field"
+    assert data["asset_count"] == 5, f"Expected 5 assets, got {data.get('asset_count')}"

@@ -1,11 +1,13 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func
+from sqlmodel import select
 
 from app.core.db import get_session
 from app.models.project import ProjectCreate, ProjectRead, ProjectUpdate
-from app.models.target import TargetCreate, TargetRead, TargetUpdate
-from app.models.asset import AssetRead
+from app.models.target import Target, TargetCreate, TargetRead, TargetUpdate
+from app.models.asset import Asset, AssetRead
 from app.services.project_service import ProjectService
 from app.services.target_service import TargetService
 
@@ -118,8 +120,43 @@ async def read_targets(
     if not await project_service.get_project(project_id):
         raise HTTPException(status_code=404, detail="Project not found")
 
-    service = TargetService(session)
-    return await service.get_targets(project_id, skip=skip, limit=limit)
+    # Subquery for asset count
+    asset_count_subq = (
+        select(func.count(Asset.id))
+        .where(Asset.target_id == Target.id)
+        .correlate(Target)
+        .scalar_subquery()
+    )
+
+    # Query targets with asset_count
+    statement = (
+        select(Target, asset_count_subq.label("asset_count"))
+        .where(Target.project_id == project_id)
+        .offset(skip)
+        .limit(limit)
+    )
+
+    results = await session.exec(statement)
+
+    # Convert to TargetRead with asset_count
+    targets_with_count = []
+    for row in results:
+        target = row[0]
+        count = row[1] or 0
+        target_dict = {
+            "id": target.id,
+            "project_id": target.project_id,
+            "name": target.name,
+            "url": target.url,
+            "description": target.description,
+            "scope": target.scope,
+            "created_at": target.created_at,
+            "updated_at": target.updated_at,
+            "asset_count": count,
+        }
+        targets_with_count.append(TargetRead(**target_dict))
+
+    return targets_with_count
 
 
 @router.get("/{project_id}/targets/{target_id}", response_model=TargetRead)
@@ -142,7 +179,23 @@ async def read_target(
     if target.project_id != project_id:
         raise HTTPException(status_code=404, detail="Target not found")
 
-    return target
+    # Calculate asset count
+    count_stmt = select(func.count(Asset.id)).where(Asset.target_id == target_id)
+    count_result = await session.exec(count_stmt)
+    asset_count = count_result.one() or 0
+
+    # Return TargetRead with asset_count
+    return TargetRead(
+        id=target.id,
+        project_id=target.project_id,
+        name=target.name,
+        url=target.url,
+        description=target.description,
+        scope=target.scope,
+        created_at=target.created_at,
+        updated_at=target.updated_at,
+        asset_count=asset_count,
+    )
 
 
 @router.get("/{project_id}/targets/{target_id}/assets", response_model=List[AssetRead])
