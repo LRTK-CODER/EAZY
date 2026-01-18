@@ -11,7 +11,7 @@ Usage:
 """
 
 from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 from app.core.config import settings
 from app.core.structured_logger import get_logger

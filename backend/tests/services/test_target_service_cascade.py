@@ -8,10 +8,10 @@ import pytest
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.models.asset import Asset, AssetDiscovery, AssetSource, AssetType
 from app.models.project import Project
 from app.models.target import Target, TargetScope
 from app.models.task import Task, TaskStatus, TaskType
-from app.models.asset import Asset, AssetDiscovery, AssetType, AssetSource
 from app.services.target_service import TargetService
 
 

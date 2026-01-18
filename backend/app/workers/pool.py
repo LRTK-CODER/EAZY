@@ -19,18 +19,16 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
 from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-from app.core.config import settings
-from app.core.errors import classify_error, ErrorCategory
-from app.core.structured_logger import get_logger
 
 # Import all models to register them with SQLAlchemy metadata
 # This is required for foreign key relationships to work correctly
 import app.models  # noqa: F401
-
+from app.core.config import settings
+from app.core.errors import ErrorCategory, classify_error
 from app.core.queue import TaskManager
+from app.core.structured_logger import get_logger
 from app.workers.runner import create_worker_context, process_one_task
 
 if TYPE_CHECKING:

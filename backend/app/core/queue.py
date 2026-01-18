@@ -16,20 +16,19 @@ import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from redis.asyncio import Redis
 
-from app.models.task import TaskType
 from app.core.priority import (
-    TaskPriority,
-    AgingConfig,
-    get_queue_key,
-    get_next_priority,
     PRIORITY_ORDER,
+    AgingConfig,
+    TaskPriority,
+    get_next_priority,
+    get_queue_key,
 )
 from app.core.utils.json_parser import SafeJsonParser
-
+from app.models.task import TaskType
 
 logger = logging.getLogger(__name__)
 

@@ -3,8 +3,9 @@ Phase 3 Day 1: BaseWorker + WorkerContext 테스트
 TDD RED 단계 - 이 테스트들은 base.py 구현 전에 실패해야 함
 """
 
-import pytest
 from unittest.mock import AsyncMock
+
+import pytest
 
 
 class TestWorkerContext:
@@ -128,8 +129,9 @@ class TestTaskResult:
 
     def test_task_result_to_json(self):
         """TaskResult should serialize data to JSON"""
-        from app.workers.base import TaskResult
         import json
+
+        from app.workers.base import TaskResult
 
         result = TaskResult.create_success({"count": 42})
         json_str = result.to_json()
@@ -182,7 +184,7 @@ class TestBaseWorker:
         self, db_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery
     ):
         """Subclass must define task_type property"""
-        from app.workers.base import BaseWorker, WorkerContext, TaskResult
+        from app.workers.base import BaseWorker, TaskResult, WorkerContext
 
         context = WorkerContext(
             session=db_session,
@@ -204,10 +206,10 @@ class TestBaseWorker:
         self, db_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery
     ):
         """process() should update task status to RUNNING"""
-        from app.workers.base import BaseWorker, WorkerContext, TaskResult
-        from app.models.task import Task, TaskStatus, TaskType
         from app.models.project import Project
         from app.models.target import Target
+        from app.models.task import Task, TaskStatus, TaskType
+        from app.workers.base import BaseWorker, TaskResult, WorkerContext
 
         context = WorkerContext(
             session=db_session,
@@ -270,10 +272,10 @@ class TestBaseWorker:
         self, db_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery
     ):
         """process() should call subclass execute() method"""
-        from app.workers.base import BaseWorker, WorkerContext, TaskResult
-        from app.models.task import Task, TaskStatus, TaskType
         from app.models.project import Project
         from app.models.target import Target
+        from app.models.task import Task, TaskStatus, TaskType
+        from app.workers.base import BaseWorker, TaskResult, WorkerContext
 
         context = WorkerContext(
             session=db_session,
@@ -334,10 +336,10 @@ class TestBaseWorker:
         self, db_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery
     ):
         """process() should ACK task on successful execution"""
-        from app.workers.base import BaseWorker, WorkerContext, TaskResult
-        from app.models.task import Task, TaskStatus, TaskType
         from app.models.project import Project
         from app.models.target import Target
+        from app.models.task import Task, TaskStatus, TaskType
+        from app.workers.base import BaseWorker, TaskResult, WorkerContext
 
         context = WorkerContext(
             session=db_session,
@@ -395,10 +397,10 @@ class TestBaseWorker:
         self, db_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery
     ):
         """process() should send heartbeat during execution"""
-        from app.workers.base import BaseWorker, WorkerContext, TaskResult
-        from app.models.task import Task, TaskStatus, TaskType
         from app.models.project import Project
         from app.models.target import Target
+        from app.models.task import Task, TaskStatus, TaskType
+        from app.workers.base import BaseWorker, TaskResult, WorkerContext
 
         context = WorkerContext(
             session=db_session,
@@ -461,10 +463,10 @@ class TestSkippedTaskHandling:
         self, db_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery
     ):
         """Skipped 결과는 ACK가 아닌 NACK 호출해야 함"""
-        from app.workers.base import BaseWorker, WorkerContext, TaskResult
-        from app.models.task import Task, TaskStatus, TaskType
         from app.models.project import Project
         from app.models.target import Target
+        from app.models.task import Task, TaskStatus, TaskType
+        from app.workers.base import BaseWorker, TaskResult, WorkerContext
 
         context = WorkerContext(
             session=db_session,
@@ -530,10 +532,10 @@ class TestSkippedTaskHandling:
         self, db_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery
     ):
         """Skipped 결과는 DB 상태를 FAILED로 변경하지 않아야 함"""
-        from app.workers.base import BaseWorker, WorkerContext, TaskResult
-        from app.models.task import Task, TaskStatus, TaskType
         from app.models.project import Project
         from app.models.target import Target
+        from app.models.task import Task, TaskStatus, TaskType
+        from app.workers.base import BaseWorker, TaskResult, WorkerContext
 
         context = WorkerContext(
             session=db_session,
@@ -593,10 +595,10 @@ class TestSkippedTaskHandling:
         self, db_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery
     ):
         """Skipped 결과에서도 heartbeat는 정리되어야 함"""
-        from app.workers.base import BaseWorker, WorkerContext, TaskResult
-        from app.models.task import Task, TaskStatus, TaskType
         from app.models.project import Project
         from app.models.target import Target
+        from app.models.task import Task, TaskStatus, TaskType
+        from app.workers.base import BaseWorker, TaskResult, WorkerContext
 
         context = WorkerContext(
             session=db_session,

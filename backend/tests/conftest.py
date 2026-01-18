@@ -1,15 +1,16 @@
-import pytest
 from typing import AsyncGenerator
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel.ext.asyncio.session import AsyncSession
-from httpx import AsyncClient, ASGITransport
-from redis.asyncio import Redis
 
-from app.main import app
 from app.core.config import settings
 from app.core.db import get_session
 from app.core.redis import get_redis
+from app.main import app
 
 
 @pytest.fixture(scope="function")

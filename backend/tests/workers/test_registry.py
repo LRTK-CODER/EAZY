@@ -6,7 +6,7 @@ TDD RED 단계 - 이 테스트들은 registry.py 구현 전에 실패해야 함
 import pytest
 
 from app.models.task import TaskType
-from app.workers.base import BaseWorker, WorkerContext, TaskResult
+from app.workers.base import BaseWorker, TaskResult, WorkerContext
 
 
 class TestWorkerRegistry:
@@ -20,8 +20,8 @@ class TestWorkerRegistry:
 
     def test_registry_has_crawl_worker(self):
         """WORKER_REGISTRY should map TaskType.CRAWL to CrawlWorker"""
-        from app.workers.registry import WORKER_REGISTRY
         from app.workers.crawl_worker import CrawlWorker
+        from app.workers.registry import WORKER_REGISTRY
 
         assert TaskType.CRAWL in WORKER_REGISTRY
         assert WORKER_REGISTRY[TaskType.CRAWL] == CrawlWorker
@@ -41,8 +41,8 @@ class TestGetWorkerClass:
 
     def test_get_worker_class_for_crawl(self):
         """get_worker_class(TaskType.CRAWL) should return CrawlWorker"""
-        from app.workers.registry import get_worker_class
         from app.workers.crawl_worker import CrawlWorker
+        from app.workers.registry import get_worker_class
 
         worker_class = get_worker_class(TaskType.CRAWL)
 
@@ -59,8 +59,8 @@ class TestGetWorkerClass:
 
     def test_get_worker_class_accepts_string(self):
         """get_worker_class should accept string task type"""
-        from app.workers.registry import get_worker_class
         from app.workers.crawl_worker import CrawlWorker
+        from app.workers.registry import get_worker_class
 
         worker_class = get_worker_class("crawl")
 
@@ -133,8 +133,8 @@ class TestCreateWorker:
         self, db_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery
     ):
         """create_worker() should return worker instance"""
-        from app.workers.registry import create_worker
         from app.workers.crawl_worker import CrawlWorker
+        from app.workers.registry import create_worker
 
         context = WorkerContext(
             session=db_session,

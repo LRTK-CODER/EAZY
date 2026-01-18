@@ -6,6 +6,7 @@ Expected to FAIL: 404 Not Found for /tasks/{id}/cancel endpoint
 import pytest
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
+
 from app.models.task import TaskStatus
 
 
@@ -55,9 +56,10 @@ async def test_cancel_running_task_succeeds(
     task_id = resp.json()["task_id"]
 
     # Manually update task to RUNNING status
-    from app.models.task import Task
-    from app.core.utils import utc_now
     from sqlmodel import select
+
+    from app.core.utils import utc_now
+    from app.models.task import Task
 
     result = await db_session.exec(select(Task).where(Task.id == task_id))
     task = result.one()
@@ -125,9 +127,10 @@ async def test_cancel_completed_task_fails(
     task_id = resp.json()["task_id"]
 
     # Manually update task to COMPLETED status
-    from app.models.task import Task
-    from app.core.utils import utc_now
     from sqlmodel import select
+
+    from app.core.utils import utc_now
+    from app.models.task import Task
 
     result = await db_session.exec(select(Task).where(Task.id == task_id))
     task = result.one()

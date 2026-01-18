@@ -5,13 +5,14 @@ Worker의 ACK/NACK 패턴, 에러 처리, 재시도 로직을 검증합니다.
 """
 
 import json
-import pytest
 from unittest.mock import patch
+
+import pytest
 from redis.asyncio import Redis
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.core.queue import TaskManager
 from app.core.errors import ErrorCategory
+from app.core.queue import TaskManager
 from app.models.task import TaskStatus
 
 
@@ -227,8 +228,8 @@ class TestRecoveryIntegration:
     @pytest.mark.asyncio
     async def test_orphan_recovery_flow(self, redis_client: Redis, clean_all_queues):
         """고아 작업 복구 전체 흐름 테스트"""
-        from app.core.recovery import OrphanRecovery
         from app.core.queue import TaskManager
+        from app.core.recovery import OrphanRecovery
 
         tm = TaskManager(redis_client)
         recovery = OrphanRecovery(redis_client)

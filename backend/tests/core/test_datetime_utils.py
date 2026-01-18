@@ -4,7 +4,7 @@ TDD Step 1: RED - Tests written before implementation.
 These tests verify utc_now() and utc_now_tz() functions.
 """
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 class TestUtcNow:

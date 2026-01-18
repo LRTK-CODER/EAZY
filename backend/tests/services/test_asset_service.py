@@ -1,14 +1,12 @@
 import pytest
-from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.services.asset_service import AssetService
-from app.models.task import Task
-from app.models.asset import AssetDiscovery, AssetType, AssetSource
-
+from app.models.asset import AssetDiscovery, AssetSource, AssetType
 from app.models.project import Project
 from app.models.target import Target, TargetScope
-from app.models.task import TaskType
+from app.models.task import Task, TaskType
+from app.services.asset_service import AssetService
 
 
 @pytest.mark.asyncio

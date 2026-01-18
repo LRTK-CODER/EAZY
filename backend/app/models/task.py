@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import Optional
-from sqlmodel import Field, SQLModel, Column
-from sqlalchemy import ForeignKey
 from enum import Enum
+from typing import Optional
+
+from sqlalchemy import ForeignKey
+from sqlmodel import Column, Field, SQLModel
 
 from app.core.utils import utc_now
 

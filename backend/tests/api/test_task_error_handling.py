@@ -5,10 +5,11 @@ Tests for proper HTTP status code mapping from custom exceptions.
 Expected to FAIL initially - this is TDD RED phase.
 """
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
-from unittest.mock import patch, AsyncMock
 
 from app.models.task import TaskStatus
 
@@ -105,9 +106,10 @@ class TestDuplicateScanError:
         POST /projects/{id}/targets/{id}/scan when a RUNNING task exists
         should return 409 Conflict.
         """
-        from app.models.task import Task
-        from app.core.utils import utc_now
         from sqlmodel import select
+
+        from app.core.utils import utc_now
+        from app.models.task import Task
 
         # Setup
         resp = await client.post("/api/v1/projects/", json={"name": "Running Dup Proj"})
@@ -148,9 +150,10 @@ class TestDuplicateScanError:
         POST /projects/{id}/targets/{id}/scan when previous task is COMPLETED
         should succeed with 202.
         """
-        from app.models.task import Task
-        from app.core.utils import utc_now
         from sqlmodel import select
+
+        from app.core.utils import utc_now
+        from app.models.task import Task
 
         # Setup
         resp = await client.post(

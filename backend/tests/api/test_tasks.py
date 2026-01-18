@@ -1,6 +1,7 @@
 import pytest
 from httpx import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
+
 from app.models.task import TaskStatus
 
 
@@ -94,12 +95,11 @@ async def test_get_task_assets(client: AsyncClient, db_session: AsyncSession):
     task_id = resp.json()["task_id"]
 
     # 2. Mock some assets (manually insert to DB for this task)
-    from app.models.asset import Asset, AssetType, AssetSource, AssetDiscovery
     from app.core.utils import utc_now
+    from app.models.asset import Asset, AssetDiscovery, AssetSource, AssetType
 
     # We need the task_id (DB ID) to link AssetDiscovery.
     # The API returns task_id (DB ID).
-
     # Create Asset
     asset = Asset(
         target_id=target_id,

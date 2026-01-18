@@ -5,9 +5,10 @@ TDD tests for WorkerPool aging task that promotes aged tasks periodically.
 """
 
 import asyncio
-import pytest
-from unittest.mock import AsyncMock, patch
 import os
+from unittest.mock import AsyncMock, patch
+
+import pytest
 
 
 class TestAgingTaskConfig:
@@ -361,11 +362,12 @@ class TestAgingTaskIntegration:
     @pytest.mark.asyncio
     async def test_aging_promotes_old_tasks(self, redis_client):
         """E2E test: aging should actually promote old tasks."""
-        from app.core.queue import TaskManager
-        from app.core.priority import TaskPriority, AgingConfig
-        from datetime import datetime, timezone, timedelta
         import json
         import uuid
+        from datetime import datetime, timedelta, timezone
+
+        from app.core.priority import AgingConfig, TaskPriority
+        from app.core.queue import TaskManager
 
         # Use unique queue prefix to avoid interference from Docker workers
         test_id = uuid.uuid4().hex[:8]

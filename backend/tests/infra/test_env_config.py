@@ -7,7 +7,6 @@ TDD RED Phase - 테스트 작성
 
 from pathlib import Path
 
-
 # 프로젝트 루트 경로
 # tests/infra/test_env_config.py → backend/tests/infra/test_env_config.py
 # parent.parent.parent = backend/

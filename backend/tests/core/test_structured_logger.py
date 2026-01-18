@@ -8,11 +8,7 @@ Red Phase: 테스트 먼저 작성
 import io
 from unittest.mock import patch
 
-from app.core.structured_logger import (
-    configure_logging,
-    get_logger,
-    LogFormat,
-)
+from app.core.structured_logger import LogFormat, configure_logging, get_logger
 
 
 class TestStructuredLoggerConfiguration:

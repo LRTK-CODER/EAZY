@@ -9,21 +9,19 @@ Provides the main worker loop and utilities for processing tasks.
 import asyncio
 
 from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-from app.core.config import settings
-from app.core.queue import TaskManager
-from app.core.dlq import DLQManager
-from app.core.recovery import OrphanRecovery
-from app.core.structured_logger import get_logger
-from app.workers.base import WorkerContext
 
 # Import all models to register them with SQLAlchemy metadata
 # This is required for foreign key relationships to work correctly
 import app.models  # noqa: F401
-from app.workers.registry import get_worker_class, create_worker
-
+from app.core.config import settings
+from app.core.dlq import DLQManager
+from app.core.queue import TaskManager
+from app.core.recovery import OrphanRecovery
+from app.core.structured_logger import get_logger
+from app.workers.base import WorkerContext
+from app.workers.registry import create_worker, get_worker_class
 
 logger = get_logger(__name__)
 

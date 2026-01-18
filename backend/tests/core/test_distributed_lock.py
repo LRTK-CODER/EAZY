@@ -6,9 +6,9 @@ Day 3: 분산 잠금 시스템
 """
 
 import asyncio
+
 import pytest
 from redis.asyncio import Redis
-
 
 # =============================================================================
 # Fixtures
@@ -318,8 +318,9 @@ class TestLockInfo:
 
     def test_lock_key_format(self):
         """잠금 키 형식 확인"""
-        from app.core.lock import DistributedLock
         from unittest.mock import MagicMock
+
+        from app.core.lock import DistributedLock
 
         mock_redis = MagicMock()
         lock = DistributedLock(mock_redis, "target:123")
@@ -328,8 +329,9 @@ class TestLockInfo:
 
     def test_custom_prefix(self):
         """커스텀 접두사 확인"""
-        from app.core.lock import DistributedLock
         from unittest.mock import MagicMock
+
+        from app.core.lock import DistributedLock
 
         mock_redis = MagicMock()
         lock = DistributedLock(mock_redis, "target:456", prefix="custom:")
@@ -338,8 +340,9 @@ class TestLockInfo:
 
     def test_token_is_unique(self):
         """토큰이 고유한지 확인"""
-        from app.core.lock import DistributedLock
         from unittest.mock import MagicMock
+
+        from app.core.lock import DistributedLock
 
         mock_redis = MagicMock()
         lock1 = DistributedLock(mock_redis, "target:789")

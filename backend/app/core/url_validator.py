@@ -23,7 +23,6 @@ from urllib.parse import urlparse
 
 from app.core.exceptions import UnsafeUrlError
 
-
 # SSRF Prevention - Blocked schemes and hosts
 BLOCKED_SCHEMES: frozenset[str] = frozenset({"file", "gopher", "ftp", "data"})
 BLOCKED_HOSTS: frozenset[str] = frozenset({"localhost", "127.0.0.1", "::1", "[::1]"})

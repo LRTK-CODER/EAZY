@@ -7,7 +7,6 @@ Frontend Dockerfile 및 Nginx 설정 검증
 
 from pathlib import Path
 
-
 # 프로젝트 경로
 BACKEND_ROOT = Path(__file__).parent.parent.parent  # backend/
 PROJECT_ROOT = BACKEND_ROOT.parent  # EAZY/

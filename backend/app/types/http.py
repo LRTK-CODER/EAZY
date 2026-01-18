@@ -4,7 +4,7 @@ HTTP Type Definitions - TypedDict for HTTP request/response data structures.
 이 모듈은 크롤러와 Asset 서비스에서 사용하는 HTTP 데이터 구조를 정의합니다.
 """
 
-from typing import TypedDict, Dict, Optional, Union, Any
+from typing import Any, Dict, Optional, TypedDict, Union
 
 
 class HttpRequestData(TypedDict):

@@ -3,8 +3,10 @@ Test 5-Imp.18: CrawlerService HTTP Interception Tests (RED Phase)
 Expected to FAIL: CrawlerService doesn't register page event handlers yet
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from app.services.crawler_service import CrawlerService
 
 

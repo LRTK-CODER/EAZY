@@ -5,7 +5,7 @@ Sprint 1.1: JSON 파싱 안정화
 Red Phase: 테스트 먼저 작성
 """
 
-from app.core.utils.json_parser import SafeJsonParser, JsonParseResult
+from app.core.utils.json_parser import JsonParseResult, SafeJsonParser
 
 
 class TestSafeJsonParser:

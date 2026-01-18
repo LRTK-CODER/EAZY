@@ -3,14 +3,16 @@ Test 5-Imp.34: Worker Parameter Integration Tests (RED Phase)
 Expected to FAIL: Worker doesn't auto-extract URL parameters yet
 """
 
-import pytest
 from unittest.mock import AsyncMock, patch
-from sqlmodel.ext.asyncio.session import AsyncSession
+
+import pytest
 from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+from app.models.asset import Asset
 from app.models.project import Project
 from app.models.target import Target, TargetScope
-from app.models.task import Task, TaskType, TaskStatus
-from app.models.asset import Asset
+from app.models.task import Task, TaskStatus, TaskType
 
 
 @pytest.mark.asyncio

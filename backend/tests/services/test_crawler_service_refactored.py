@@ -5,16 +5,16 @@ content parsing to the ResponseParserRegistry and its registered parsers.
 """
 
 import base64
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.services.crawler_service import CrawlerService
 from app.services.parsers import (
-    ResponseParserRegistry,
-    JsonResponseParser,
     HtmlResponseParser,
     ImageResponseParser,
+    JsonResponseParser,
+    ResponseParserRegistry,
 )
 
 

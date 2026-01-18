@@ -8,6 +8,7 @@ Tests:
 """
 
 import json
+
 import pytest
 from redis.asyncio import Redis
 

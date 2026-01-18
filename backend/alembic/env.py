@@ -4,14 +4,10 @@ from logging.config import fileConfig
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlmodel import SQLModel
 
 from alembic import context
-from sqlmodel import SQLModel
 from app.core.config import settings
-from app.models.project import Project  # Import models to register metadata
-from app.models.target import Target
-from app.models.task import Task
-from app.models.asset import Asset, AssetDiscovery
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

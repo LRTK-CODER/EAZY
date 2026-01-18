@@ -93,7 +93,10 @@ class DistributedLock:
             False: 이미 다른 클라이언트가 점유 중
         """
         result = await self.redis.set(
-            self.lock_key, self.token, nx=True, ex=self.ttl  # 존재하지 않을 때만
+            self.lock_key,
+            self.token,
+            nx=True,
+            ex=self.ttl,  # 존재하지 않을 때만
         )
         self._acquired = result is not None
         return self._acquired

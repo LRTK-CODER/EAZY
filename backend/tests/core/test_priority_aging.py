@@ -9,12 +9,13 @@ Tests:
 """
 
 import json
-import pytest
 from datetime import datetime, timedelta, timezone
+
+import pytest
 from redis.asyncio import Redis
 
-from app.core.queue import TaskManager
 from app.core.priority import TaskPriority
+from app.core.queue import TaskManager
 
 
 @pytest.fixture

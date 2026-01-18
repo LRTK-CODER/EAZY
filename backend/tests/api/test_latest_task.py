@@ -44,9 +44,10 @@ async def test_get_latest_task_returns_most_recent(
     client: AsyncClient, db_session: AsyncSession
 ):
     """Test returns most recent task (ORDER BY created_at DESC) - RED Phase"""
-    from app.models.task import Task, TaskStatus
-    from app.core.utils import utc_now
     from sqlmodel import select
+
+    from app.core.utils import utc_now
+    from app.models.task import Task, TaskStatus
 
     # Setup
     resp = await client.post("/api/v1/projects/", json={"name": "Recent Task Proj"})

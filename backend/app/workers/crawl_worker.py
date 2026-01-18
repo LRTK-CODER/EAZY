@@ -13,18 +13,17 @@ from urllib.parse import urlparse
 
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.workers.base import BaseWorker, WorkerContext, TaskResult
-from app.models.task import Task, TaskType
-from app.models.target import Target
-from app.models.asset import AssetType, AssetSource
-from app.services.crawler_service import CrawlerService
-from app.services.asset_service import AssetService
-from app.services.interfaces import ICrawler
+from app.core.constants import CANCELLATION_CHECK_INTERVAL, LOCK_PREFIX, LOCK_TTL
+from app.core.exceptions import TargetNotFoundError
 from app.core.lock import DistributedLock
 from app.core.structured_logger import get_logger
-from app.core.constants import CANCELLATION_CHECK_INTERVAL, LOCK_TTL, LOCK_PREFIX
-from app.core.exceptions import TargetNotFoundError
-
+from app.models.asset import AssetSource, AssetType
+from app.models.target import Target
+from app.models.task import Task, TaskType
+from app.services.asset_service import AssetService
+from app.services.crawler_service import CrawlerService
+from app.services.interfaces import ICrawler
+from app.workers.base import BaseWorker, TaskResult, WorkerContext
 
 logger = get_logger(__name__)
 

@@ -1,9 +1,10 @@
 from typing import List, Optional
+
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.project import Project, ProjectCreate, ProjectUpdate
 from app.core.utils import utc_now
+from app.models.project import Project, ProjectCreate, ProjectUpdate
 
 
 class ProjectService:

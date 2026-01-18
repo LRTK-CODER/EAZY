@@ -1,11 +1,11 @@
 import pytest
 from httpx import AsyncClient
-from sqlmodel.ext.asyncio.session import AsyncSession
 from redis.asyncio import Redis
+from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.queue import TaskManager
 from app.models.task import TaskStatus
 from app.worker import process_one_task
-from app.core.queue import TaskManager
 
 
 @pytest.mark.asyncio

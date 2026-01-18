@@ -14,19 +14,20 @@ import asyncio
 import json
 import logging
 import warnings
+
 from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from app.core.config import settings
 from app.core.queue import TaskManager
+from app.core.utils import utc_now
+from app.models.asset import AssetSource, AssetType
 from app.models.target import Target
 from app.models.task import Task, TaskStatus, TaskType
-from app.core.utils import utc_now
-from app.models.asset import AssetType, AssetSource
-from app.services.crawler_service import CrawlerService
 from app.services.asset_service import AssetService
+from app.services.crawler_service import CrawlerService
 
 # Emit deprecation warning on import
 warnings.warn(

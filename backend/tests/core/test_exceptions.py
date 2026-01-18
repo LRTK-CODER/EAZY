@@ -69,7 +69,7 @@ class TestDuplicateScanError:
 
     def test_duplicate_scan_error_inheritance(self):
         """DuplicateScanError가 ScanError를 상속하는지 확인"""
-        from app.core.exceptions import ScanError, DuplicateScanError
+        from app.core.exceptions import DuplicateScanError, ScanError
 
         assert issubclass(DuplicateScanError, ScanError)
 
@@ -141,7 +141,7 @@ class TestExceptionCatching:
 
     def test_catch_duplicate_scan_as_scan_error(self):
         """DuplicateScanError를 ScanError로 catch 가능한지 확인"""
-        from app.core.exceptions import ScanError, DuplicateScanError
+        from app.core.exceptions import DuplicateScanError, ScanError
 
         try:
             raise DuplicateScanError(target_id=1)

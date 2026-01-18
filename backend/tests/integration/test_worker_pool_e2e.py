@@ -6,14 +6,14 @@ WorkerPool + DistributedLock + CrawlWorker 전체 통합 검증
 """
 
 import asyncio
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from redis.asyncio import Redis
 
-from app.workers.pool import WorkerPool, WorkerPoolConfig
-from app.workers.base import TaskResult
 from app.core.lock import DistributedLock, LockAcquisitionError
-
+from app.workers.base import TaskResult
+from app.workers.pool import WorkerPool, WorkerPoolConfig
 
 # =============================================================================
 # Fixtures
@@ -305,7 +305,7 @@ class TestErrorHandlingIntegration:
 
     def test_error_category_classification(self):
         """에러 분류 테스트"""
-        from app.core.errors import classify_error, ErrorCategory
+        from app.core.errors import ErrorCategory, classify_error
 
         # 연결 에러는 RETRYABLE
         conn_error = ConnectionError("Connection refused")
@@ -349,7 +349,7 @@ class TestComponentExports:
 
     def test_crawl_worker_lock_constants(self):
         """crawl_worker 잠금 상수"""
-        from app.core.constants import LOCK_TTL, LOCK_PREFIX
+        from app.core.constants import LOCK_PREFIX, LOCK_TTL
 
         assert LOCK_TTL == 600
         assert LOCK_PREFIX == "eazy:lock:"

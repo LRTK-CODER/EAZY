@@ -3,13 +3,14 @@ Phase 3 Day 4: Worker Runner 테스트
 TDD RED 단계 - 이 테스트들은 runner.py 구현 전에 실패해야 함
 """
 
-import pytest
-from unittest.mock import AsyncMock, patch
 import json
+from unittest.mock import AsyncMock, patch
 
-from app.models.task import Task, TaskStatus, TaskType
+import pytest
+
 from app.models.project import Project
 from app.models.target import Target
+from app.models.task import Task, TaskStatus, TaskType
 from app.workers.base import WorkerContext
 
 
@@ -62,8 +63,8 @@ class TestProcessOneTask:
         self, db_session, redis_client, mock_dlq_manager, mock_orphan_recovery
     ):
         """process_one_task() should create worker for task type"""
-        from app.workers.runner import process_one_task
         from app.core.queue import TaskManager
+        from app.workers.runner import process_one_task
 
         # Create real test data
         project = Project(name="Test Project")
@@ -128,8 +129,8 @@ class TestProcessOneTask:
         self, db_session, redis_client, mock_dlq_manager, mock_orphan_recovery
     ):
         """process_one_task() should return True after processing"""
-        from app.workers.runner import process_one_task
         from app.core.queue import TaskManager
+        from app.workers.runner import process_one_task
 
         # Create test data
         project = Project(name="Test Project")
@@ -192,8 +193,8 @@ class TestProcessOneTask:
         self, db_session, redis_client, mock_dlq_manager, mock_orphan_recovery
     ):
         """process_one_task() should ACK unknown task types"""
-        from app.workers.runner import process_one_task
         from app.core.queue import TaskManager
+        from app.workers.runner import process_one_task
 
         task_manager = TaskManager(redis_client)
 
@@ -231,8 +232,8 @@ class TestProcessOneTask:
         self, db_session, redis_client, mock_dlq_manager, mock_orphan_recovery
     ):
         """process_one_task() should ACK invalid task data"""
-        from app.workers.runner import process_one_task
         from app.core.queue import TaskManager
+        from app.workers.runner import process_one_task
 
         task_manager = TaskManager(redis_client)
 
@@ -298,8 +299,8 @@ class TestIntegration:
         self, db_session, redis_client, mock_dlq_manager, mock_orphan_recovery
     ):
         """Integration: Enqueue crawl task and process via runner"""
-        from app.workers.runner import process_one_task, create_worker_context
         from app.core.queue import TaskManager
+        from app.workers.runner import create_worker_context, process_one_task
 
         # Create test data
         project = Project(name="Integration Test Project")
@@ -404,16 +405,14 @@ class TestPackageExports:
         """Package should export registry functions"""
         from app.workers import (
             WORKER_REGISTRY,
+            create_worker,
             get_worker_class,
             register_worker,
-            create_worker,
         )
-        from app.workers.registry import (
-            WORKER_REGISTRY as DirectRegistry,
-            get_worker_class as DirectGetWorkerClass,
-            register_worker as DirectRegisterWorker,
-            create_worker as DirectCreateWorker,
-        )
+        from app.workers.registry import WORKER_REGISTRY as DirectRegistry
+        from app.workers.registry import create_worker as DirectCreateWorker
+        from app.workers.registry import get_worker_class as DirectGetWorkerClass
+        from app.workers.registry import register_worker as DirectRegisterWorker
 
         assert WORKER_REGISTRY is DirectRegistry
         assert get_worker_class is DirectGetWorkerClass
@@ -448,8 +447,8 @@ class TestDeprecation:
 
     def test_old_worker_module_emits_deprecation_warning(self):
         """Importing app.worker should emit DeprecationWarning"""
-        import warnings
         import sys
+        import warnings
 
         # Remove from cache if already imported
         if "app.worker" in sys.modules:

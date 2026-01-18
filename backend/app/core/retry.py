@@ -11,7 +11,6 @@ from typing import Optional
 
 from app.core.errors import ErrorCategory
 
-
 # 재시도 관련 상수
 MAX_RETRIES: int = 3  # 최대 재시도 횟수
 BASE_DELAY: float = 1.0  # 기본 대기 시간 (초)

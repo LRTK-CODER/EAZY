@@ -3,12 +3,13 @@ Phase 3 Day 2: CrawlWorker 테스트
 TDD RED 단계 - 이 테스트들은 crawl_worker.py 구현 전에 실패해야 함
 """
 
-import pytest
 from unittest.mock import AsyncMock
 
-from app.models.task import Task, TaskStatus, TaskType
+import pytest
+
 from app.models.project import Project
 from app.models.target import Target
+from app.models.task import Task, TaskStatus, TaskType
 from app.workers.base import WorkerContext
 
 
@@ -62,8 +63,8 @@ class TestCrawlWorkerDependencyInjection:
         self, db_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery
     ):
         """CrawlWorker should accept asset_service_factory for testing"""
-        from app.workers.crawl_worker import CrawlWorker
         from app.services.asset_service import AssetService
+        from app.workers.crawl_worker import CrawlWorker
 
         context = WorkerContext(
             session=db_session,
@@ -83,8 +84,8 @@ class TestCrawlWorkerDependencyInjection:
         self, db_session, mock_task_manager, mock_dlq_manager, mock_orphan_recovery
     ):
         """CrawlWorker should create default services when not injected"""
-        from app.workers.crawl_worker import CrawlWorker
         from app.services.crawler_service import CrawlerService
+        from app.workers.crawl_worker import CrawlWorker
 
         context = WorkerContext(
             session=db_session,
@@ -212,9 +213,10 @@ class TestCrawlWorkerExecute:
         setup_test_data,
     ):
         """execute() should save discovered assets"""
-        from app.workers.crawl_worker import CrawlWorker
-        from app.models.asset import Asset
         from sqlmodel import select
+
+        from app.models.asset import Asset
+        from app.workers.crawl_worker import CrawlWorker
 
         project, target, task = setup_test_data
 
@@ -523,9 +525,10 @@ class TestCrawlWorkerHttpData:
         setup_test_data,
     ):
         """execute() should extract request spec from http_data"""
-        from app.workers.crawl_worker import CrawlWorker
-        from app.models.asset import Asset
         from sqlmodel import select
+
+        from app.models.asset import Asset
+        from app.workers.crawl_worker import CrawlWorker
 
         project, target, task = setup_test_data
 
@@ -578,9 +581,10 @@ class TestCrawlWorkerHttpData:
         setup_test_data,
     ):
         """execute() should extract response spec from http_data"""
-        from app.workers.crawl_worker import CrawlWorker
-        from app.models.asset import Asset
         from sqlmodel import select
+
+        from app.models.asset import Asset
+        from app.workers.crawl_worker import CrawlWorker
 
         project, target, task = setup_test_data
 
@@ -630,9 +634,10 @@ class TestCrawlWorkerHttpData:
         setup_test_data,
     ):
         """execute() should extract parameters from http_data"""
-        from app.workers.crawl_worker import CrawlWorker
-        from app.models.asset import Asset
         from sqlmodel import select
+
+        from app.models.asset import Asset
+        from app.workers.crawl_worker import CrawlWorker
 
         project, target, task = setup_test_data
 
@@ -738,8 +743,8 @@ class TestURLValidation:
         mock_crawler_service,
     ):
         """execute()는 안전하지 않은 URL에 대해 skipped 결과 반환"""
-        from app.workers.crawl_worker import CrawlWorker
         from app.workers.base import WorkerContext
+        from app.workers.crawl_worker import CrawlWorker
 
         # Create test data with unsafe URL
         project = Project(name="Test Project")

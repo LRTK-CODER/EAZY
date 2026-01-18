@@ -1,5 +1,5 @@
 """Type definitions for EAZY backend."""
 
-from app.types.http import HttpRequestData, HttpResponseData, HttpData
+from app.types.http import HttpData, HttpRequestData, HttpResponseData
 
 __all__ = ["HttpRequestData", "HttpResponseData", "HttpData"]

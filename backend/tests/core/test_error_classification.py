@@ -158,7 +158,7 @@ class TestCalculateBackoff:
 
     def test_backoff_first_retry(self):
         """첫 번째 재시도는 BASE_DELAY 근처여야 함"""
-        from app.core.retry import calculate_backoff, BASE_DELAY, JITTER_RANGE
+        from app.core.retry import BASE_DELAY, JITTER_RANGE, calculate_backoff
 
         delay = calculate_backoff(0)
 
@@ -183,7 +183,7 @@ class TestCalculateBackoff:
 
     def test_backoff_capped_at_max_delay(self):
         """MAX_DELAY를 초과하지 않아야 함"""
-        from app.core.retry import calculate_backoff, MAX_DELAY, JITTER_RANGE
+        from app.core.retry import JITTER_RANGE, MAX_DELAY, calculate_backoff
 
         # 아주 큰 재시도 횟수
         delay = calculate_backoff(100)
@@ -195,7 +195,7 @@ class TestCalculateBackoff:
 
     def test_jitter_within_range(self):
         """Jitter가 지정된 범위 내에 있어야 함"""
-        from app.core.retry import calculate_backoff, BASE_DELAY, JITTER_RANGE
+        from app.core.retry import BASE_DELAY, JITTER_RANGE, calculate_backoff
 
         # 여러 번 실행하여 범위 확인
         for _ in range(100):
@@ -261,8 +261,9 @@ class TestTaskRetryInfo:
     def test_task_retry_info_with_values(self):
         """TaskRetryInfo에 값을 설정할 수 있어야 함"""
         from datetime import datetime
-        from app.core.retry import TaskRetryInfo
+
         from app.core.errors import ErrorCategory
+        from app.core.retry import TaskRetryInfo
 
         now = datetime.now()
         info = TaskRetryInfo(

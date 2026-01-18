@@ -3,11 +3,13 @@ Test 5-Imp.1: Task Timestamps & Cancellation Model Tests (RED Phase)
 Expected to FAIL: AttributeError for started_at, completed_at, CANCELLED status
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
 from sqlmodel.ext.asyncio.session import AsyncSession
+
 from app.models.project import Project
-from app.models.task import Task, TaskType, TaskStatus
+from app.models.task import Task, TaskStatus, TaskType
 
 
 @pytest.mark.asyncio

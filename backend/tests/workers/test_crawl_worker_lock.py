@@ -5,13 +5,13 @@ TDD RED 단계 - 잠금 통합 전에 모두 실패해야 함
 Day 4: CrawlWorker 잠금 통합
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from redis.asyncio import Redis
 
+from app.models.task import Task, TaskStatus, TaskType
 from app.workers.base import WorkerContext
-from app.models.task import Task, TaskType, TaskStatus
-
 
 # =============================================================================
 # Fixtures
@@ -111,8 +111,8 @@ class TestCrawlWorkerLockIntegration:
         mock_task_manager,
     ):
         """크롤링 전에 잠금을 획득해야 함"""
-        from app.workers.crawl_worker import CrawlWorker
         from app.models.target import Target
+        from app.workers.crawl_worker import CrawlWorker
 
         # Mock target
         target = Target(id=100, url="https://example.com")
@@ -150,8 +150,8 @@ class TestCrawlWorkerLockIntegration:
         mock_task_manager,
     ):
         """크롤링 후 잠금을 해제해야 함"""
-        from app.workers.crawl_worker import CrawlWorker
         from app.models.target import Target
+        from app.workers.crawl_worker import CrawlWorker
 
         target = Target(id=100, url="https://example.com")
         mock_session.get = AsyncMock(return_value=target)
@@ -180,8 +180,8 @@ class TestCrawlWorkerLockIntegration:
         mock_task_manager,
     ):
         """예외 발생 시에도 잠금 해제"""
-        from app.workers.crawl_worker import CrawlWorker
         from app.models.target import Target
+        from app.workers.crawl_worker import CrawlWorker
 
         target = Target(id=100, url="https://example.com")
         mock_session.get = AsyncMock(return_value=target)
@@ -206,8 +206,8 @@ class TestCrawlWorkerLockIntegration:
         self, worker_context, sample_task, mock_session
     ):
         """target을 찾을 수 없으면 잠금 없이 에러"""
-        from app.workers.crawl_worker import CrawlWorker
         from app.core.exceptions import TargetNotFoundError
+        from app.workers.crawl_worker import CrawlWorker
 
         mock_session.get = AsyncMock(return_value=None)
 
@@ -234,8 +234,8 @@ class TestCrawlWorkerLockIntegration:
         mock_task_manager,
     ):
         """올바른 잠금 키 형식 사용"""
-        from app.workers.crawl_worker import CrawlWorker
         from app.models.target import Target
+        from app.workers.crawl_worker import CrawlWorker
 
         target = Target(id=100, url="https://example.com")
         mock_session.get = AsyncMock(return_value=target)
@@ -280,8 +280,8 @@ class TestLockFailureHandling:
         mock_task_manager,
     ):
         """잠금 획득 실패 시 SKIPPED 반환"""
-        from app.workers.crawl_worker import CrawlWorker
         from app.models.target import Target
+        from app.workers.crawl_worker import CrawlWorker
 
         target = Target(id=100, url="https://example.com")
         mock_session.get = AsyncMock(return_value=target)
@@ -314,8 +314,8 @@ class TestLockFailureHandling:
         mock_task_manager,
     ):
         """잠금 실패 시 크롤링하지 않음"""
-        from app.workers.crawl_worker import CrawlWorker
         from app.models.target import Target
+        from app.workers.crawl_worker import CrawlWorker
 
         target = Target(id=100, url="https://example.com")
         mock_session.get = AsyncMock(return_value=target)
@@ -347,8 +347,8 @@ class TestLockFailureHandling:
         mock_task_manager,
     ):
         """잠금 실패 시 로그 기록"""
-        from app.workers.crawl_worker import CrawlWorker
         from app.models.target import Target
+        from app.workers.crawl_worker import CrawlWorker
 
         target = Target(id=100, url="https://example.com")
         mock_session.get = AsyncMock(return_value=target)
@@ -410,8 +410,8 @@ class TestConcurrentLocks:
         self, mock_session, mock_dlq_manager, mock_orphan_recovery
     ):
         """동일 대상에 대해 하나의 워커만 처리"""
-        from app.workers.crawl_worker import CrawlWorker
         from app.models.target import Target
+        from app.workers.crawl_worker import CrawlWorker
 
         target = Target(id=100, url="https://example.com")
         mock_session.get = AsyncMock(return_value=target)

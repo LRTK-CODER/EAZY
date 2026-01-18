@@ -9,9 +9,8 @@ enabling easy extension of the worker system with new task types.
 
 from typing import Dict, Optional, Type, Union
 
-from app.workers.base import BaseWorker, WorkerContext
 from app.models.task import TaskType
-
+from app.workers.base import BaseWorker, WorkerContext
 
 # Worker Registry - maps task type to worker class
 WORKER_REGISTRY: Dict[Union[TaskType, str], Type[BaseWorker]] = {}

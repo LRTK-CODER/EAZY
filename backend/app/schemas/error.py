@@ -4,6 +4,7 @@ Inspired by RFC 7807 Problem Details for HTTP APIs.
 """
 
 from typing import Any, Optional
+
 from pydantic import BaseModel
 
 

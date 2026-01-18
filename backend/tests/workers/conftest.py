@@ -3,12 +3,13 @@ Worker test fixtures
 Phase 3: Architecture Improvement - TDD
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from redis.asyncio import Redis
 
-from app.core.queue import TaskManager
 from app.core.dlq import DLQManager
+from app.core.queue import TaskManager
 from app.core.recovery import OrphanRecovery
 
 

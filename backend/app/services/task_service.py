@@ -1,14 +1,15 @@
-from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import select
-from redis.asyncio import Redis
-from typing import Optional, List
+from typing import List, Optional
 
-from app.models.asset import Asset
-from app.models.task import Task, TaskType, TaskStatus
-from app.models.target import Target
+from redis.asyncio import Redis
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+from app.core.exceptions import DuplicateScanError, TargetNotFoundError
 from app.core.queue import TaskManager
-from app.core.exceptions import TargetNotFoundError, DuplicateScanError
 from app.core.url_validator import validate_url
+from app.models.asset import Asset
+from app.models.target import Target
+from app.models.task import Task, TaskStatus, TaskType
 
 
 class TaskService:

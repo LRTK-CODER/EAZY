@@ -5,8 +5,9 @@ Tests for structured logging in CrawlerService.
 Validates that print() statements have been replaced with structlog.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from app.services.crawler_service import CrawlerService
 

@@ -1,8 +1,9 @@
 import pytest
 from sqlmodel import select
-from app.models.task import Task, TaskStatus
-from app.models.asset import Asset
+
 from app.core.queue import TaskManager
+from app.models.asset import Asset
+from app.models.task import Task, TaskStatus
 
 # We will need to import the worker function, e.g.
 # from app.worker import process_one_task
@@ -60,8 +61,8 @@ async def test_worker_process_task(db_session, redis_client):
 
     # 2. RUN WORKER (Import dynamically to allow test to exist before file)
     try:
-        from app.worker import process_one_task
         from app.services.crawler_service import CrawlerService
+        from app.worker import process_one_task
     except ImportError:
         pytest.fail("Worker module 'app.worker' not found")
 

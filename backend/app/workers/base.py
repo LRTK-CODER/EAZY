@@ -4,21 +4,20 @@ BaseWorker and WorkerContext for EAZY worker infrastructure.
 Phase 3: Architecture Improvement
 """
 
+import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
-import json
 
-from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.core.queue import TaskManager
 from app.core.dlq import DLQManager
+from app.core.queue import TaskManager
 from app.core.recovery import OrphanRecovery
 from app.core.structured_logger import get_logger
 from app.core.utils import utc_now
 from app.models.task import Task, TaskStatus, TaskType
-
 
 logger = get_logger(__name__)
 

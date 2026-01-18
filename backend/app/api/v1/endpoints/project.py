@@ -1,13 +1,14 @@
 from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.core.db import get_session
+from app.models.asset import Asset, AssetRead
 from app.models.project import ProjectCreate, ProjectRead, ProjectUpdate
 from app.models.target import Target, TargetCreate, TargetRead, TargetUpdate
-from app.models.asset import Asset, AssetRead
 from app.services.project_service import ProjectService
 from app.services.target_service import TargetService
 
@@ -203,9 +204,10 @@ async def get_target_assets(
     project_id: int, target_id: int, session: AsyncSession = Depends(get_session)
 ):
     """Get all unique assets for a target (sorted by last_seen_at DESC)"""
+    from sqlmodel import select
+
     from app.models.asset import Asset
     from app.models.target import Target
-    from sqlmodel import select
 
     # Verify project exists
     project_service = ProjectService(session)

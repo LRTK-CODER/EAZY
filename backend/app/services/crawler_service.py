@@ -1,19 +1,20 @@
 """CrawlerService - Web crawler with HTTP interception and parser delegation."""
 
-from typing import List, Set, Dict, Any, Optional
-from playwright.async_api import async_playwright, Request, Response
+from typing import Any, Dict, List, Optional, Set
 
-from app.utils.url_parser import parse_query_params
-from app.core.structured_logger import get_logger
+from playwright.async_api import Request, Response, async_playwright
+
 from app.core.constants import MAX_BODY_SIZE, PAGE_TIMEOUT_MS
-from app.types.http import HttpData
+from app.core.structured_logger import get_logger
 from app.services.parsers import (
-    ResponseParserRegistry,
-    ResponseData,
-    JsonResponseParser,
     HtmlResponseParser,
     ImageResponseParser,
+    JsonResponseParser,
+    ResponseData,
+    ResponseParserRegistry,
 )
+from app.types.http import HttpData
+from app.utils.url_parser import parse_query_params
 
 logger = get_logger(__name__)
 

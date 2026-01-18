@@ -1,11 +1,13 @@
 import logging
+
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+from app.api.v1.endpoints import project, task
 from app.core.config import settings
 from app.core.cors import get_cors_origins, validate_cors_config
 from app.core.exceptions import ScanError
-from app.api.v1.endpoints import project, task
 
 logger = logging.getLogger(__name__)
 

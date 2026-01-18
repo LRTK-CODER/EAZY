@@ -3,15 +3,17 @@ Test 5-Imp.20: Worker HTTP Integration Tests (GREEN Phase)
 Expected to PASS: Worker collects and passes HTTP data with Base64 image encoding
 """
 
-import pytest
+import base64
 from unittest.mock import AsyncMock, patch
+
+import pytest
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+
+from app.models.asset import Asset
 from app.models.project import Project
 from app.models.target import Target, TargetScope
-from app.models.task import Task, TaskType, TaskStatus
-from app.models.asset import Asset
-from sqlmodel import select
-import base64
+from app.models.task import Task, TaskStatus, TaskType
 
 
 @pytest.mark.asyncio

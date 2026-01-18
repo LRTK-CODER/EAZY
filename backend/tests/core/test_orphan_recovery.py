@@ -5,8 +5,9 @@ TDD RED 단계 - recovery.py 구현 전에 실패해야 함
 """
 
 import json
+from datetime import datetime, timedelta, timezone
+
 import pytest
-from datetime import datetime, timezone, timedelta
 from redis.asyncio import Redis
 
 
@@ -83,7 +84,7 @@ class TestOrphanDetection:
         self, redis_client: Redis, clean_queues
     ):
         """하트비트가 타임아웃된 작업은 고아로 감지되어야 함"""
-        from app.core.recovery import OrphanRecovery, ORPHAN_TIMEOUT
+        from app.core.recovery import ORPHAN_TIMEOUT, OrphanRecovery
 
         recovery = OrphanRecovery(redis_client)
 
@@ -180,7 +181,7 @@ class TestOrphanRecovery:
         self, redis_client: Redis, clean_queues
     ):
         """복구 횟수 초과 시 DLQ로 이동"""
-        from app.core.recovery import OrphanRecovery, MAX_RECOVERY_COUNT
+        from app.core.recovery import MAX_RECOVERY_COUNT, OrphanRecovery
 
         recovery = OrphanRecovery(redis_client)
 

@@ -5,8 +5,8 @@ Tests for environment-based CORS configuration.
 Validates whitelist parsing, production security, and validation.
 """
 
-from unittest.mock import patch
 import os
+from unittest.mock import patch
 
 
 class TestCORSOriginsEnvVar:

@@ -1,10 +1,10 @@
 from datetime import datetime
+from enum import Enum
 from typing import Optional
+
 from sqlmodel import Field, SQLModel
 
 from app.core.utils import utc_now
-
-from enum import Enum
 
 
 class TargetScope(str, Enum):
