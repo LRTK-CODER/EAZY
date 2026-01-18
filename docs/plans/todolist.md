@@ -180,12 +180,13 @@ def extract_base_domain(hostname: str) -> str:
 ```
 
 **Blue Phase** - 리팩토링
-- robots.txt 준수 옵션 추가
-- URL blocklist 지원 (`/logout`, `/admin` 등)
+- ~~robots.txt 준수 옵션 추가~~ → robots.txt 경로 Assets 수집으로 변경
+- URL blocklist 지원 (`/logout`, `/admin` 등) - 향후 구현
 
-- [ ] Red: 6개 테스트 작성
-- [ ] Green: ScopeFilter 클래스 구현
-- [ ] Blue: robots.txt, blocklist 옵션
+- [x] Red: 34개 테스트 작성 ✅
+- [x] Green: ScopeFilter 클래스 구현 ✅
+- [x] Blue: RobotsTxtService 추가 (Disallow/Sitemap 경로 수집) ✅
+- [x] AssetSource enum 확장 (ROBOTS_TXT, SITEMAP) ✅
 
 ---
 
@@ -647,7 +648,7 @@ export function OverviewTabContent({ projectId, targetId, targetName }: Props) {
 
 | Feature | Backend | Frontend | Status |
 |---------|---------|----------|--------|
-| 재귀 크롤링 | 2/5 | - | 🔄 In Progress |
+| 재귀 크롤링 | 3/5 | - | 🔄 In Progress |
 | 스캔 히스토리 | 0/1 | 0/4 | Not Started |
 | 도메인 검색 | 0/1 | 0/2 | Not Started |
 | Overview UI | 0/1 | 0/4 | Not Started |
@@ -655,6 +656,7 @@ export function OverviewTabContent({ projectId, targetId, targetName }: Props) {
 ### 완료된 항목
 - ✅ **1.1** Task 모델 확장 (depth, max_depth, parent_task_id)
 - ✅ **1.2** URL 정규화 서비스 (normalize_url, get_url_hash, is_same_resource)
+- ✅ **1.3** Scope 필터링 (ScopeFilter, RobotsTxtService, AssetSource 확장)
 
 ---
 

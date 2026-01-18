@@ -19,6 +19,8 @@ class AssetSource(str, Enum):
     JS = "js"
     NETWORK = "network"
     DOM = "dom"
+    ROBOTS_TXT = "robots_txt"
+    SITEMAP = "sitemap"
 
 
 class AssetBase(SQLModel):
