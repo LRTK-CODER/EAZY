@@ -468,9 +468,9 @@ describe('AssetTreeView', () => {
       expect(screen.queryByText('auth')).not.toBeInTheDocument();
     });
 
-    it('should filter by HTTP method when filterMethod is provided', async () => {
+    it('should filter by HTTP method when filterMethods is provided', async () => {
       const { user } = renderWithProviders(
-        <AssetTreeView assets={mockAssets} filterMethod="GET" />
+        <AssetTreeView assets={mockAssets} filterMethods={['GET']} />
       );
 
       // Expand to see endpoints
@@ -485,10 +485,10 @@ describe('AssetTreeView', () => {
 
     it('should combine search query and method filter with AND logic', async () => {
       const { user } = renderWithProviders(
-        <AssetTreeView assets={mockAssets} searchQuery="users" filterMethod="POST" />
+        <AssetTreeView assets={mockAssets} searchQuery="users" filterMethods={['POST']} />
       );
 
-      // With searchQuery="users" and filterMethod="POST", only /api/users POST should remain
+      // With searchQuery="users" and filterMethods=["POST"], only /api/users POST should remain
       // Mock data has: /api/users (GET, POST), /auth/login (POST), /v1/data (GET)
       // Only /api/users POST matches both filters
 
@@ -517,6 +517,35 @@ describe('AssetTreeView', () => {
 
       expect(postBadges.length).toBeGreaterThan(0);
       expect(getBadges.length).toBe(0);
+    });
+
+    it('should filter by multiple HTTP methods when filterMethods has multiple values', async () => {
+      const { user } = renderWithProviders(
+        <AssetTreeView assets={mockAssets} filterMethods={['GET', 'POST']} />
+      );
+
+      // Expand to see endpoints
+      await user.click(screen.getByText('https://example.com'));
+      await user.click(screen.getByText('api'));
+      await user.click(screen.getByText('users'));
+
+      // Should show both GET and POST endpoints
+      expect(screen.getAllByText('GET').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('POST').length).toBeGreaterThan(0);
+    });
+
+    it('should show all assets when filterMethods is empty array', async () => {
+      const { user } = renderWithProviders(
+        <AssetTreeView assets={mockAssets} filterMethods={[]} />
+      );
+
+      // Should show all assets (same as no filter)
+      await user.click(screen.getByText('https://example.com'));
+      await user.click(screen.getByText('api'));
+      await user.click(screen.getByText('users'));
+
+      expect(screen.getAllByText('GET').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('POST').length).toBeGreaterThan(0);
     });
 
     it('should show empty state when no results match filter', () => {

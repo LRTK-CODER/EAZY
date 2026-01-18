@@ -1,42 +1,16 @@
 /**
  * SearchFilterBar Component
- * Search input and HTTP method filter badges for asset tree filtering
+ * Search input and HTTP method filter badges for asset tree filtering (multiple selection)
  */
 
 import { useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getHttpMethodVariant, HTTP_METHODS } from '@/lib/http-method';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { HttpMethod } from './AssetTreeView';
-
-/**
- * HTTP methods available for filtering
- */
-const HTTP_METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
-
-/**
- * Get badge variant for HTTP method filter
- */
-function getMethodFilterVariant(
-  method: HttpMethod,
-  selectedMethod: HttpMethod | null
-): 'default' | 'secondary' | 'outline' | 'destructive' {
-  if (selectedMethod === method) {
-    switch (method) {
-      case 'GET':
-        return 'secondary';
-      case 'POST':
-        return 'default';
-      case 'DELETE':
-        return 'destructive';
-      default:
-        return 'outline';
-    }
-  }
-  return 'outline';
-}
 
 /**
  * Props for SearchFilterBar
@@ -46,10 +20,12 @@ interface SearchFilterBarProps {
   searchQuery: string;
   /** Callback when search query changes */
   onSearchChange: (query: string) => void;
-  /** Currently selected HTTP method filter */
-  filterMethod: HttpMethod | null;
-  /** Callback when method filter changes */
-  onFilterMethodChange: (method: HttpMethod | null) => void;
+  /** Currently selected HTTP method filters */
+  filterMethods: HttpMethod[];
+  /** Callback when method filter is toggled */
+  onFilterMethodToggle: (method: HttpMethod) => void;
+  /** Callback to clear all method filters */
+  onFilterMethodsClear: () => void;
   /** Additional className */
   className?: string;
 }
@@ -57,12 +33,14 @@ interface SearchFilterBarProps {
 /**
  * SearchFilterBar
  * Provides search input and HTTP method filter badges for filtering the asset tree
+ * Supports multiple method selection
  */
 export function SearchFilterBar({
   searchQuery,
   onSearchChange,
-  filterMethod,
-  onFilterMethodChange,
+  filterMethods,
+  onFilterMethodToggle,
+  onFilterMethodsClear,
   className,
 }: SearchFilterBarProps) {
   const handleClearSearch = useCallback(() => {
@@ -71,14 +49,9 @@ export function SearchFilterBar({
 
   const handleMethodClick = useCallback(
     (method: HttpMethod) => {
-      // Toggle: if already selected, clear the filter
-      if (filterMethod === method) {
-        onFilterMethodChange(null);
-      } else {
-        onFilterMethodChange(method);
-      }
+      onFilterMethodToggle(method);
     },
-    [filterMethod, onFilterMethodChange]
+    [onFilterMethodToggle]
   );
 
   return (
@@ -111,38 +84,41 @@ export function SearchFilterBar({
 
       {/* HTTP Method Filter Badges */}
       <div className="flex flex-wrap gap-1" role="group" aria-label="Filter by HTTP method">
-        {HTTP_METHODS.map((method) => (
-          <Badge
-            key={method}
-            variant={getMethodFilterVariant(method, filterMethod)}
-            className={cn(
-              'cursor-pointer text-xs transition-colors',
-              filterMethod === method && 'ring-1 ring-ring'
-            )}
-            onClick={() => handleMethodClick(method)}
-            role="checkbox"
-            aria-checked={filterMethod === method}
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleMethodClick(method);
-              }
-            }}
-            data-testid={`filter-method-${method.toLowerCase()}`}
-          >
-            {method}
-          </Badge>
-        ))}
-        {filterMethod && (
+        {HTTP_METHODS.map((method) => {
+          const isSelected = filterMethods.includes(method as HttpMethod);
+          return (
+            <Badge
+              key={method}
+              variant={isSelected ? getHttpMethodVariant(method) : 'outline'}
+              className={cn(
+                'cursor-pointer text-xs transition-colors',
+                isSelected && 'ring-1 ring-ring'
+              )}
+              onClick={() => handleMethodClick(method as HttpMethod)}
+              role="checkbox"
+              aria-checked={isSelected}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleMethodClick(method as HttpMethod);
+                }
+              }}
+              data-testid={`filter-method-${method.toLowerCase()}`}
+            >
+              {method}
+            </Badge>
+          );
+        })}
+        {filterMethods.length > 0 && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onFilterMethodChange(null)}
+            onClick={onFilterMethodsClear}
             className="h-5 px-1 text-xs text-muted-foreground"
             data-testid="clear-filter-button"
           >
-            Clear
+            Clear ({filterMethods.length})
           </Button>
         )}
       </div>

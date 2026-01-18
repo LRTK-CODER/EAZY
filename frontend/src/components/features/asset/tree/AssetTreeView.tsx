@@ -36,8 +36,8 @@ interface AssetTreeViewProps {
   showSourceBadge?: boolean;
   /** Search query to filter assets */
   searchQuery?: string;
-  /** HTTP method filter */
-  filterMethod?: HttpMethod;
+  /** HTTP method filters (multiple selection) */
+  filterMethods?: HttpMethod[];
   /** Additional className */
   className?: string;
 }
@@ -88,17 +88,17 @@ export function AssetTreeView({
   showTypeBadge = false,
   showSourceBadge = false,
   searchQuery,
-  filterMethod,
+  filterMethods,
   className,
 }: AssetTreeViewProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const { expandedNodes, toggleNode, selectedAssetId, setSelectedAssetId, expandAll } = useAssetExplorer();
   const [focusedIndex, setFocusedIndex] = useState(-1);
 
-  // Filter assets based on search query and method filter
+  // Filter assets based on search query and method filters
   const filteredAssets = useMemo(
-    () => filterAssets(assets, searchQuery, filterMethod),
-    [assets, searchQuery, filterMethod]
+    () => filterAssets(assets, searchQuery, filterMethods),
+    [assets, searchQuery, filterMethods]
   );
 
   // Build tree from filtered assets
@@ -286,7 +286,8 @@ export function AssetTreeView({
   }
 
   // Empty state - no matching assets after filtering
-  if (filteredAssets.length === 0 && (searchQuery || filterMethod)) {
+  const hasMethodFilter = filterMethods && filterMethods.length > 0;
+  if (filteredAssets.length === 0 && (searchQuery || hasMethodFilter)) {
     return (
       <div className={cn('flex items-center justify-center h-full text-muted-foreground', className)}>
         <p>No matching assets</p>

@@ -8,6 +8,7 @@ import React, { useCallback } from 'react';
 import { ChevronRight, ChevronDown, Globe, Folder, FolderOpen, FileCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { getHttpMethodVariant } from '@/lib/http-method';
 import type { FlatNode, TreeNodeType } from '@/utils/assetTree';
 
 /**
@@ -26,23 +27,6 @@ export function getNodeIcon(type: TreeNodeType, isExpanded: boolean) {
   }
 }
 
-/**
- * Get badge variant for HTTP method
- */
-export function getMethodVariant(method?: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (method?.toUpperCase()) {
-    case 'GET':
-      return 'secondary';
-    case 'POST':
-      return 'default';
-    case 'PUT':
-      return 'outline';
-    case 'DELETE':
-      return 'destructive';
-    default:
-      return 'outline';
-  }
-}
 
 /**
  * Get badge variant for asset type
@@ -230,7 +214,7 @@ export const TreeNode = React.memo(function TreeNode({
       {node.type === 'endpoint' && node.method ? (
         <div className="flex items-center gap-1.5 min-w-0">
           <Badge
-            variant={getMethodVariant(node.method)}
+            variant={getHttpMethodVariant(node.method)}
             className="text-xs shrink-0"
             data-testid="method-badge"
           >

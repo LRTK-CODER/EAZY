@@ -14,6 +14,7 @@ import type { Asset } from '@/types/asset';
 import { parseJsonBody } from '@/utils/http';
 import { inferType } from '@/utils/parameterType';
 import { cn } from '@/lib/utils';
+import { getHttpMethodVariant } from '@/lib/http-method';
 import { CodeBlock } from '@/components/ui/code-block';
 import {
   Tabs,
@@ -43,21 +44,6 @@ function formatHttpBody(body: unknown): string {
   return JSON.stringify(parsed, null, 2);
 }
 
-function getMethodBadgeClass(method: string): string {
-  switch (method.toUpperCase()) {
-    case 'POST':
-      return 'bg-green-500 hover:bg-green-600';
-    case 'PUT':
-      return 'bg-yellow-500 hover:bg-yellow-600';
-    default:
-      return '';
-  }
-}
-
-function getMethodBadgeVariant(method: string): 'default' | 'destructive' {
-  return method.toUpperCase() === 'DELETE' ? 'destructive' : 'default';
-}
-
 function getStatusBadgeClass(status: number): string {
   if (status >= 200 && status < 300) return 'bg-green-500 hover:bg-green-600';
   if (status >= 400 && status < 500) return 'bg-yellow-500 hover:bg-yellow-600';
@@ -83,8 +69,8 @@ export function AssetDetailPanel({ asset, className }: AssetDetailPanelProps) {
     <div className={cn('h-full flex flex-col overflow-hidden', className)}>
       <div className="flex items-center gap-2 p-4 border-b shrink-0">
         <Badge
-          variant={getMethodBadgeVariant(asset.method)}
-          className={cn('shrink-0', getMethodBadgeClass(asset.method))}
+          variant={getHttpMethodVariant(asset.method)}
+          className="shrink-0"
           data-testid="method-badge-header"
         >
           {asset.method}
@@ -107,10 +93,7 @@ export function AssetDetailPanel({ asset, className }: AssetDetailPanelProps) {
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">Method:</span>
-                  <Badge
-                    variant={getMethodBadgeVariant(asset.method)}
-                    className={getMethodBadgeClass(asset.method)}
-                  >
+                  <Badge variant={getHttpMethodVariant(asset.method)}>
                     {asset.method}
                   </Badge>
                 </div>

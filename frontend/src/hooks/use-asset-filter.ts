@@ -1,6 +1,6 @@
 /**
  * useAssetFilter Hook
- * Custom hook for filtering assets by search query and HTTP method
+ * Custom hook for filtering assets by search query and HTTP methods (multiple selection)
  */
 
 import { useMemo, useState, useCallback } from 'react';
@@ -17,8 +17,8 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 
 export interface AssetFilterState {
   /** Search query string */
   searchQuery: string;
-  /** HTTP method filter */
-  filterMethod: HttpMethod | null;
+  /** HTTP method filters (multiple selection) */
+  filterMethods: HttpMethod[];
 }
 
 /**
@@ -27,8 +27,10 @@ export interface AssetFilterState {
 export interface AssetFilterActions {
   /** Set search query */
   setSearchQuery: (query: string) => void;
-  /** Set HTTP method filter */
-  setFilterMethod: (method: HttpMethod | null) => void;
+  /** Toggle HTTP method filter (add/remove from selection) */
+  toggleFilterMethod: (method: HttpMethod) => void;
+  /** Set HTTP method filters directly */
+  setFilterMethods: (methods: HttpMethod[]) => void;
   /** Clear all filters */
   clearFilters: () => void;
   /** Check if any filter is active */
@@ -36,21 +38,29 @@ export interface AssetFilterActions {
 }
 
 /**
- * Filter assets based on search query and method filter
+ * Filter assets based on search query and method filters
+ * @param assets - Array of assets to filter
+ * @param searchQuery - Search query string
+ * @param filterMethods - Array of HTTP methods to filter by (empty = show all)
  */
 export function filterAssets(
   assets: Asset[],
   searchQuery?: string,
-  filterMethod?: HttpMethod | null
+  filterMethods?: HttpMethod[]
 ): Asset[] {
-  if (!searchQuery && !filterMethod) {
+  const hasMethodFilter = filterMethods && filterMethods.length > 0;
+
+  if (!searchQuery && !hasMethodFilter) {
     return assets;
   }
 
   return assets.filter((asset) => {
-    // Apply method filter
-    if (filterMethod && asset.method?.toUpperCase() !== filterMethod) {
-      return false;
+    // Apply method filter - asset must match one of the selected methods
+    if (hasMethodFilter) {
+      const assetMethod = asset.method?.toUpperCase() as HttpMethod;
+      if (!filterMethods.includes(assetMethod)) {
+        return false;
+      }
     }
 
     // Apply search query filter
@@ -78,30 +88,44 @@ export function filterAssets(
  */
 export function useAssetFilter(assets: Asset[]) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterMethod, setFilterMethod] = useState<HttpMethod | null>(null);
+  const [filterMethods, setFilterMethods] = useState<HttpMethod[]>([]);
+
+  // Toggle method in filter array
+  const toggleFilterMethod = useCallback((method: HttpMethod) => {
+    setFilterMethods((prev) => {
+      if (prev.includes(method)) {
+        // Remove if already selected
+        return prev.filter((m) => m !== method);
+      } else {
+        // Add if not selected
+        return [...prev, method];
+      }
+    });
+  }, []);
 
   // Compute filtered assets
   const filteredAssets = useMemo(
-    () => filterAssets(assets, searchQuery, filterMethod),
-    [assets, searchQuery, filterMethod]
+    () => filterAssets(assets, searchQuery, filterMethods),
+    [assets, searchQuery, filterMethods]
   );
 
   // Clear all filters
   const clearFilters = useCallback(() => {
     setSearchQuery('');
-    setFilterMethod(null);
+    setFilterMethods([]);
   }, []);
 
   // Check if any filter is active
-  const hasActiveFilters = searchQuery !== '' || filterMethod !== null;
+  const hasActiveFilters = searchQuery !== '' || filterMethods.length > 0;
 
   return {
     // State
     searchQuery,
-    filterMethod,
+    filterMethods,
     // Actions
     setSearchQuery,
-    setFilterMethod,
+    toggleFilterMethod,
+    setFilterMethods,
     clearFilters,
     hasActiveFilters,
     // Computed

@@ -7,7 +7,8 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { TreeNode, getNodeIcon, getMethodVariant, getTypeBadgeVariant, getSourceBadgeVariant } from './TreeNode';
+import { TreeNode, getNodeIcon, getTypeBadgeVariant, getSourceBadgeVariant } from './TreeNode';
+import { getHttpMethodVariant } from '@/lib/http-method';
 import type { FlatNode } from '@/utils/assetTree';
 import type { Asset } from '@/types/asset';
 
@@ -244,14 +245,14 @@ describe('TreeNode Component', () => {
   describe('Badge Rendering', () => {
     describe('Method Badge', () => {
       it.each([
-        ['GET', 'secondary'],
-        ['POST', 'default'],
-        ['PUT', 'outline'],
-        ['DELETE', 'destructive'],
-        ['PATCH', 'outline'],
-        ['OPTIONS', 'outline'],
+        ['GET', 'method-get'],
+        ['POST', 'method-post'],
+        ['PUT', 'method-put'],
+        ['DELETE', 'method-delete'],
+        ['PATCH', 'method-patch'],
+        ['OPTIONS', 'method-options'],
       ])('renders %s method with %s variant', (method, expectedVariant) => {
-        const variant = getMethodVariant(method);
+        const variant = getHttpMethodVariant(method);
         expect(variant).toBe(expectedVariant);
       });
 
@@ -608,14 +609,14 @@ describe('Helper Functions', () => {
     });
   });
 
-  describe('getMethodVariant', () => {
+  describe('getHttpMethodVariant', () => {
     it('handles undefined method', () => {
-      expect(getMethodVariant(undefined)).toBe('outline');
+      expect(getHttpMethodVariant(undefined)).toBe('outline');
     });
 
     it('handles lowercase methods', () => {
-      expect(getMethodVariant('get')).toBe('secondary');
-      expect(getMethodVariant('post')).toBe('default');
+      expect(getHttpMethodVariant('get')).toBe('method-get');
+      expect(getHttpMethodVariant('post')).toBe('method-post');
     });
   });
 });

@@ -15,6 +15,22 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
         outline: "text-foreground",
+
+        // HTTP Method variants (WCAG AA compliant)
+        "method-get":
+          "border-transparent bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+        "method-post":
+          "border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200",
+        "method-put":
+          "border-transparent bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+        "method-patch":
+          "border-transparent bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200",
+        "method-delete":
+          "border-transparent bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+        "method-head":
+          "border-transparent bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+        "method-options":
+          "border-transparent bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200",
       },
     },
     defaultVariants: {

@@ -93,7 +93,23 @@ const SEARCH_DEBOUNCE_DELAY = 300;
  */
 function TreePanelContent({ assets, targetOrigin }: { assets: Asset[]; targetOrigin?: string }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterMethod, setFilterMethod] = useState<HttpMethod | null>(null);
+  const [filterMethods, setFilterMethods] = useState<HttpMethod[]>([]);
+
+  // Toggle method in filter array
+  const toggleFilterMethod = useCallback((method: HttpMethod) => {
+    setFilterMethods((prev) => {
+      if (prev.includes(method)) {
+        return prev.filter((m) => m !== method);
+      } else {
+        return [...prev, method];
+      }
+    });
+  }, []);
+
+  // Clear all method filters
+  const clearFilterMethods = useCallback(() => {
+    setFilterMethods([]);
+  }, []);
 
   // Debounce search query to avoid filtering on every keystroke
   const debouncedSearchQuery = useDebounce(searchQuery, SEARCH_DEBOUNCE_DELAY);
@@ -121,8 +137,9 @@ function TreePanelContent({ assets, targetOrigin }: { assets: Asset[]; targetOri
         <SearchFilterBar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          filterMethod={filterMethod}
-          onFilterMethodChange={setFilterMethod}
+          filterMethods={filterMethods}
+          onFilterMethodToggle={toggleFilterMethod}
+          onFilterMethodsClear={clearFilterMethods}
         />
       </div>
       <div className="flex-1 overflow-hidden">
@@ -130,7 +147,7 @@ function TreePanelContent({ assets, targetOrigin }: { assets: Asset[]; targetOri
           assets={assets}
           targetOrigin={targetOrigin}
           searchQuery={debouncedSearchQuery}
-          filterMethod={filterMethod ?? undefined}
+          filterMethods={filterMethods}
           className="h-full"
         />
       </div>

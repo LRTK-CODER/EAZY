@@ -311,7 +311,7 @@ describe('AssetDetailPanel', () => {
       render(<AssetDetailPanel asset={asset} />);
 
       const badge = screen.getByTestId('method-badge-header');
-      expect(badge.className).toMatch(/destructive/);
+      expect(badge.className).toMatch(/red/);
     });
 
     it('applies correct badge variant for success status', async () => {
