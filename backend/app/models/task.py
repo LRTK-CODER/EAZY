@@ -45,7 +45,10 @@ class TaskBase(SQLModel):
 
 class Task(TaskBase, table=True):
     __tablename__ = "tasks"
-    __table_args__ = (Index("ix_tasks_target_depth", "target_id", "depth"),)
+    __table_args__ = (
+        Index("ix_tasks_target_depth", "target_id", "depth"),
+        Index("ix_tasks_target_created", "target_id", "created_at"),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=utc_now)

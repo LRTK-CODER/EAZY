@@ -345,9 +345,9 @@ async def get_tasks_for_target(
 - 복합 인덱스: `(target_id, created_at DESC)`
 - 응답 메타데이터: `total_count`, `has_more`
 
-- [ ] Red: 4개 API 테스트 작성
-- [ ] Green: 엔드포인트 구현
-- [ ] Blue: 인덱스, 메타데이터
+- [x] Red: 4개 API 테스트 작성 ✅
+- [x] Green: 엔드포인트 구현 ✅
+- [x] Blue: 인덱스 추가 ✅ (ix_tasks_target_created)
 
 ---
 
@@ -649,7 +649,7 @@ export function OverviewTabContent({ projectId, targetId, targetName }: Props) {
 | Feature | Backend | Frontend | Status |
 |---------|---------|----------|--------|
 | 재귀 크롤링 | 5/5 | - | ✅ Complete |
-| 스캔 히스토리 | 0/1 | 0/4 | Not Started |
+| 스캔 히스토리 | 1/1 | 0/4 | 🔄 In Progress |
 | 도메인 검색 | 0/1 | 0/2 | Not Started |
 | Overview UI | 0/1 | 0/4 | Not Started |
 
@@ -659,6 +659,7 @@ export function OverviewTabContent({ projectId, targetId, targetName }: Props) {
 - ✅ **1.3** Scope 필터링 (ScopeFilter, RobotsTxtService, AssetSource 확장)
 - ✅ **1.4** 재귀 크롤링 로직 BFS (CrawlManager, 상대 URL 정규화)
 - ✅ **1.5** Worker 확장 (자식 Task 생성 로직)
+- ✅ **2.1** Task 목록 API (GET /targets/{target_id}/tasks, 페이지네이션, 필터링)
 
 ---
 

@@ -172,3 +172,36 @@ class TaskService:
 
         result = await self.session.exec(statement)
         return result.first()
+
+    async def get_tasks_for_target(
+        self,
+        target_id: int,
+        skip: int = 0,
+        limit: int = 100,
+        status: Optional[TaskStatus] = None,
+    ) -> List[Task]:
+        """
+        Get tasks for a target with filtering and pagination.
+
+        Args:
+            target_id: Target ID
+            skip: Number of records to skip
+            limit: Maximum records to return
+            status: Optional status filter
+
+        Returns:
+            List of Task objects sorted by created_at DESC
+        """
+        statement = (
+            select(Task)
+            .where(Task.target_id == target_id)
+            .order_by(Task.created_at.desc())
+        )
+
+        if status is not None:
+            statement = statement.where(Task.status == status)
+
+        statement = statement.offset(skip).limit(limit)
+
+        result = await self.session.exec(statement)
+        return result.all()

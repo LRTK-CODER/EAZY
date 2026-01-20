@@ -1,13 +1,13 @@
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from redis.asyncio import Redis
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.db import get_session
 from app.core.redis import get_redis
 from app.models.asset import AssetRead
-from app.models.task import Task, TaskRead
+from app.models.task import Task, TaskRead, TaskStatus
 from app.services.task_service import TaskService
 
 router = APIRouter()
@@ -88,6 +88,36 @@ async def cancel_task(
             raise HTTPException(status_code=404, detail=str(e))
         else:
             raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/targets/{target_id}/tasks", response_model=List[TaskRead])
+async def get_tasks_for_target(
+    target_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    status: Optional[TaskStatus] = Query(None),
+    session: AsyncSession = Depends(get_session),
+    redis: Redis = Depends(get_redis),
+) -> List[Task]:
+    """
+    Get all tasks for a target with optional filtering and pagination.
+
+    Args:
+        target_id: Target ID
+        skip: Number of records to skip (offset)
+        limit: Maximum number of records to return
+        status: Filter by task status (optional)
+
+    Returns:
+        List of tasks sorted by created_at DESC
+    """
+    service = TaskService(session, redis)
+    return await service.get_tasks_for_target(
+        target_id=target_id,
+        skip=skip,
+        limit=limit,
+        status=status,
+    )
 
 
 @router.get("/targets/{target_id}/latest-task", response_model=TaskRead)
