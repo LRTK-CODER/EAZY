@@ -1,5 +1,30 @@
 import * as api from '@/lib/api';
-import type { Task } from '@/types/task';
+import type { Task, TaskStatus } from '@/types/task';
+
+/**
+ * Parameters for fetching tasks with pagination and filtering
+ */
+export interface GetTasksParams {
+  /** Number of tasks to skip (for pagination) */
+  skip?: number;
+  /** Maximum number of tasks to return */
+  limit?: number;
+  /** Filter by task status */
+  status?: TaskStatus;
+}
+
+/**
+ * Get tasks for a specific target with pagination and filtering
+ * @param targetId - The target ID
+ * @param params - Pagination and filtering parameters
+ * @returns Promise resolving to array of tasks
+ */
+export const getTasksForTarget = async (
+  targetId: number,
+  params: GetTasksParams = {}
+): Promise<Task[]> => {
+  return api.get<Task[]>(`/targets/${targetId}/tasks`, params);
+};
 
 /**
  * Get task status by task ID

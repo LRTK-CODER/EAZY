@@ -14,6 +14,9 @@ export const taskKeys = {
   details: () => ['tasks', 'detail'] as const,
   detail: (taskId: number) => [...taskKeys.details(), taskId] as const,
   latestForTarget: (targetId: number) => [...taskKeys.all(), 'latest', targetId] as const,
+  forTarget: (targetId: number) => [...taskKeys.all(), 'target', targetId] as const,
+  forTargetWithParams: (targetId: number, params: taskService.GetTasksParams) =>
+    [...taskKeys.forTarget(targetId), params] as const,
 };
 
 /**
@@ -206,5 +209,44 @@ export const useCancelTask = () => {
       // This includes latest-task queries and task-status queries
       queryClient.invalidateQueries({ queryKey: taskKeys.all() });
     },
+  });
+};
+
+/**
+ * Parameters for useTaskHistory hook
+ */
+export interface UseTaskHistoryParams {
+  /** Number of tasks to skip (for pagination) */
+  skip?: number;
+  /** Maximum number of tasks to return */
+  limit?: number;
+  /** Filter by task status */
+  status?: TaskStatus;
+}
+
+/**
+ * Hook to fetch task history for a target with pagination and filtering
+ *
+ * @param targetId - The target ID to fetch tasks for
+ * @param params - Pagination and filtering parameters
+ * @returns Query result with tasks array
+ *
+ * @example
+ * ```tsx
+ * const { data: tasks, isLoading } = useTaskHistory(targetId, {
+ *   skip: 0,
+ *   limit: 10,
+ *   status: TaskStatus.COMPLETED,
+ * });
+ * ```
+ */
+export const useTaskHistory = (
+  targetId: number,
+  params: UseTaskHistoryParams = {}
+) => {
+  return useQuery({
+    queryKey: taskKeys.forTargetWithParams(targetId, params),
+    queryFn: () => taskService.getTasksForTarget(targetId, params),
+    enabled: !!targetId,
   });
 };

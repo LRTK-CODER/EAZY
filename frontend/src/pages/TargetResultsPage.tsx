@@ -196,7 +196,7 @@ function TargetResultsContent({ projectId, targetId }: TargetResultsContentProps
 
         {/* Scan History Tab */}
         <TabsContent value="history" className="mt-4">
-          <HistoryTabContent />
+          <HistoryTabContent targetId={targetId} />
         </TabsContent>
       </Tabs>
 

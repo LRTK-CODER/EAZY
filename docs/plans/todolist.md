@@ -402,8 +402,8 @@ export function HistoryTabContent({ targetId }: Props) {
 - Infinite scroll 페이지네이션
 - Task 상세 모달 (JSON 뷰어)
 
-- [ ] Red: 5개 컴포넌트 테스트 작성
-- [ ] Green: Service, Hook, Component 구현
+- [x] Red: 5개 컴포넌트 테스트 작성 ✅
+- [x] Green: Service, Hook, Component 구현 ✅
 - [ ] Blue: 가상화, 무한 스크롤
 
 ---
@@ -649,7 +649,7 @@ export function OverviewTabContent({ projectId, targetId, targetName }: Props) {
 | Feature | Backend | Frontend | Status |
 |---------|---------|----------|--------|
 | 재귀 크롤링 | 5/5 | - | ✅ Complete |
-| 스캔 히스토리 | 1/1 | 0/4 | 🔄 In Progress |
+| 스캔 히스토리 | 1/1 | 4/4 | ✅ Complete |
 | 도메인 검색 | 0/1 | 0/2 | Not Started |
 | Overview UI | 0/1 | 0/4 | Not Started |
 
@@ -660,6 +660,7 @@ export function OverviewTabContent({ projectId, targetId, targetName }: Props) {
 - ✅ **1.4** 재귀 크롤링 로직 BFS (CrawlManager, 상대 URL 정규화)
 - ✅ **1.5** Worker 확장 (자식 Task 생성 로직)
 - ✅ **2.1** Task 목록 API (GET /targets/{target_id}/tasks, 페이지네이션, 필터링)
+- ✅ **2.2-2.5** Frontend 히스토리 컴포넌트 (Service, Hook, Component, 테스트)
 
 ---
 
