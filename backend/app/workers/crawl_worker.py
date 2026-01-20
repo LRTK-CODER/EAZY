@@ -21,6 +21,7 @@ from app.models.asset import AssetSource, AssetType
 from app.models.target import Target
 from app.models.task import Task, TaskType
 from app.services.asset_service import AssetService
+from app.services.crawl_manager import CrawlManager
 from app.services.crawler_service import CrawlerService
 from app.services.interfaces import ICrawler
 from app.workers.base import BaseWorker, TaskResult, WorkerContext
@@ -105,6 +106,9 @@ class CrawlWorker(BaseWorker):
         context: WorkerContext,
         crawler_service: Optional[ICrawler] = None,
         asset_service_factory: Optional[Callable[[AsyncSession], AssetService]] = None,
+        crawl_manager_factory: Optional[
+            Callable[[AsyncSession, Any], CrawlManager]
+        ] = None,
     ):
         """
         Initialize CrawlWorker with optional dependency injection.
@@ -113,11 +117,15 @@ class CrawlWorker(BaseWorker):
             context: WorkerContext with shared dependencies
             crawler_service: Optional ICrawler implementation (for testing)
             asset_service_factory: Optional factory for AssetService (for testing)
+            crawl_manager_factory: Optional factory for CrawlManager (for testing)
         """
         super().__init__(context)
         self.crawler = crawler_service or CrawlerService()
         self.asset_service_factory = asset_service_factory or (
             lambda s: AssetService(s)
+        )
+        self.crawl_manager_factory = crawl_manager_factory or (
+            lambda s, r: CrawlManager(s, r)
         )
 
     @property
@@ -180,7 +188,9 @@ class CrawlWorker(BaseWorker):
 
         try:
             # Crawl with lock held
-            return await self._execute_with_lock(target, target_id, db_task_id)
+            return await self._execute_with_lock(
+                target, target_id, db_task_id, task_record
+            )
         finally:
             # Always release lock
             await lock.release()
@@ -190,6 +200,7 @@ class CrawlWorker(BaseWorker):
         target: Target,
         target_id: int,
         db_task_id: int,
+        task_record: Task,
     ) -> TaskResult:
         """Execute crawl task while holding the lock."""
         # Crawl
@@ -247,10 +258,32 @@ class CrawlWorker(BaseWorker):
                 )
                 saved_count += 1
 
+        # Spawn child tasks for recursive crawling
+        child_tasks_spawned = 0
+        current_depth = task_record.depth
+        max_depth = task_record.max_depth
+
+        if current_depth < max_depth and links:
+            crawl_manager = self.crawl_manager_factory(
+                self.session, self.task_manager.redis
+            )
+            child_tasks = await crawl_manager.spawn_child_tasks(
+                parent_task_id=db_task_id,
+                target_id=target_id,
+                project_id=target.project_id,
+                discovered_urls=links,
+                current_depth=current_depth,
+                max_depth=max_depth,
+                target_url=target.url,
+                scope=target.scope,
+            )
+            child_tasks_spawned = len(child_tasks)
+
         return TaskResult.create_success(
             {
                 "found_links": len(links),
                 "saved_assets": saved_count,
+                "child_tasks_spawned": child_tasks_spawned,
             }
         )
 

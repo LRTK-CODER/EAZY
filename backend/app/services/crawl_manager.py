@@ -93,8 +93,13 @@ class CrawlManager:
 
         # 3. URL 정규화 및 배치 내 중복 제거
         # NormalizedUrl is a NewType of str, cast to List[str] for compatibility
+        # base_url을 전달하여 상대 URL을 절대 URL로 변환
         normalized_urls: List[str] = list(
-            set(str(normalize_url(url)) for url in discovered_urls)
+            set(
+                str(normalize_url(url, base_url=target_url))
+                for url in discovered_urls
+                if url  # 빈 URL 필터링
+            )
         )
 
         # 4. Scope 필터링

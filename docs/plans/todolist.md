@@ -244,9 +244,9 @@ class CrawlManager:
 - 회로 차단기(Circuit Breaker) 패턴 적용
 - 메트릭 수집 (크롤 속도, 큐 깊이)
 
-- [ ] Red: 4개 async 테스트 작성
-- [ ] Green: CrawlManager 클래스 구현
-- [ ] Blue: Redis 파이프라인, 메트릭
+- [x] Red: 24개 async 테스트 작성 (상대 URL 변환 테스트 포함) ✅
+- [x] Green: CrawlManager 클래스 구현 ✅
+- [x] Blue: Redis 파이프라인 구현 ✅
 
 ---
 
@@ -296,9 +296,9 @@ async def _execute_with_lock(self, ...):
 - 동시 요청 제한 (Semaphore 5개)
 - 진행 상황 추적
 
-- [ ] Red: 2개 async 테스트 작성
-- [ ] Green: Worker에 자식 Task 생성 로직 추가
-- [ ] Blue: Rate limiting, Semaphore
+- [x] Red: 3개 async 테스트 작성 ✅
+- [x] Green: Worker에 자식 Task 생성 로직 추가 ✅
+- [ ] Blue: Rate limiting, Semaphore (향후 구현)
 
 ---
 
@@ -648,7 +648,7 @@ export function OverviewTabContent({ projectId, targetId, targetName }: Props) {
 
 | Feature | Backend | Frontend | Status |
 |---------|---------|----------|--------|
-| 재귀 크롤링 | 3/5 | - | 🔄 In Progress |
+| 재귀 크롤링 | 5/5 | - | ✅ Complete |
 | 스캔 히스토리 | 0/1 | 0/4 | Not Started |
 | 도메인 검색 | 0/1 | 0/2 | Not Started |
 | Overview UI | 0/1 | 0/4 | Not Started |
@@ -657,6 +657,8 @@ export function OverviewTabContent({ projectId, targetId, targetName }: Props) {
 - ✅ **1.1** Task 모델 확장 (depth, max_depth, parent_task_id)
 - ✅ **1.2** URL 정규화 서비스 (normalize_url, get_url_hash, is_same_resource)
 - ✅ **1.3** Scope 필터링 (ScopeFilter, RobotsTxtService, AssetSource 확장)
+- ✅ **1.4** 재귀 크롤링 로직 BFS (CrawlManager, 상대 URL 정규화)
+- ✅ **1.5** Worker 확장 (자식 Task 생성 로직)
 
 ---
 

@@ -466,3 +466,152 @@ class TestCrawlManagerEmptyInput:
 
         # Then
         assert not mock_redis.pipeline.called
+
+
+class TestCrawlManagerRelativeUrlNormalization:
+    """상대 URL 정규화 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_normalizes_relative_url_with_parent_path(
+        self, crawl_manager, mock_session
+    ):
+        """상대 URL (../) → 절대 URL 변환"""
+        # Given
+        discovered_urls = ["../other"]
+        target_url = "https://example.com/path/page"
+
+        # When
+        result = await crawl_manager.spawn_child_tasks(
+            parent_task_id=1,
+            target_id=10,
+            project_id=100,
+            discovered_urls=discovered_urls,
+            current_depth=0,
+            max_depth=3,
+            target_url=target_url,
+            scope=TargetScope.DOMAIN,
+        )
+
+        # Then - 상대 URL이 절대 URL로 변환되어 Task 생성됨
+        assert len(result) == 1
+        assert mock_session.add.called
+
+    @pytest.mark.asyncio
+    async def test_normalizes_relative_url_same_directory(
+        self, crawl_manager, mock_session
+    ):
+        """같은 디렉토리 상대 URL → 절대 URL 변환"""
+        # Given
+        discovered_urls = ["sibling.html"]
+        target_url = "https://example.com/path/page.html"
+
+        # When
+        result = await crawl_manager.spawn_child_tasks(
+            parent_task_id=1,
+            target_id=10,
+            project_id=100,
+            discovered_urls=discovered_urls,
+            current_depth=0,
+            max_depth=3,
+            target_url=target_url,
+            scope=TargetScope.DOMAIN,
+        )
+
+        # Then
+        assert len(result) == 1
+        assert mock_session.add.called
+
+    @pytest.mark.asyncio
+    async def test_normalizes_absolute_path_url(self, crawl_manager, mock_session):
+        """절대 경로 URL (/path) → 절대 URL 변환"""
+        # Given
+        discovered_urls = ["/new/path"]
+        target_url = "https://example.com/old/page"
+
+        # When
+        result = await crawl_manager.spawn_child_tasks(
+            parent_task_id=1,
+            target_id=10,
+            project_id=100,
+            discovered_urls=discovered_urls,
+            current_depth=0,
+            max_depth=3,
+            target_url=target_url,
+            scope=TargetScope.DOMAIN,
+        )
+
+        # Then
+        assert len(result) == 1
+        assert mock_session.add.called
+
+    @pytest.mark.asyncio
+    async def test_absolute_url_unchanged(self, crawl_manager, mock_session):
+        """절대 URL은 변환 없이 유지"""
+        # Given
+        discovered_urls = ["https://example.com/page"]
+        target_url = "https://example.com/other"
+
+        # When
+        result = await crawl_manager.spawn_child_tasks(
+            parent_task_id=1,
+            target_id=10,
+            project_id=100,
+            discovered_urls=discovered_urls,
+            current_depth=0,
+            max_depth=3,
+            target_url=target_url,
+            scope=TargetScope.DOMAIN,
+        )
+
+        # Then
+        assert len(result) == 1
+        assert mock_session.add.called
+
+    @pytest.mark.asyncio
+    async def test_filters_empty_urls_in_discovered_list(
+        self, crawl_manager, mock_session
+    ):
+        """빈 URL은 필터링됨"""
+        # Given
+        discovered_urls = ["", "https://example.com/page", ""]
+
+        # When
+        result = await crawl_manager.spawn_child_tasks(
+            parent_task_id=1,
+            target_id=10,
+            project_id=100,
+            discovered_urls=discovered_urls,
+            current_depth=0,
+            max_depth=3,
+        )
+
+        # Then - 빈 URL 제외, 유효한 URL만 처리
+        assert len(result) == 1
+        assert mock_session.add.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_mixed_relative_and_absolute_urls(self, crawl_manager, mock_session):
+        """상대 URL + 절대 URL 혼합 처리"""
+        # Given
+        discovered_urls = [
+            "../page1",
+            "/page2",
+            "https://example.com/page3",
+        ]
+        target_url = "https://example.com/path/current"
+
+        # When
+        result = await crawl_manager.spawn_child_tasks(
+            parent_task_id=1,
+            target_id=10,
+            project_id=100,
+            discovered_urls=discovered_urls,
+            current_depth=0,
+            max_depth=3,
+            target_url=target_url,
+            scope=TargetScope.DOMAIN,
+        )
+
+        # Then - 모든 URL이 절대 URL로 변환되어 처리됨
+        assert len(result) == 3
+        assert mock_session.add.call_count == 3
