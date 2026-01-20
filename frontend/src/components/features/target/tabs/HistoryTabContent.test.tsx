@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HistoryTabContent } from './HistoryTabContent';
 import * as taskService from '@/services/taskService';
@@ -19,6 +19,46 @@ vi.mock('@/utils/date', async () => {
     formatElapsedTime: vi.fn(() => '5m 30s'),
     formatDistanceToNow: vi.fn(() => '2 hours ago'),
   };
+});
+
+// Mock @tanstack/react-virtual for JSDOM environment
+vi.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: ({ count }: { count: number }) => ({
+    getVirtualItems: () =>
+      Array.from({ length: count }, (_, i) => ({
+        index: i,
+        key: i,
+        start: i * 48,
+        size: 48,
+      })),
+    getTotalSize: () => count * 48,
+    scrollToIndex: vi.fn(),
+  }),
+}));
+
+// Mock IntersectionObserver as a class
+class MockIntersectionObserver implements IntersectionObserver {
+  readonly root: Element | Document | null = null;
+  readonly rootMargin: string = '';
+  readonly thresholds: ReadonlyArray<number> = [];
+
+  constructor(
+    public callback: IntersectionObserverCallback,
+    public options?: IntersectionObserverInit
+  ) {}
+
+  observe = vi.fn();
+  disconnect = vi.fn();
+  unobserve = vi.fn();
+  takeRecords = vi.fn(() => []);
+}
+
+beforeEach(() => {
+  window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+});
+
+afterEach(() => {
+  vi.clearAllMocks();
 });
 
 // Helper to render with providers
@@ -59,6 +99,12 @@ const createMockTask = (overrides: Partial<Task> = {}): Task => ({
   ...overrides,
 });
 
+// Helper to create mock task list response
+const createMockTaskListResponse = (tasks: Task[], total?: number) => ({
+  items: tasks,
+  total: total ?? tasks.length,
+});
+
 describe('HistoryTabContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -80,7 +126,7 @@ describe('HistoryTabContent', () => {
   // 2. Empty State
   describe('Empty State', () => {
     it('should render empty state when no tasks exist', async () => {
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue([]);
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse([]));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
@@ -90,7 +136,7 @@ describe('HistoryTabContent', () => {
     });
 
     it('should display helpful message for empty state', async () => {
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue([]);
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse([]));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
@@ -108,7 +154,7 @@ describe('HistoryTabContent', () => {
         createMockTask({ id: 2, status: 'failed' as TaskStatus }),
         createMockTask({ id: 3, status: 'running' as TaskStatus }),
       ];
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(mockTasks);
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse(mockTasks));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
@@ -124,7 +170,7 @@ describe('HistoryTabContent', () => {
         createMockTask({ id: 1, type: 'crawl' }),
         createMockTask({ id: 2, type: 'scan' }),
       ];
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(mockTasks);
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse(mockTasks));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
@@ -134,18 +180,32 @@ describe('HistoryTabContent', () => {
       });
     });
 
-    it('should render correct number of rows', async () => {
+    it('should render task rows', async () => {
       const mockTasks = Array.from({ length: 5 }, (_, i) =>
         createMockTask({ id: i + 1 })
       );
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(mockTasks);
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse(mockTasks));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
       await waitFor(() => {
-        const rows = screen.getAllByRole('row');
-        // 1 header row + 5 data rows
-        expect(rows.length).toBe(6);
+        // Virtualized table renders data rows with role="row"
+        // Check for specific task rows by data-testid
+        expect(screen.getByTestId('task-row-1')).toBeInTheDocument();
+        expect(screen.getByTestId('task-row-5')).toBeInTheDocument();
+      });
+    });
+
+    it('should display task count', async () => {
+      const mockTasks = Array.from({ length: 5 }, (_, i) =>
+        createMockTask({ id: i + 1 })
+      );
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse(mockTasks));
+
+      renderWithProviders(<HistoryTabContent targetId={1} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('5 tasks')).toBeInTheDocument();
       });
     });
   });
@@ -157,7 +217,7 @@ describe('HistoryTabContent', () => {
         started_at: '2026-01-15T10:00:00Z',
         completed_at: '2026-01-15T10:05:30Z',
       });
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue([mockTask]);
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse([mockTask]));
       vi.mocked(dateUtils.formatElapsedTime).mockReturnValue('5m 30s');
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
@@ -172,7 +232,7 @@ describe('HistoryTabContent', () => {
         started_at: undefined,
         completed_at: undefined,
       });
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue([mockTask]);
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse([mockTask]));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
@@ -187,7 +247,7 @@ describe('HistoryTabContent', () => {
       const startedAt = '2026-01-15T10:00:00Z';
       const completedAt = '2026-01-15T10:05:30Z';
       const mockTask = createMockTask({ started_at: startedAt, completed_at: completedAt });
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue([mockTask]);
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse([mockTask]));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
@@ -197,93 +257,64 @@ describe('HistoryTabContent', () => {
     });
   });
 
-  // 5. Pagination
-  describe('Pagination', () => {
-    it('should call API with skip/limit params', async () => {
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue([createMockTask()]);
+  // 5. Infinite Scroll
+  describe('Infinite Scroll', () => {
+    it('should call API with initial params', async () => {
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse([createMockTask()]));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
       await waitFor(() => {
         expect(taskService.getTasksForTarget).toHaveBeenCalledWith(1, {
           skip: 0,
-          limit: 10,
+          limit: 15,
           status: undefined,
         });
       });
     });
 
-    it('should call API with updated skip on page change', async () => {
+    it('should render infinite scroll sentinel when hasNextPage is true', async () => {
       const mockTasks = Array.from({ length: 10 }, (_, i) =>
         createMockTask({ id: i + 1 })
       );
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(mockTasks);
-
-      const { user } = renderWithProviders(<HistoryTabContent targetId={1} />);
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /next/i })).toBeInTheDocument();
-      });
-
-      // Click next page
-      const nextButton = screen.getByRole('button', { name: /next/i });
-      await user.click(nextButton);
-
-      await waitFor(() => {
-        expect(taskService.getTasksForTarget).toHaveBeenCalledWith(1, {
-          skip: 10,
-          limit: 10,
-          status: undefined,
-        });
-      });
-    });
-
-    it('should disable Previous button on first page', async () => {
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue([createMockTask()]);
+      // total > items.length means hasNextPage is true
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse(mockTasks, 20));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
       await waitFor(() => {
-        const prevButton = screen.getByRole('button', { name: /previous/i });
-        expect(prevButton).toBeDisabled();
+        expect(screen.getByTestId('infinite-scroll-sentinel')).toBeInTheDocument();
       });
     });
 
-    it('should disable Next button when less than PAGE_SIZE results', async () => {
+    it('should render virtualized container for scroll handling', async () => {
       const mockTasks = Array.from({ length: 5 }, (_, i) =>
         createMockTask({ id: i + 1 })
       );
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(mockTasks);
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse(mockTasks));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
       await waitFor(() => {
-        const nextButton = screen.getByRole('button', { name: /next/i });
-        expect(nextButton).toBeDisabled();
+        // Virtualized container handles scroll events for infinite loading
+        const container = screen.getByTestId('virtualized-list-container');
+        expect(container).toBeInTheDocument();
+        expect(container).toHaveClass('overflow-auto');
       });
     });
 
-    it('should enable Next button when PAGE_SIZE results', async () => {
-      const mockTasks = Array.from({ length: 10 }, (_, i) =>
+    it('should not render sentinel when no more pages', async () => {
+      const mockTasks = Array.from({ length: 5 }, (_, i) =>
         createMockTask({ id: i + 1 })
       );
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(mockTasks);
+      // total === items.length means hasNextPage is false
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse(mockTasks, 5));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
       await waitFor(() => {
-        const nextButton = screen.getByRole('button', { name: /next/i });
-        expect(nextButton).not.toBeDisabled();
-      });
-    });
-
-    it('should show page number', async () => {
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue([createMockTask()]);
-
-      renderWithProviders(<HistoryTabContent targetId={1} />);
-
-      await waitFor(() => {
-        expect(screen.getByText(/page 1/i)).toBeInTheDocument();
+        // Sentinel should not be rendered when all data is loaded
+        expect(screen.queryByTestId('infinite-scroll-sentinel')).not.toBeInTheDocument();
       });
     });
   });
@@ -291,7 +322,7 @@ describe('HistoryTabContent', () => {
   // 6. Status Filtering
   describe('Status Filtering', () => {
     it('should render status filter dropdown', async () => {
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue([]);
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse([]));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
@@ -304,7 +335,7 @@ describe('HistoryTabContent', () => {
     // This test verifies that the component renders with the filter
     // Full interaction testing should be done in E2E tests
     it('should filter by status when dropdown value changes', async () => {
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue([]);
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse([]));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
@@ -318,31 +349,9 @@ describe('HistoryTabContent', () => {
     });
 
     // NOTE: Radix UI Select has pointer capture issues in JSDOM
-    // The pagination reset behavior is tested through page navigation
-    it('should reset to first page when filter changes', async () => {
-      const mockTasks = Array.from({ length: 10 }, (_, i) =>
-        createMockTask({ id: i + 1 })
-      );
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(mockTasks);
-
-      const { user } = renderWithProviders(<HistoryTabContent targetId={1} />);
-
-      // Go to page 2
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /next/i })).not.toBeDisabled();
-      });
-      await user.click(screen.getByRole('button', { name: /next/i }));
-
-      // Verify we're on page 2
-      await waitFor(() => {
-        expect(screen.getByText(/page 2/i)).toBeInTheDocument();
-      });
-    });
-
-    // NOTE: Radix UI Select has pointer capture issues in JSDOM
     // Verify the default "All statuses" is displayed in the trigger
     it('should show all statuses option', async () => {
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue([]);
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse([]));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
@@ -358,26 +367,39 @@ describe('HistoryTabContent', () => {
   // 7. Table Structure
   describe('Table Structure', () => {
     it('should render table with correct column headers', async () => {
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue([createMockTask()]);
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse([createMockTask()]));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('columnheader', { name: /type/i })).toBeInTheDocument();
-        expect(screen.getByRole('columnheader', { name: /status/i })).toBeInTheDocument();
-        expect(screen.getByRole('columnheader', { name: /started/i })).toBeInTheDocument();
-        expect(screen.getByRole('columnheader', { name: /duration/i })).toBeInTheDocument();
-        expect(screen.getByRole('columnheader', { name: /created/i })).toBeInTheDocument();
+        // Virtualized table uses div with role="columnheader"
+        const columnHeaders = screen.getAllByRole('columnheader');
+        expect(columnHeaders.length).toBe(5);
+        expect(screen.getByText('Type')).toBeInTheDocument();
+        expect(screen.getByText('Status')).toBeInTheDocument();
+        expect(screen.getByText('Started')).toBeInTheDocument();
+        expect(screen.getByText('Duration')).toBeInTheDocument();
+        expect(screen.getByText('Created')).toBeInTheDocument();
       });
     });
 
     it('should have data-testid for main container', async () => {
-      vi.mocked(taskService.getTasksForTarget).mockResolvedValue([createMockTask()]);
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse([createMockTask()]));
 
       renderWithProviders(<HistoryTabContent targetId={1} />);
 
       await waitFor(() => {
         expect(screen.getByTestId('history-tab-content')).toBeInTheDocument();
+      });
+    });
+
+    it('should render virtualized list container', async () => {
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse([createMockTask()]));
+
+      renderWithProviders(<HistoryTabContent targetId={1} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('virtualized-list-container')).toBeInTheDocument();
       });
     });
   });
@@ -391,6 +413,39 @@ describe('HistoryTabContent', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/failed to load/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  // 9. Task Row Click (Modal Integration)
+  describe('Task Row Click', () => {
+    it('should have clickable task rows', async () => {
+      const mockTask = createMockTask({ id: 42 });
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse([mockTask]));
+
+      renderWithProviders(<HistoryTabContent targetId={1} />);
+
+      await waitFor(() => {
+        const row = screen.getByTestId('task-row-42');
+        expect(row).toHaveClass('cursor-pointer');
+      });
+    });
+
+    it('should open modal when row is clicked', async () => {
+      const mockTask = createMockTask({ id: 42 });
+      vi.mocked(taskService.getTasksForTarget).mockResolvedValue(createMockTaskListResponse([mockTask]));
+
+      const { user } = renderWithProviders(<HistoryTabContent targetId={1} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('task-row-42')).toBeInTheDocument();
+      });
+
+      const row = screen.getByTestId('task-row-42');
+      await user.click(row);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('task-detail-modal')).toBeInTheDocument();
       });
     });
   });

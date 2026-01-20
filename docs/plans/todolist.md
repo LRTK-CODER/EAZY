@@ -399,12 +399,13 @@ export function HistoryTabContent({ targetId }: Props) {
 
 **Blue Phase** - 리팩토링
 - `@tanstack/react-virtual`로 가상화
-- Infinite scroll 페이지네이션
+- Infinite scroll 페이지네이션 (15개씩)
 - Task 상세 모달 (JSON 뷰어)
+- 한 페이지 레이아웃 (외부 스크롤 없음)
 
 - [x] Red: 5개 컴포넌트 테스트 작성 ✅
 - [x] Green: Service, Hook, Component 구현 ✅
-- [ ] Blue: 가상화, 무한 스크롤
+- [x] Blue: 가상화, 무한 스크롤 ✅
 
 ---
 
@@ -649,7 +650,7 @@ export function OverviewTabContent({ projectId, targetId, targetName }: Props) {
 | Feature | Backend | Frontend | Status |
 |---------|---------|----------|--------|
 | 재귀 크롤링 | 5/5 | - | ✅ Complete |
-| 스캔 히스토리 | 1/1 | 4/4 | ✅ Complete |
+| 스캔 히스토리 | 1/1 | 4/4 (Blue 완료) | ✅ Complete |
 | 도메인 검색 | 0/1 | 0/2 | Not Started |
 | Overview UI | 0/1 | 0/4 | Not Started |
 
@@ -660,7 +661,11 @@ export function OverviewTabContent({ projectId, targetId, targetName }: Props) {
 - ✅ **1.4** 재귀 크롤링 로직 BFS (CrawlManager, 상대 URL 정규화)
 - ✅ **1.5** Worker 확장 (자식 Task 생성 로직)
 - ✅ **2.1** Task 목록 API (GET /targets/{target_id}/tasks, 페이지네이션, 필터링)
-- ✅ **2.2-2.5** Frontend 히스토리 컴포넌트 (Service, Hook, Component, 테스트)
+- ✅ **2.2-2.5** Frontend 히스토리 컴포넌트 (Blue Phase 완료)
+  - @tanstack/react-virtual 가상화
+  - Infinite scroll 페이지네이션 (15개씩)
+  - Task 상세 모달
+  - 한 페이지 레이아웃 (외부 스크롤 없음)
 
 ---
 

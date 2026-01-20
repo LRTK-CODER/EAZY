@@ -13,7 +13,7 @@ from app.models.task import Task, TaskStatus
 async def test_get_tasks_for_target_returns_list(
     client: AsyncClient, db_session: AsyncSession
 ):
-    """GET /targets/{id}/tasks -> Task 목록 반환"""
+    """GET /targets/{id}/tasks -> TaskListResponse with items and total"""
     # Setup
     resp = await client.post("/api/v1/projects/", json={"name": "Task List Proj"})
     project_id = resp.json()["id"]
@@ -33,9 +33,12 @@ async def test_get_tasks_for_target_returns_list(
     # Assert
     assert resp.status_code == 200
     data = resp.json()
-    assert isinstance(data, list)
-    assert len(data) >= 1
-    assert data[0]["id"] == task_id
+    assert "items" in data
+    assert "total" in data
+    assert isinstance(data["items"], list)
+    assert len(data["items"]) >= 1
+    assert data["total"] >= 1
+    assert data["items"][0]["id"] == task_id
 
 
 @pytest.mark.asyncio
@@ -71,17 +74,19 @@ async def test_get_tasks_for_target_sorted_by_created_at_desc(
     # Act
     resp = await client.get(f"/api/v1/targets/{target_id}/tasks")
     data = resp.json()
+    items = data["items"]
 
     # Assert: 최신 Task가 먼저
-    assert data[0]["id"] == task_ids[-1]
-    assert data[-1]["id"] == task_ids[0]
+    assert data["total"] == 3
+    assert items[0]["id"] == task_ids[-1]
+    assert items[-1]["id"] == task_ids[0]
 
 
 @pytest.mark.asyncio
 async def test_get_tasks_for_target_with_pagination(
     client: AsyncClient, db_session: AsyncSession
 ):
-    """skip=2&limit=2 -> 2개 Task 반환"""
+    """skip=2&limit=2 -> 2개 Task 반환, total은 전체 개수"""
     # Setup: 5개 Task 생성
     resp = await client.post("/api/v1/projects/", json={"name": "Page Proj"})
     project_id = resp.json()["id"]
@@ -109,14 +114,15 @@ async def test_get_tasks_for_target_with_pagination(
     data = resp.json()
 
     # Assert
-    assert len(data) == 2
+    assert len(data["items"]) == 2
+    assert data["total"] == 5  # total은 전체 개수
 
 
 @pytest.mark.asyncio
 async def test_get_tasks_for_target_with_status_filter(
     client: AsyncClient, db_session: AsyncSession
 ):
-    """status=completed -> 완료된 Task만 반환"""
+    """status=completed -> 완료된 Task만 반환, total도 필터 적용"""
     # Setup
     resp = await client.post("/api/v1/projects/", json={"name": "Filter Proj"})
     project_id = resp.json()["id"]
@@ -143,7 +149,9 @@ async def test_get_tasks_for_target_with_status_filter(
     # Act
     resp = await client.get(f"/api/v1/targets/{target_id}/tasks?status=completed")
     data = resp.json()
+    items = data["items"]
 
     # Assert
-    assert len(data) == 1
-    assert all(t["status"] == "completed" for t in data)
+    assert len(items) == 1
+    assert data["total"] == 1  # total도 필터 적용
+    assert all(t["status"] == "completed" for t in items)

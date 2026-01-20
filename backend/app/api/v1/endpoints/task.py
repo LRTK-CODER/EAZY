@@ -7,7 +7,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.core.db import get_session
 from app.core.redis import get_redis
 from app.models.asset import AssetRead
-from app.models.task import Task, TaskRead, TaskStatus
+from app.models.task import Task, TaskListResponse, TaskRead, TaskStatus
 from app.services.task_service import TaskService
 
 router = APIRouter()
@@ -90,7 +90,7 @@ async def cancel_task(
             raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/targets/{target_id}/tasks", response_model=List[TaskRead])
+@router.get("/targets/{target_id}/tasks", response_model=TaskListResponse)
 async def get_tasks_for_target(
     target_id: int,
     skip: int = Query(0, ge=0),
@@ -98,7 +98,7 @@ async def get_tasks_for_target(
     status: Optional[TaskStatus] = Query(None),
     session: AsyncSession = Depends(get_session),
     redis: Redis = Depends(get_redis),
-) -> List[Task]:
+) -> TaskListResponse:
     """
     Get all tasks for a target with optional filtering and pagination.
 
@@ -109,15 +109,20 @@ async def get_tasks_for_target(
         status: Filter by task status (optional)
 
     Returns:
-        List of tasks sorted by created_at DESC
+        TaskListResponse with items and total count
     """
     service = TaskService(session, redis)
-    return await service.get_tasks_for_target(
+    items = await service.get_tasks_for_target(
         target_id=target_id,
         skip=skip,
         limit=limit,
         status=status,
     )
+    total = await service.count_tasks_for_target(
+        target_id=target_id,
+        status=status,
+    )
+    return TaskListResponse(items=items, total=total)
 
 
 @router.get("/targets/{target_id}/latest-task", response_model=TaskRead)

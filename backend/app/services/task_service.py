@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from redis.asyncio import Redis
+from sqlalchemy import func
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -205,3 +206,28 @@ class TaskService:
 
         result = await self.session.exec(statement)
         return result.all()
+
+    async def count_tasks_for_target(
+        self,
+        target_id: int,
+        status: Optional[TaskStatus] = None,
+    ) -> int:
+        """
+        Count total tasks for a target with optional status filter.
+
+        Args:
+            target_id: Target ID
+            status: Optional status filter
+
+        Returns:
+            Total count of matching tasks
+        """
+        statement = (
+            select(func.count()).select_from(Task).where(Task.target_id == target_id)
+        )
+
+        if status is not None:
+            statement = statement.where(Task.status == status)
+
+        result = await self.session.exec(statement)
+        return result.one() or 0

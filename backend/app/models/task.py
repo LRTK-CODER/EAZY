@@ -63,3 +63,10 @@ class TaskRead(TaskBase):
     updated_at: datetime
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+
+
+class TaskListResponse(SQLModel):
+    """Response model for paginated task list with total count."""
+
+    items: list[TaskRead]
+    total: int

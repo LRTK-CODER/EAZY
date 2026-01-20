@@ -14,16 +14,26 @@ export interface GetTasksParams {
 }
 
 /**
+ * Response type for task list with total count
+ */
+export interface TaskListResponse {
+  /** Array of tasks for current page */
+  items: Task[];
+  /** Total count of matching tasks */
+  total: number;
+}
+
+/**
  * Get tasks for a specific target with pagination and filtering
  * @param targetId - The target ID
  * @param params - Pagination and filtering parameters
- * @returns Promise resolving to array of tasks
+ * @returns Promise resolving to TaskListResponse with items and total
  */
 export const getTasksForTarget = async (
   targetId: number,
   params: GetTasksParams = {}
-): Promise<Task[]> => {
-  return api.get<Task[]>(`/targets/${targetId}/tasks`, params);
+): Promise<TaskListResponse> => {
+  return api.get<TaskListResponse>(`/targets/${targetId}/tasks`, params);
 };
 
 /**

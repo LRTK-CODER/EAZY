@@ -1,4 +1,4 @@
-import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import * as taskService from '@/services/taskService';
 import { TaskStatus, type Task } from '@/types/task';
 
@@ -17,6 +17,8 @@ export const taskKeys = {
   forTarget: (targetId: number) => [...taskKeys.all(), 'target', targetId] as const,
   forTargetWithParams: (targetId: number, params: taskService.GetTasksParams) =>
     [...taskKeys.forTarget(targetId), params] as const,
+  infiniteForTarget: (targetId: number, status?: TaskStatus) =>
+    [...taskKeys.all(), 'infinite', targetId, status] as const,
 };
 
 /**
@@ -229,15 +231,17 @@ export interface UseTaskHistoryParams {
  *
  * @param targetId - The target ID to fetch tasks for
  * @param params - Pagination and filtering parameters
- * @returns Query result with tasks array
+ * @returns Query result with TaskListResponse (items and total)
  *
  * @example
  * ```tsx
- * const { data: tasks, isLoading } = useTaskHistory(targetId, {
+ * const { data, isLoading } = useTaskHistory(targetId, {
  *   skip: 0,
  *   limit: 10,
  *   status: TaskStatus.COMPLETED,
  * });
+ * const tasks = data?.items ?? [];
+ * const total = data?.total ?? 0;
  * ```
  */
 export const useTaskHistory = (
@@ -247,6 +251,74 @@ export const useTaskHistory = (
   return useQuery({
     queryKey: taskKeys.forTargetWithParams(targetId, params),
     queryFn: () => taskService.getTasksForTarget(targetId, params),
+    enabled: !!targetId,
+  });
+};
+
+/** Page size for infinite scroll */
+const INFINITE_PAGE_SIZE = 15;
+
+/**
+ * Parameters for useTaskHistoryInfinite hook
+ */
+export interface UseTaskHistoryInfiniteParams {
+  /** Filter by task status */
+  status?: TaskStatus;
+}
+
+/**
+ * Hook to fetch task history with infinite scroll support
+ *
+ * Uses useInfiniteQuery to automatically handle pagination.
+ * Fetches more data when fetchNextPage is called.
+ * Returns pages with { items, total } structure for displaying total count.
+ *
+ * @param targetId - The target ID to fetch tasks for
+ * @param params - Filtering parameters (status)
+ * @returns Infinite query result with pages of tasks
+ *
+ * @example
+ * ```tsx
+ * const {
+ *   data,
+ *   fetchNextPage,
+ *   hasNextPage,
+ *   isFetchingNextPage
+ * } = useTaskHistoryInfinite(targetId, { status: TaskStatus.COMPLETED });
+ *
+ * // Flatten all pages into a single array
+ * const allTasks = data?.pages.flatMap(p => p.items) ?? [];
+ * const totalCount = data?.pages[0]?.total ?? 0;
+ *
+ * // Load more when reaching the end
+ * if (hasNextPage) {
+ *   fetchNextPage();
+ * }
+ * ```
+ */
+export const useTaskHistoryInfinite = (
+  targetId: number,
+  params: UseTaskHistoryInfiniteParams = {}
+) => {
+  return useInfiniteQuery({
+    queryKey: taskKeys.infiniteForTarget(targetId, params.status),
+    queryFn: ({ pageParam = 0 }) =>
+      taskService.getTasksForTarget(targetId, {
+        skip: pageParam,
+        limit: INFINITE_PAGE_SIZE,
+        status: params.status,
+      }),
+    getNextPageParam: (lastPage, allPages) => {
+      // Calculate total items loaded so far
+      const totalLoaded = allPages.flatMap((p) => p.items).length;
+      // If we've loaded all items, there are no more pages
+      if (totalLoaded >= lastPage.total) {
+        return undefined;
+      }
+      // Return the total number of items fetched so far as the next skip value
+      return totalLoaded;
+    },
+    initialPageParam: 0,
     enabled: !!targetId,
   });
 };

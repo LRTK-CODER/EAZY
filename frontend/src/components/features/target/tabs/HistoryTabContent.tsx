@@ -1,20 +1,13 @@
-import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, History, AlertCircle } from 'lucide-react';
-import { useTaskHistory } from '@/hooks/useTasks';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { History, AlertCircle, Loader2 } from 'lucide-react';
+import { useTaskHistoryInfinite } from '@/hooks/useTasks';
 import { formatElapsedTime, formatDistanceToNow } from '@/utils/date';
 import { TaskStatus } from '@/types/task';
 import type { Task, TaskStatus as TaskStatusType } from '@/types/task';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { TaskDetailModal } from './TaskDetailModal';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -22,9 +15,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
-/** Page size for pagination */
-const PAGE_SIZE = 10;
+/** Row height for virtualization */
+const ROW_HEIGHT = 48;
+
+/**
+ * Layout overhead for viewport-based height calculation
+ * - Breadcrumb + Target Header + TabsList + TabsContent margin = ~184px
+ * - Back Button area = ~84px
+ * - History Filter section = ~56px
+ * - Table Header = ~48px
+ * - Page padding (p-6 * 2) = ~48px
+ * Total = ~420px
+ */
+const LAYOUT_OVERHEAD = 510;
+
+/** Overscan count for virtualization */
+const OVERSCAN_COUNT = 5;
 
 /** Status badge color mapping */
 const STATUS_VARIANT_MAP: Record<TaskStatusType, string> = {
@@ -56,28 +64,24 @@ function HistoryLoadingSkeleton() {
         <Skeleton className="h-10 w-[180px]" />
       </div>
       <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Started</TableHead>
-              <TableHead>Duration</TableHead>
-              <TableHead>Created</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <TableRow key={i}>
-                <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        {/* Header */}
+        <div className="flex items-center h-12 px-4 border-b bg-muted/50">
+          <div className="flex-1 text-sm font-medium text-muted-foreground">Type</div>
+          <div className="flex-1 text-sm font-medium text-muted-foreground">Status</div>
+          <div className="flex-1 text-sm font-medium text-muted-foreground">Started</div>
+          <div className="flex-1 text-sm font-medium text-muted-foreground">Duration</div>
+          <div className="flex-1 text-sm font-medium text-muted-foreground">Created</div>
+        </div>
+        {/* Skeleton rows */}
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex items-center h-12 px-4 border-b">
+            <div className="flex-1"><Skeleton className="h-5 w-16" /></div>
+            <div className="flex-1"><Skeleton className="h-5 w-20" /></div>
+            <div className="flex-1"><Skeleton className="h-5 w-24" /></div>
+            <div className="flex-1"><Skeleton className="h-5 w-16" /></div>
+            <div className="flex-1"><Skeleton className="h-5 w-24" /></div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -114,6 +118,21 @@ function HistoryErrorState() {
 }
 
 /**
+ * Loading indicator for fetching more
+ */
+function LoadingMore() {
+  return (
+    <div
+      className="flex items-center justify-center py-4 text-muted-foreground"
+      data-testid="loading-more-indicator"
+    >
+      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+      <span className="text-sm">Loading more...</span>
+    </div>
+  );
+}
+
+/**
  * Format task duration
  */
 function formatDuration(task: Task): string {
@@ -124,7 +143,82 @@ function formatDuration(task: Task): string {
 }
 
 /**
- * Scan History tab content displaying task history with pagination and filtering.
+ * Virtualized table header
+ */
+function TableHeader() {
+  return (
+    <div
+      className="flex items-center h-12 px-4 border-b bg-muted/50 sticky top-0 z-10"
+      role="row"
+    >
+      <div className="flex-1 text-sm font-medium text-muted-foreground" role="columnheader">
+        Type
+      </div>
+      <div className="flex-1 text-sm font-medium text-muted-foreground" role="columnheader">
+        Status
+      </div>
+      <div className="flex-1 text-sm font-medium text-muted-foreground" role="columnheader">
+        Started
+      </div>
+      <div className="flex-1 text-sm font-medium text-muted-foreground" role="columnheader">
+        Duration
+      </div>
+      <div className="flex-1 text-sm font-medium text-muted-foreground" role="columnheader">
+        Created
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Virtualized table row
+ */
+interface TableRowProps {
+  task: Task;
+  onClick: () => void;
+  style?: React.CSSProperties;
+}
+
+function TaskTableRow({ task, onClick, style }: TableRowProps) {
+  return (
+    <div
+      role="row"
+      className={cn(
+        'flex items-center h-12 px-4 border-b cursor-pointer',
+        'hover:bg-muted/50 transition-colors'
+      )}
+      style={style}
+      onClick={onClick}
+      data-testid={`task-row-${task.id}`}
+    >
+      <div className="flex-1" role="cell">
+        <Badge className={TYPE_VARIANT_MAP[task.type] ?? ''}>
+          {task.type}
+        </Badge>
+      </div>
+      <div className="flex-1" role="cell">
+        <Badge className={STATUS_VARIANT_MAP[task.status]}>
+          {task.status}
+        </Badge>
+      </div>
+      <div className="flex-1 text-sm" role="cell">
+        {task.started_at
+          ? formatDistanceToNow(task.started_at, { addSuffix: true })
+          : '-'}
+      </div>
+      <div className="flex-1 text-sm" role="cell">
+        {formatDuration(task)}
+      </div>
+      <div className="flex-1 text-sm" role="cell">
+        {formatDistanceToNow(task.created_at, { addSuffix: true })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Scan History tab content displaying task history with virtualization,
+ * infinite scroll, and filtering.
  *
  * @example
  * ```tsx
@@ -132,32 +226,86 @@ function formatDuration(task: Task): string {
  * ```
  */
 export function HistoryTabContent({ targetId }: HistoryTabContentProps) {
-  // Pagination state
-  const [page, setPage] = useState(0);
   // Status filter state
   const [statusFilter, setStatusFilter] = useState<TaskStatusType | 'all'>('all');
+  // Selected task for detail modal
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  // Ref for virtualized scroll container
+  const parentRef = useRef<HTMLDivElement>(null);
+  // Ref for infinite scroll sentinel
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Build query params
-  const queryParams = useMemo(() => ({
-    skip: page * PAGE_SIZE,
-    limit: PAGE_SIZE,
+  // Fetch task history with infinite scroll
+  const {
+    data,
+    isLoading,
+    isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useTaskHistoryInfinite(targetId, {
     status: statusFilter === 'all' ? undefined : statusFilter,
-  }), [page, statusFilter]);
+  });
 
-  // Fetch task history
-  const { data: tasks, isLoading, isError } = useTaskHistory(targetId, queryParams);
+  // Flatten all pages into a single array and get total count
+  const tasks = data?.pages.flatMap((p) => p.items) ?? [];
+  const totalCount = data?.pages[0]?.total ?? 0;
 
-  // Pagination helpers
-  const hasPrevious = page > 0;
-  const hasNext = (tasks?.length ?? 0) === PAGE_SIZE;
+  // Setup virtualizer
+  const virtualizer = useVirtualizer({
+    count: tasks.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: OVERSCAN_COUNT,
+  });
 
-  // Handle filter change - reset to first page
+  const virtualItems = virtualizer.getVirtualItems();
+
+  // Setup Intersection Observer for infinite scroll (trigger near bottom)
+  const handleScroll = useCallback(() => {
+    if (!parentRef.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = parentRef.current;
+    const scrollThreshold = scrollHeight - clientHeight - 100;
+
+    if (scrollTop >= scrollThreshold && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  useEffect(() => {
+    const container = parentRef.current;
+    if (!container) return;
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
+  // IntersectionObserver for infinite scroll when sentinel becomes visible
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  // Handle filter change
   const handleFilterChange = (value: string) => {
     setStatusFilter(value as TaskStatusType | 'all');
-    setPage(0);
   };
 
-  // Loading state
+  // Loading state (initial load only)
   if (isLoading) {
     return (
       <div data-testid="history-tab-content">
@@ -176,7 +324,7 @@ export function HistoryTabContent({ targetId }: HistoryTabContentProps) {
   }
 
   // Empty state
-  if (!tasks || tasks.length === 0) {
+  if (tasks.length === 0) {
     return (
       <div data-testid="history-tab-content">
         <div className="flex items-center gap-4 mb-4">
@@ -216,76 +364,73 @@ export function HistoryTabContent({ targetId }: HistoryTabContentProps) {
             <SelectItem value={TaskStatus.CANCELLED}>Cancelled</SelectItem>
           </SelectContent>
         </Select>
+        <span className="text-sm text-muted-foreground">
+          {totalCount} task{totalCount !== 1 ? 's' : ''}
+        </span>
       </div>
 
-      {/* History Table */}
-      <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Started</TableHead>
-              <TableHead>Duration</TableHead>
-              <TableHead>Created</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {tasks.map((task) => (
-              <TableRow key={task.id}>
-                <TableCell>
-                  <Badge className={TYPE_VARIANT_MAP[task.type] ?? ''}>
-                    {task.type}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge className={STATUS_VARIANT_MAP[task.status]}>
-                    {task.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {task.started_at
-                    ? formatDistanceToNow(task.started_at, { addSuffix: true })
-                    : '-'}
-                </TableCell>
-                <TableCell>{formatDuration(task)}</TableCell>
-                <TableCell>
-                  {formatDistanceToNow(task.created_at, { addSuffix: true })}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      {/* Virtualized History Table */}
+      <div className="border rounded-md" role="table" aria-label="Task history">
+        <TableHeader />
+        <div
+          ref={parentRef}
+          className="overflow-auto"
+          style={{ height: `calc(100vh - ${LAYOUT_OVERHEAD}px)`, minHeight: '400px' }}
+          data-testid="virtualized-list-container"
+        >
+          <div
+            style={{
+              height: virtualizer.getTotalSize() + (hasNextPage ? ROW_HEIGHT : 0),
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {virtualItems.map((virtualRow) => {
+              const task = tasks[virtualRow.index];
+              return (
+                <div
+                  key={virtualRow.key}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <TaskTableRow
+                    task={task}
+                    onClick={() => setSelectedTask(task)}
+                  />
+                </div>
+              );
+            })}
+            {/* Infinite scroll sentinel inside table */}
+            {hasNextPage && (
+              <div
+                ref={sentinelRef}
+                data-testid="infinite-scroll-sentinel"
+                style={{
+                  position: 'absolute',
+                  top: virtualizer.getTotalSize(),
+                  left: 0,
+                  width: '100%',
+                  height: ROW_HEIGHT,
+                }}
+              >
+                {isFetchingNextPage && <LoadingMore />}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between px-2">
-        <div className="text-sm text-muted-foreground">
-          Page {page + 1}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => p - 1)}
-            disabled={!hasPrevious}
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => p + 1)}
-            disabled={!hasNext}
-            aria-label="Next page"
-          >
-            Next
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
-      </div>
+      {/* Task Detail Modal */}
+      <TaskDetailModal
+        task={selectedTask}
+        open={selectedTask !== null}
+        onOpenChange={(open) => !open && setSelectedTask(null)}
+      />
     </div>
   );
 }
