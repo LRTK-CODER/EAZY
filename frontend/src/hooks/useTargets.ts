@@ -1,7 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import * as targetService from '@/services/targetService';
 import type { Target, TargetCreate, TargetUpdate, TargetListParams } from '@/types/target';
 import { taskKeys } from './useTasks';
+import { useDebounce } from './use-debounce';
 
 /**
  * Query key factory for targets
@@ -15,6 +16,8 @@ export const targetKeys = {
   details: () => ['targets', 'detail'] as const,
   detail: (projectId: number, targetId: number) =>
     [...targetKeys.details(), projectId, targetId] as const,
+  search: (projectId: number, query: string) =>
+    ['targets', 'search', projectId, query] as const,
 };
 
 /**
@@ -111,5 +114,20 @@ export const useTriggerScan = () => {
         queryKey: taskKeys.latestForTarget(variables.targetId)
       });
     },
+  });
+};
+
+/**
+ * Hook to search targets by name or URL with debouncing
+ */
+export const useTargetSearch = (projectId: number, query: string) => {
+  const debouncedQuery = useDebounce(query, 300);
+
+  return useQuery({
+    queryKey: targetKeys.search(projectId, debouncedQuery),
+    queryFn: () => targetService.searchTargets(projectId, { q: debouncedQuery }),
+    enabled: !!projectId && debouncedQuery.length >= 2,
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 };

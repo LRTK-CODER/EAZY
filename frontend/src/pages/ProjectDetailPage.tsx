@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link, Navigate } from 'react-router-dom';
+import { useParams, Link, Navigate, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle, ArrowLeft, Plus } from 'lucide-react';
 import { formatDistanceToNow } from '@/utils/date';
 import { parseNumericParam, isValidId } from '@/utils/params';
@@ -7,12 +7,19 @@ import { useProject } from '@/hooks/useProjects';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { TargetList } from '@/components/features/target/TargetList';
+import { TargetSearchBar } from '@/components/features/target/TargetSearchBar';
 import { CreateTargetForm } from '@/components/features/target/CreateTargetForm';
+import type { Target } from '@/types/target';
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const projectId = parseNumericParam(id);
+  const navigate = useNavigate();
   const [createTargetOpen, setCreateTargetOpen] = useState(false);
+
+  const handleTargetSelect = (target: Target) => {
+    navigate(`/projects/${projectId}/targets/${target.id}/results`);
+  };
 
   // Redirect to 404 if project ID is invalid
   if (!isValidId(projectId)) {
@@ -78,10 +85,16 @@ export function ProjectDetailPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-semibold">Targets</h2>
-          <Button onClick={() => setCreateTargetOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Target
-          </Button>
+          <div className="flex items-center gap-2">
+            <TargetSearchBar
+              projectId={projectId}
+              onSelect={handleTargetSelect}
+            />
+            <Button onClick={() => setCreateTargetOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Target
+            </Button>
+          </div>
         </div>
 
         <TargetList projectId={projectId} />

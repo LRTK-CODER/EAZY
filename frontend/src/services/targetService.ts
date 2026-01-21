@@ -1,5 +1,13 @@
 import * as api from '@/lib/api';
-import type { Target, TargetCreate, TargetUpdate, TargetListParams, ScanTriggerResponse } from '@/types/target';
+import type {
+  Target,
+  TargetCreate,
+  TargetUpdate,
+  TargetListParams,
+  ScanTriggerResponse,
+  TargetSearchParams,
+  TargetSearchResponse,
+} from '@/types/target';
 
 /**
  * Fetch list of targets for a project with optional pagination
@@ -47,4 +55,14 @@ export const deleteTarget = async (projectId: number, targetId: number): Promise
  */
 export const triggerScan = async (projectId: number, targetId: number): Promise<ScanTriggerResponse> => {
   return api.post<ScanTriggerResponse>(`/projects/${projectId}/targets/${targetId}/scan`);
+};
+
+/**
+ * Search targets by name or URL
+ */
+export const searchTargets = async (
+  projectId: number,
+  params: TargetSearchParams
+): Promise<TargetSearchResponse> => {
+  return api.get<TargetSearchResponse>(`/projects/${projectId}/targets/search`, params);
 };

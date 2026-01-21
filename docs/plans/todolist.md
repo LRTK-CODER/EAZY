@@ -517,9 +517,9 @@ export function TargetSearchBar({ projectId, onSelect }: Props) {
 - 최근 검색 히스토리 (localStorage)
 - 검색어 하이라이팅
 
-- [ ] Red: 5개 컴포넌트 테스트 작성
-- [ ] Green: Service, Hook, Component 구현
-- [ ] Blue: 키보드 네비게이션, 히스토리
+- [x] Red: 15개 컴포넌트 테스트 작성 ✅
+- [x] Green: Service, Hook, Component 구현 ✅
+- [x] Blue: 키보드 네비게이션, 검색어 하이라이팅, 최근 검색 히스토리 (localStorage) ✅
 
 ---
 
@@ -651,7 +651,7 @@ export function OverviewTabContent({ projectId, targetId, targetName }: Props) {
 |---------|---------|----------|--------|
 | 재귀 크롤링 | 5/5 | - | ✅ Complete |
 | 스캔 히스토리 | 1/1 | 4/4 (Blue 완료) | ✅ Complete |
-| 도메인 검색 | 1/1 | 0/2 | 🔄 Backend Complete |
+| 도메인 검색 | 1/1 | 2/2 (Blue 완료) | ✅ Complete |
 | Overview UI | 0/1 | 0/4 | Not Started |
 
 ### 완료된 항목
@@ -670,6 +670,13 @@ export function OverviewTabContent({ projectId, targetId, targetName }: Props) {
   - 9개 테스트 (이름/URL 검색, 대소문자 무시, 부분 일치, 프로젝트 격리, 특수문자 이스케이프)
   - TargetListResponse 모델, TargetService.search_targets
   - 인덱스 추가 (ix_targets_project_id, ix_targets_project_created)
+- ✅ **3.2-3.3** Frontend 검색 바 컴포넌트 (Blue Phase 완료)
+  - 15개 테스트 (렌더링, 디바운스, 검색 결과, 선택, 로딩/에러 상태, 엣지 케이스)
+  - targetService.searchTargets, useTargetSearch hook (300ms 디바운스)
+  - TargetSearchBar.tsx (shadcn Command + Popover 패턴)
+  - useSearchHistory hook (localStorage, 프로젝트별 최대 5개)
+  - 검색어 하이라이팅 (highlightMatch 유틸리티)
+  - ProjectDetailPage에 통합 (타겟 선택 → 결과 페이지 이동)
 
 ---
 

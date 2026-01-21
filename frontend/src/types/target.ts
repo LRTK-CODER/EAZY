@@ -66,3 +66,20 @@ export interface ScanTriggerResponse {
   status: string;
   task_id: number;
 }
+
+/**
+ * Query parameters for searching targets
+ */
+export interface TargetSearchParams {
+  q: string;
+  skip?: number;
+  limit?: number;
+}
+
+/**
+ * Response from target search API
+ */
+export interface TargetSearchResponse {
+  items: Target[];
+  total: number;
+}
