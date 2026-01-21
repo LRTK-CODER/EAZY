@@ -460,9 +460,9 @@ async def search_targets(
 - PostgreSQL `tsvector` 기반 Full-text 검색
 - 검색 결과 하이라이팅 (match 위치 반환)
 
-- [ ] Red: 4개 API 테스트 작성
-- [ ] Green: 검색 엔드포인트 구현
-- [ ] Blue: Full-text 검색
+- [x] Red: 9개 API 테스트 작성 ✅ (4개 기본 + 5개 추가: 보안, 격리, 특수문자, 페이지네이션, 빈 결과)
+- [x] Green: 검색 엔드포인트 구현 ✅ (TargetService.search_targets, LIKE 이스케이프)
+- [x] Blue: 인덱스 추가 ✅ (ix_targets_project_id, ix_targets_project_created)
 
 ---
 
@@ -651,7 +651,7 @@ export function OverviewTabContent({ projectId, targetId, targetName }: Props) {
 |---------|---------|----------|--------|
 | 재귀 크롤링 | 5/5 | - | ✅ Complete |
 | 스캔 히스토리 | 1/1 | 4/4 (Blue 완료) | ✅ Complete |
-| 도메인 검색 | 0/1 | 0/2 | Not Started |
+| 도메인 검색 | 1/1 | 0/2 | 🔄 Backend Complete |
 | Overview UI | 0/1 | 0/4 | Not Started |
 
 ### 완료된 항목
@@ -666,6 +666,10 @@ export function OverviewTabContent({ projectId, targetId, targetName }: Props) {
   - Infinite scroll 페이지네이션 (15개씩)
   - Task 상세 모달
   - 한 페이지 레이아웃 (외부 스크롤 없음)
+- ✅ **3.1** Target 검색 API (GET /projects/{project_id}/targets/search)
+  - 9개 테스트 (이름/URL 검색, 대소문자 무시, 부분 일치, 프로젝트 격리, 특수문자 이스케이프)
+  - TargetListResponse 모델, TargetService.search_targets
+  - 인덱스 추가 (ix_targets_project_id, ix_targets_project_created)
 
 ---
 

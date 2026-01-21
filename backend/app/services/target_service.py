@@ -1,6 +1,7 @@
+import re
 from typing import List, Optional
 
-from sqlmodel import select
+from sqlmodel import func, or_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.target import Target, TargetCreate, TargetUpdate
@@ -72,3 +73,58 @@ class TargetService:
         )
         result = await self.session.exec(query)
         return result.all()
+
+    @staticmethod
+    def _escape_like(value: str) -> str:
+        """SQL LIKE 특수문자 이스케이프 (%, _, \\)"""
+        return re.sub(r"([%_\\])", r"\\\1", value)
+
+    async def search_targets(
+        self,
+        project_id: int,
+        q: str,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> List[Target]:
+        """Target 검색: name 또는 URL 부분 일치 (대소문자 무시)"""
+        escaped_q = self._escape_like(q)
+
+        statement = (
+            select(Target)
+            .where(
+                Target.project_id == project_id,
+                or_(
+                    Target.name.ilike(f"%{escaped_q}%"),
+                    Target.url.ilike(f"%{escaped_q}%"),
+                ),
+            )
+            .order_by(Target.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+
+        result = await self.session.exec(statement)
+        return list(result.all())
+
+    async def count_search_targets(
+        self,
+        project_id: int,
+        q: str,
+    ) -> int:
+        """검색 결과 총 개수"""
+        escaped_q = self._escape_like(q)
+
+        statement = (
+            select(func.count())
+            .select_from(Target)
+            .where(
+                Target.project_id == project_id,
+                or_(
+                    Target.name.ilike(f"%{escaped_q}%"),
+                    Target.url.ilike(f"%{escaped_q}%"),
+                ),
+            )
+        )
+
+        result = await self.session.exec(statement)
+        return result.one()

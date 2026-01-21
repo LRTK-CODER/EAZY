@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -8,7 +8,13 @@ from sqlmodel import select
 from app.core.db import get_session
 from app.models.asset import Asset, AssetRead
 from app.models.project import ProjectCreate, ProjectRead, ProjectUpdate
-from app.models.target import Target, TargetCreate, TargetRead, TargetUpdate
+from app.models.target import (
+    Target,
+    TargetCreate,
+    TargetListResponse,
+    TargetRead,
+    TargetUpdate,
+)
 from app.services.project_service import ProjectService
 from app.services.target_service import TargetService
 
@@ -158,6 +164,63 @@ async def read_targets(
         targets_with_count.append(TargetRead(**target_dict))
 
     return targets_with_count
+
+
+@router.get("/{project_id}/targets/search", response_model=TargetListResponse)
+async def search_targets(
+    project_id: int,
+    q: str = Query(..., min_length=1, max_length=255, description="검색어"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    session: AsyncSession = Depends(get_session),
+) -> TargetListResponse:
+    """
+    Target 검색: name 또는 URL로 부분 일치 검색 (대소문자 무시)
+
+    - **q**: 검색어 (필수, 1-255자)
+    - **skip**: 건너뛸 항목 수
+    - **limit**: 반환할 최대 항목 수
+    """
+    # Project 존재 확인
+    project_service = ProjectService(session)
+    if not await project_service.get_project(project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # 검색 실행
+    target_service = TargetService(session)
+    items = await target_service.search_targets(
+        project_id=project_id,
+        q=q,
+        skip=skip,
+        limit=limit,
+    )
+    total = await target_service.count_search_targets(
+        project_id=project_id,
+        q=q,
+    )
+
+    # asset_count 추가 (기존 패턴 유지)
+    items_with_count = []
+    for target in items:
+        count_stmt = select(func.count(Asset.id)).where(Asset.target_id == target.id)
+        count_result = await session.exec(count_stmt)
+        asset_count = count_result.one() or 0
+
+        items_with_count.append(
+            TargetRead(
+                id=target.id,
+                project_id=target.project_id,
+                name=target.name,
+                url=target.url,
+                description=target.description,
+                scope=target.scope,
+                created_at=target.created_at,
+                updated_at=target.updated_at,
+                asset_count=asset_count,
+            )
+        )
+
+    return TargetListResponse(items=items_with_count, total=total)
 
 
 @router.get("/{project_id}/targets/{target_id}", response_model=TargetRead)

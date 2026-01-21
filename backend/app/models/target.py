@@ -46,3 +46,10 @@ class TargetRead(TargetBase):
     created_at: datetime
     updated_at: datetime
     asset_count: int = 0
+
+
+class TargetListResponse(SQLModel):
+    """Target 목록 응답 (페이지네이션 지원)"""
+
+    items: list["TargetRead"]
+    total: int
