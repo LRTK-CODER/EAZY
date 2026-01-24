@@ -1,0 +1,231 @@
+# Technology Fingerprint Signatures
+# Used by TechFingerprintModule for web technology detection
+#
+# Categories:
+#   - frontend_framework: React, Vue, Angular
+#   - library: jQuery, Lodash
+#   - server: nginx, Apache
+#   - cdn: Cloudflare, AWS CloudFront
+#   - cms: WordPress, Drupal
+
+frontend_framework:
+  React:
+    scripts:
+      - pattern: "react(?:@|/)([0-9.]+)"
+        version_group: 1
+      - pattern: "react\\.(?:min\\.)?js"
+      - pattern: "react-dom(?:@|/)([0-9.]+)"
+        version_group: 1
+      - pattern: "react-dom\\.(?:min\\.)?js"
+    global_variables:
+      - "React"
+      - "__REACT_DEVTOOLS_GLOBAL_HOOK__"
+      - "__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED"
+    dom_attributes:
+      - "data-reactroot"
+      - "data-reactid"
+      - "data-react-checksum"
+    confidence:
+      script: 0.85
+      global_variable: 0.9
+      dom_attribute: 0.85
+
+  Vue:
+    scripts:
+      - pattern: "vue(?:@|/)([0-9.]+)"
+        version_group: 1
+      - pattern: "vue\\.(?:global\\.)?(?:min\\.)?js"
+      - pattern: "vue\\.runtime\\.(?:min\\.)?js"
+    global_variables:
+      - "Vue"
+      - "__VUE__"
+      - "__VUE_DEVTOOLS_GLOBAL_HOOK__"
+    dom_attributes:
+      - "v-cloak"
+      - "v-for"
+      - "v-if"
+      - "v-show"
+      - "v-model"
+      - "v-bind"
+      - "v-on"
+      - ":class"
+      - "@click"
+    confidence:
+      script: 0.85
+      global_variable: 0.9
+      dom_attribute: 0.8
+
+  Angular:
+    scripts:
+      - pattern: "angular(?:@|/)([0-9.]+)"
+        version_group: 1
+      - pattern: "zone\\.js"
+    global_variables:
+      - "ng"
+      - "getAllAngularRootElements"
+      - "getAllAngularTestabilities"
+    dom_attributes:
+      - pattern: 'ng-version="([0-9.]+)"'
+        version_group: 1
+      - "_ngcontent"
+      - "_nghost"
+      - "ng-reflect"
+    confidence:
+      script: 0.8
+      global_variable: 0.85
+      dom_attribute: 0.9
+
+  AngularJS:
+    scripts:
+      - pattern: "angularjs?(?:@|/)([0-9.]+)"
+        version_group: 1
+      - pattern: "angular\\.(?:min\\.)?js"
+    global_variables:
+      - "angular"
+    dom_attributes:
+      - "ng-app"
+      - "ng-controller"
+      - "ng-model"
+      - "ng-bind"
+      - "ng-repeat"
+      - "ng-show"
+      - "ng-hide"
+    confidence:
+      script: 0.9
+      global_variable: 0.9
+      dom_attribute: 0.85
+
+library:
+  jQuery:
+    scripts:
+      - pattern: "jquery(?:@|[-/])([0-9.]+)"
+        version_group: 1
+      - pattern: "jquery\\.(?:min\\.)?js"
+      - pattern: "jquery\\.slim\\.(?:min\\.)?js"
+    global_variables:
+      - "jQuery"
+      - "$"
+    confidence:
+      script: 0.9
+      global_variable: 0.85
+
+  Lodash:
+    scripts:
+      - pattern: "lodash(?:@|[-/])([0-9.]+)"
+        version_group: 1
+      - pattern: "lodash\\.(?:min\\.)?js"
+    global_variables:
+      - "_"
+      - "lodash"
+    confidence:
+      script: 0.85
+      global_variable: 0.7
+
+server:
+  nginx:
+    headers:
+      Server:
+        - pattern: "nginx(?:/([0-9.]+))?"
+          version_group: 1
+    confidence:
+      header: 0.95
+
+  Apache:
+    headers:
+      Server:
+        - pattern: "Apache(?:/([0-9.]+))?"
+          version_group: 1
+    confidence:
+      header: 0.95
+
+  Express:
+    headers:
+      X-Powered-By:
+        - pattern: "Express"
+    confidence:
+      header: 0.9
+
+  PHP:
+    headers:
+      X-Powered-By:
+        - pattern: "PHP(?:/([0-9.]+))?"
+          version_group: 1
+    confidence:
+      header: 0.9
+
+  ASP.NET:
+    headers:
+      X-Powered-By:
+        - pattern: "ASP\\.NET"
+      X-AspNet-Version:
+        - pattern: "([0-9.]+)"
+          version_group: 1
+    confidence:
+      header: 0.9
+
+cdn:
+  Cloudflare:
+    headers:
+      cf-ray:
+        - pattern: ".+"
+      Server:
+        - pattern: "cloudflare"
+      cf-cache-status:
+        - pattern: ".+"
+    confidence:
+      header: 0.95
+
+  AWS_CloudFront:
+    headers:
+      X-Amz-Cf-Id:
+        - pattern: ".+"
+      X-Amz-Cf-Pop:
+        - pattern: ".+"
+      Via:
+        - pattern: "CloudFront"
+    confidence:
+      header: 0.95
+
+  Fastly:
+    headers:
+      X-Served-By:
+        - pattern: "cache-"
+      X-Cache:
+        - pattern: ".+"
+      Fastly-Debug-Digest:
+        - pattern: ".+"
+    confidence:
+      header: 0.9
+
+cms:
+  WordPress:
+    dom_patterns:
+      - pattern: "/wp-content/"
+      - pattern: "/wp-includes/"
+      - pattern: "/wp-admin/"
+      - pattern: 'name="generator"[^>]*content="WordPress[^"]*([0-9.]+)?'
+        version_group: 1
+    scripts:
+      - pattern: "wp-includes"
+      - pattern: "wp-content"
+    confidence:
+      dom_pattern: 0.95
+      script: 0.9
+
+  Drupal:
+    dom_patterns:
+      - pattern: "/sites/default/files/"
+      - pattern: "/sites/all/"
+      - pattern: 'name="generator"[^>]*content="Drupal[^"]*([0-9.]+)?'
+        version_group: 1
+      - pattern: "Drupal\\.settings"
+    confidence:
+      dom_pattern: 0.9
+
+  Joomla:
+    dom_patterns:
+      - pattern: "/components/com_"
+      - pattern: "/modules/mod_"
+      - pattern: 'name="generator"[^>]*content="Joomla'
+    confidence:
+      dom_pattern: 0.9

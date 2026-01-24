@@ -1,0 +1,323 @@
+# Third-Party Service Signatures
+# 외부 서비스 탐지를 위한 시그니처 정의
+#
+# 각 서비스는 다음 탐지 방법을 지원:
+# - script_patterns: 스크립트 URL 패턴
+# - global_variables: JavaScript 글로벌 변수
+# - cookie_patterns: 쿠키 이름 패턴
+# - html_patterns: HTML 콘텐츠 패턴
+
+services:
+  # ============================================================================
+  # Google Analytics
+  # ============================================================================
+  google_analytics:
+    name: "Google Analytics"
+    category: "analytics"
+    website: "https://analytics.google.com"
+
+    script_patterns:
+      # GA4 (gtag.js)
+      - pattern: "googletagmanager\\.com/gtag/js\\?id=([A-Z0-9-]+)"
+        confidence: 0.95
+        version: "GA4"
+        extract:
+          tracking_id: 1  # Capture group 1
+
+      # Universal Analytics (analytics.js)
+      - pattern: "google-analytics\\.com/analytics\\.js"
+        confidence: 0.95
+        version: "Universal"
+
+      # Legacy ga.js
+      - pattern: "google-analytics\\.com/ga\\.js"
+        confidence: 0.95
+        version: "Legacy"
+
+    global_variables:
+      - name: "gtag"
+        confidence: 0.8
+      - name: "dataLayer"
+        confidence: 0.7
+      - name: "ga"
+        confidence: 0.75
+      - name: "GoogleAnalyticsObject"
+        confidence: 0.85
+
+    cookie_patterns:
+      - pattern: "^_ga="
+        confidence: 0.8
+      - pattern: "^_gid="
+        confidence: 0.8
+      - pattern: "^_gat"
+        confidence: 0.75
+
+    html_patterns:
+      - pattern: "gtag\\s*\\(\\s*['\"]config['\"]"
+        confidence: 0.85
+      - pattern: "GoogleAnalyticsObject"
+        confidence: 0.8
+
+  # ============================================================================
+  # Firebase
+  # ============================================================================
+  firebase:
+    name: "Firebase"
+    category: "backend_service"
+    website: "https://firebase.google.com"
+
+    script_patterns:
+      # Firebase SDK CDN
+      - pattern: "gstatic\\.com/firebasejs/([0-9.]+)/firebase"
+        confidence: 0.95
+        extract:
+          version: 1
+
+      # Firebase hosting
+      - pattern: "([a-zA-Z0-9-]+)\\.firebaseapp\\.com"
+        confidence: 0.9
+        extract:
+          project_id: 1
+
+      # Realtime Database
+      - pattern: "([a-zA-Z0-9-]+)\\.firebaseio\\.com"
+        confidence: 0.95
+        extract:
+          project_id: 1
+
+    global_variables:
+      - name: "firebase"
+        confidence: 0.85
+      - name: "firebaseApp"
+        confidence: 0.8
+      - name: "firebaseConfig"
+        confidence: 0.75
+
+    html_patterns:
+      - pattern: "firebase\\.initializeApp"
+        confidence: 0.9
+      - pattern: "firebaseConfig"
+        confidence: 0.7
+
+  # ============================================================================
+  # Stripe
+  # ============================================================================
+  stripe:
+    name: "Stripe"
+    category: "payment"
+    website: "https://stripe.com"
+
+    script_patterns:
+      - pattern: "js\\.stripe\\.com/(v[0-9]+)"
+        confidence: 0.95
+        extract:
+          version: 1
+
+      - pattern: "js\\.stripe\\.com/v[0-9]+/stripe\\.js"
+        confidence: 0.95
+
+    global_variables:
+      - name: "Stripe"
+        confidence: 0.9
+      - name: "StripeCheckout"
+        confidence: 0.85
+
+    html_patterns:
+      - pattern: "Stripe\\s*\\("
+        confidence: 0.7
+      - pattern: "stripe\\.createToken"
+        confidence: 0.85
+
+  # ============================================================================
+  # Sentry
+  # ============================================================================
+  sentry:
+    name: "Sentry"
+    category: "monitoring"
+    website: "https://sentry.io"
+
+    script_patterns:
+      - pattern: "browser\\.sentry-cdn\\.com/([0-9.]+)/"
+        confidence: 0.95
+        extract:
+          version: 1
+
+      - pattern: "sentry\\.io/[0-9]+"
+        confidence: 0.9
+
+    global_variables:
+      - name: "Sentry"
+        confidence: 0.85
+      - name: "__SENTRY__"
+        confidence: 0.9
+
+    html_patterns:
+      - pattern: "Sentry\\.init\\s*\\("
+        confidence: 0.9
+      - pattern: "@sentry/browser"
+        confidence: 0.85
+      - pattern: "dsn:\\s*['\"]https://[^@]+@[^.]+\\.ingest\\.sentry\\.io"
+        confidence: 0.95
+
+  # ============================================================================
+  # Auth0
+  # ============================================================================
+  auth0:
+    name: "Auth0"
+    category: "authentication"
+    website: "https://auth0.com"
+
+    script_patterns:
+      # Classic Auth0.js
+      - pattern: "cdn\\.auth0\\.com/js/auth0/([0-9.]+)/"
+        confidence: 0.95
+        extract:
+          version: 1
+
+      # SPA SDK
+      - pattern: "cdn\\.auth0\\.com/js/auth0-spa-js/([0-9.]+)/"
+        confidence: 0.95
+        extract:
+          version: 1
+
+      # Auth0 Lock
+      - pattern: "cdn\\.auth0\\.com/js/lock/([0-9.]+)/"
+        confidence: 0.95
+        extract:
+          version: 1
+
+      # Auth0 domain
+      - pattern: "([a-zA-Z0-9-]+\\.auth0\\.com)"
+        confidence: 0.9
+        extract:
+          domain: 1
+
+    global_variables:
+      - name: "auth0"
+        confidence: 0.85
+      - name: "Auth0"
+        confidence: 0.85
+      - name: "Auth0Lock"
+        confidence: 0.9
+      - name: "Auth0Client"
+        confidence: 0.85
+
+    html_patterns:
+      - pattern: "Auth0\\.WebAuth"
+        confidence: 0.85
+      - pattern: "auth0\\.com"
+        confidence: 0.6
+
+  # ============================================================================
+  # Mixpanel
+  # ============================================================================
+  mixpanel:
+    name: "Mixpanel"
+    category: "analytics"
+    website: "https://mixpanel.com"
+
+    script_patterns:
+      - pattern: "cdn\\.mxpnl\\.com/libs/mixpanel"
+        confidence: 0.95
+
+      - pattern: "api\\.mixpanel\\.com"
+        confidence: 0.9
+
+    global_variables:
+      - name: "mixpanel"
+        confidence: 0.9
+
+    cookie_patterns:
+      - pattern: "^mp_.*_mixpanel"
+        confidence: 0.85
+
+    html_patterns:
+      - pattern: "mixpanel\\.init\\s*\\("
+        confidence: 0.9
+      - pattern: "mixpanel\\.track"
+        confidence: 0.8
+
+  # ============================================================================
+  # Intercom
+  # ============================================================================
+  intercom:
+    name: "Intercom"
+    category: "customer_support"
+    website: "https://www.intercom.com"
+
+    script_patterns:
+      - pattern: "widget\\.intercom\\.io/widget/([a-zA-Z0-9]+)"
+        confidence: 0.95
+        extract:
+          app_id: 1
+
+      - pattern: "js\\.intercomcdn\\.com"
+        confidence: 0.9
+
+    global_variables:
+      - name: "Intercom"
+        confidence: 0.9
+      - name: "intercomSettings"
+        confidence: 0.85
+
+    html_patterns:
+      - pattern: "Intercom\\s*\\(['\"]boot['\"]"
+        confidence: 0.9
+      - pattern: "intercomSettings"
+        confidence: 0.8
+      - pattern: "app_id:\\s*['\"][a-zA-Z0-9]+"
+        confidence: 0.7
+
+  # ============================================================================
+  # Facebook Pixel (Bonus)
+  # ============================================================================
+  facebook_pixel:
+    name: "Facebook Pixel"
+    category: "analytics"
+    website: "https://www.facebook.com/business/tools/meta-pixel"
+
+    script_patterns:
+      - pattern: "connect\\.facebook\\.net/.*/fbevents\\.js"
+        confidence: 0.95
+
+    global_variables:
+      - name: "fbq"
+        confidence: 0.9
+      - name: "_fbq"
+        confidence: 0.85
+
+    cookie_patterns:
+      - pattern: "^_fbp="
+        confidence: 0.85
+
+    html_patterns:
+      - pattern: "fbq\\s*\\(['\"]init['\"]"
+        confidence: 0.9
+
+  # ============================================================================
+  # Hotjar (Bonus)
+  # ============================================================================
+  hotjar:
+    name: "Hotjar"
+    category: "analytics"
+    website: "https://www.hotjar.com"
+
+    script_patterns:
+      - pattern: "static\\.hotjar\\.com/c/hotjar-([0-9]+)\\.js"
+        confidence: 0.95
+        extract:
+          site_id: 1
+
+    global_variables:
+      - name: "hj"
+        confidence: 0.85
+      - name: "_hjSettings"
+        confidence: 0.9
+
+    cookie_patterns:
+      - pattern: "^_hj"
+        confidence: 0.8
+
+    html_patterns:
+      - pattern: "hotjar\\.com"
+        confidence: 0.7
