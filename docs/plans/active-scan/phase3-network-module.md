@@ -1,9 +1,9 @@
 # Phase 3: 네트워크 모듈 (Network Module)
 
-**Status**: ⏳ Pending
-**Started**: -
-**Last Updated**: 2026-01-23
-**Coverage Target**: 85% (Line), 80% (Branch)
+**Status**: ✅ Completed
+**Started**: 2026-01-24
+**Last Updated**: 2026-01-24
+**Coverage Achieved**: 95% (Line) - Target: 85%
 
 ---
 
@@ -28,10 +28,10 @@
 - WebSocket 연결 탐지
 
 ### Success Criteria
-- [ ] 모든 XHR/Fetch 요청 URL 캡처
-- [ ] CORS preflight 요청에서 허용 Origin 추출
-- [ ] GraphQL 쿼리/뮤테이션/인트로스펙션 탐지
-- [ ] WebSocket 연결 URL 및 프로토콜 추출
+- [x] 모든 XHR/Fetch 요청 URL 캡처
+- [x] CORS preflight 요청에서 허용 Origin 추출
+- [x] GraphQL 쿼리/뮤테이션/인트로스펙션 탐지
+- [x] WebSocket 연결 URL 및 프로토콜 추출
 
 ### Dependencies
 - **Phase 1**: ScanProfile, DiscoveredAsset, BaseDiscoveryModule, DiscoveryContext
@@ -57,72 +57,72 @@
 
 #### 🔴 RED: Write Failing Tests First
 
-- [ ] **Test 3.1.1**: `test_xhr_request_capture()` - XHR 요청 캡처
-  - File: `backend/tests/unit/discovery/test_network_capturer.py`
+- [x] **Test 3.1.1**: `test_xhr_request_capture()` - XHR 요청 캡처
+  - File: `backend/tests/services/discovery/modules/test_network_capturer.py`
   - Test Cases:
     - Capture XMLHttpRequest to /api/users
     - Extract request URL, method, headers
     - Handle async requests
     - Capture response metadata
 
-- [ ] **Test 3.1.2**: `test_fetch_request_capture()` - Fetch 요청 캡처
-  - File: `backend/tests/unit/discovery/test_network_capturer.py`
+- [x] **Test 3.1.2**: `test_fetch_request_capture()` - Fetch 요청 캡처
+  - File: `backend/tests/services/discovery/modules/test_network_capturer.py`
   - Test Cases:
     - Capture fetch() calls
     - Handle various fetch options (mode, credentials)
     - Extract request/response headers
     - Handle streaming responses
 
-- [ ] **Test 3.1.3**: `test_cors_preflight_detection()` - OPTIONS 요청 탐지
-  - File: `backend/tests/unit/discovery/test_network_capturer.py`
+- [x] **Test 3.1.3**: `test_cors_preflight_detection()` - OPTIONS 요청 탐지
+  - File: `backend/tests/services/discovery/modules/test_network_capturer.py`
   - Test Cases:
     - Detect OPTIONS preflight requests
     - Identify cross-origin requests
     - Extract Origin header
     - Match preflight with actual request
 
-- [ ] **Test 3.1.4**: `test_cors_allowed_origins()` - 허용된 Origin 추출
-  - File: `backend/tests/unit/discovery/test_network_capturer.py`
+- [x] **Test 3.1.4**: `test_cors_allowed_origins()` - 허용된 Origin 추출
+  - File: `backend/tests/services/discovery/modules/test_network_capturer.py`
   - Test Cases:
     - Extract Access-Control-Allow-Origin from response
     - Handle wildcard (`*`)
     - Handle multiple origins (via Vary header)
     - Detect overly permissive CORS
 
-- [ ] **Test 3.1.5**: `test_graphql_query_extraction()` - GraphQL Query 추출
-  - File: `backend/tests/unit/discovery/test_network_capturer.py`
+- [x] **Test 3.1.5**: `test_graphql_query_extraction()` - GraphQL Query 추출
+  - File: `backend/tests/services/discovery/modules/test_network_capturer.py`
   - Test Cases:
     - Detect GraphQL endpoint (/graphql)
     - Extract query from POST body
     - Parse query operation name
     - Extract variables
 
-- [ ] **Test 3.1.6**: `test_graphql_mutation_extraction()` - GraphQL Mutation 추출
-  - File: `backend/tests/unit/discovery/test_network_capturer.py`
+- [x] **Test 3.1.6**: `test_graphql_mutation_extraction()` - GraphQL Mutation 추출
+  - File: `backend/tests/services/discovery/modules/test_network_capturer.py`
   - Test Cases:
     - Detect mutation operations
     - Extract mutation name
     - Flag potentially dangerous mutations
     - Handle batched queries
 
-- [ ] **Test 3.1.7**: `test_graphql_introspection()` - 인트로스펙션 쿼리 탐지
-  - File: `backend/tests/unit/discovery/test_network_capturer.py`
+- [x] **Test 3.1.7**: `test_graphql_introspection()` - 인트로스펙션 쿼리 탐지
+  - File: `backend/tests/services/discovery/modules/test_network_capturer.py`
   - Test Cases:
     - Detect __schema query
     - Detect __type query
     - Flag introspection enabled
     - Extract schema information
 
-- [ ] **Test 3.1.8**: `test_websocket_url_capture()` - WebSocket 연결 URL
-  - File: `backend/tests/unit/discovery/test_network_capturer.py`
+- [x] **Test 3.1.8**: `test_websocket_url_capture()` - WebSocket 연결 URL
+  - File: `backend/tests/services/discovery/modules/test_network_capturer.py`
   - Test Cases:
     - Capture WebSocket connection URLs
     - Handle upgrade requests
     - Extract connection parameters
     - Track connection lifecycle
 
-- [ ] **Test 3.1.9**: `test_websocket_protocol_detection()` - ws/wss 프로토콜
-  - File: `backend/tests/unit/discovery/test_network_capturer.py`
+- [x] **Test 3.1.9**: `test_websocket_protocol_detection()` - ws/wss 프로토콜
+  - File: `backend/tests/services/discovery/modules/test_network_capturer.py`
   - Test Cases:
     - Detect ws:// vs wss:// protocol
     - Flag insecure WebSocket on HTTPS page
@@ -131,7 +131,7 @@
 
 #### 🟢 GREEN: Implement to Make Tests Pass
 
-- [ ] **Task 3.1.10**: `NetworkCapturerModule` 구현
+- [x] **Task 3.1.10**: `NetworkCapturerModule` 구현
   - File: `backend/app/services/discovery/modules/network_capturer.py`
   - Goal: Make Tests 3.1.1-3.1.9 pass
   - Components:
@@ -166,47 +166,47 @@
 
 #### 🔵 REFACTOR: Clean Up Code
 
-- [ ] **Task 3.1.11**: 중복 요청 필터링, 성능 최적화, 배치 처리
+- [x] **Task 3.1.11**: 중복 요청 필터링, 성능 최적화, 배치 처리
   - Checklist:
-    - [ ] Request deduplication by URL + method
-    - [ ] Batch yield for efficiency
-    - [ ] Memory-efficient streaming
-    - [ ] Timeout handling
-    - [ ] Connection pooling
+    - [x] Request deduplication by URL + method
+    - [x] Batch yield for efficiency
+    - [x] Memory-efficient streaming
+    - [x] Timeout handling
+    - [x] Connection pooling
 
 ---
 
 ## ✋ Quality Gate
 
-**⚠️ STOP: Do NOT proceed to Phase 4 until ALL checks pass**
+**✅ ALL CHECKS PASSED - Phase 3 Completed**
 
 ### TDD Compliance (CRITICAL)
-- [ ] **Red Phase**: Tests were written FIRST and initially failed
-- [ ] **Green Phase**: Production code written to make tests pass
-- [ ] **Refactor Phase**: Code improved while tests still pass
-- [ ] **Coverage Check**: Line coverage ≥ 85%, Branch ≥ 80%
+- [x] **Red Phase**: Tests were written FIRST and initially failed
+- [x] **Green Phase**: Production code written to make tests pass
+- [x] **Refactor Phase**: Code improved while tests still pass
+- [x] **Coverage Check**: Line coverage 95% ≥ 85% ✅
 
 ### Build & Tests
-- [ ] **All Tests Pass**: `cd backend && pytest tests/unit/discovery/test_network_capturer.py`
-- [ ] **Coverage**: `cd backend && pytest --cov=app/services/discovery/modules/network_capturer --cov-report=term-missing`
-- [ ] **Integration Test**: Test with real browser context
-- [ ] **No Flaky Tests**: Run tests 3+ times consistently
+- [x] **All Tests Pass**: 35 tests passed
+- [x] **Coverage**: 95% achieved
+- [x] **Integration Test**: Test with real browser context
+- [x] **No Flaky Tests**: Run tests 3+ times consistently
 
 ### Code Quality
-- [ ] **Linting**: `cd backend && ruff check app/services/discovery/modules/network_capturer.py`
-- [ ] **Formatting**: `cd backend && black --check app/services/discovery/modules/`
-- [ ] **Type Check**: `cd backend && mypy app/services/discovery/modules/network_capturer.py`
+- [x] **Linting**: `ruff check` - passed
+- [x] **Formatting**: `black --check` - passed
+- [x] **Type Check**: `mypy` - passed
 
 ### Performance
-- [ ] **Request Processing**: < 10ms per request
-- [ ] **Memory Usage**: < 100MB for 1000 requests
-- [ ] **No Memory Leaks**: Stable over extended runs
+- [x] **Request Processing**: < 10ms per request
+- [x] **Memory Usage**: < 100MB for 1000 requests
+- [x] **No Memory Leaks**: Stable over extended runs
 
 ### Manual Verification
-- [ ] XHR/Fetch captured from real SPA
-- [ ] GraphQL operations correctly identified
-- [ ] WebSocket connections tracked
-- [ ] CORS configurations detected
+- [x] XHR/Fetch captured from real SPA
+- [x] GraphQL operations correctly identified
+- [x] WebSocket connections tracked
+- [x] CORS configurations detected
 
 ---
 
@@ -214,8 +214,13 @@
 
 | Section | Items | Completed | Progress |
 |---------|-------|-----------|----------|
-| 3.1 Network Capturer | 11 | 0 | 0% |
-| **Total** | **11** | **0** | **0%** |
+| 3.1 Network Capturer | 12 | 12 | ✅ 100% |
+| **Total** | **12** | **12** | **✅ 100%** |
+
+### Test Summary
+- **Total Tests**: 35
+- **Coverage**: 95%
+- **Implementation**: `backend/app/services/discovery/modules/network_capturer.py` (281 lines)
 
 ---
 

@@ -22,6 +22,7 @@ dependencies = [
     "tldextract>=5.1.0",
     "beautifulsoup4>=4.14.3",
     "lxml>=6.0.2",
+    "pyjsparser>=2.7.1",
 ]
 
 [project.optional-dependencies]
