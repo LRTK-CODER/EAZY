@@ -8,11 +8,14 @@ time measurement utilities.
 from __future__ import annotations
 
 import time
+import tracemalloc
 from contextlib import contextmanager
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Optional
 from unittest.mock import AsyncMock, MagicMock
 
+import httpx
 import pytest
 
 from app.services.discovery.models import DiscoveredAsset, DiscoveryContext, ScanProfile
@@ -954,3 +957,546 @@ def count_assets_by_source(assets: List[DiscoveredAsset]) -> Dict[str, int]:
     for asset in assets:
         counts[asset.source] = counts.get(asset.source, 0) + 1
     return counts
+
+
+# ============================================================================
+# Phase 7: Performance & Edge Case Testing Fixtures
+# ============================================================================
+
+# Performance thresholds in seconds
+PERFORMANCE_THRESHOLDS: Dict[str, float] = {
+    "html_parse_1mb": 2.0,  # Parse 1MB HTML under 2 seconds
+    "js_analyze_1mb": 3.0,  # Analyze 1MB JS under 3 seconds
+    "full_discovery_1mb": 10.0,  # Full discovery pipeline under 10 seconds
+    "memory_peak_mb": 500.0,  # Peak memory under 500MB
+    "url_extraction_per_mb": 1.0,  # URL extraction per MB under 1 second
+}
+
+# CI environments may be slower, apply buffer multiplier
+CI_BUFFER_MULTIPLIER: float = 1.5
+
+
+# Edge case sample data
+OBFUSCATED_JS_SAMPLES: Dict[str, str] = {
+    "hex_escape": 'const url = "\\x2f\\x61\\x70\\x69\\x2f\\x68\\x69\\x64\\x64\\x65\\x6e";',  # /api/hidden
+    "unicode_escape": 'const endpoint = "\\u002f\\u0061\\u0070\\u0069\\u002f\\u0073\\u0065\\u0063\\u0072\\u0065\\u0074";',  # /api/secret
+    "base64_url": 'const config = atob("L2FwaS9lbmNvZGVkL2VuZHBvaW50");',  # /api/encoded/endpoint
+    "split_concat": 'const api = "/a" + "pi" + "/sp" + "lit";',
+    "array_join": 'const path = ["/api", "array", "join"].join("/");',
+    "char_code": "const url = String.fromCharCode(47, 97, 112, 105, 47, 99, 104, 97, 114);",  # /api/char
+    "reverse_string": 'const hidden = "terces/ipa/".split("").reverse().join("");',  # /api/secret
+    "template_complex": 'const base = "/api"; const ver = "v1"; const url = `${base}/${ver}/${"data"}`;',
+}
+
+SHADOW_DOM_SAMPLES: Dict[str, str] = {
+    "basic_shadow": """
+        <div id="host"></div>
+        <script>
+            const host = document.getElementById('host');
+            const shadow = host.attachShadow({mode: 'open'});
+            shadow.innerHTML = '<a href="/api/shadow/link">Shadow Link</a>';
+        </script>
+    """,
+    "nested_shadow": """
+        <custom-element>
+            <template shadowroot="open">
+                <inner-element>
+                    <template shadowroot="open">
+                        <a href="/api/nested/shadow">Nested</a>
+                    </template>
+                </inner-element>
+            </template>
+        </custom-element>
+    """,
+    "closed_shadow": """
+        <div id="closed-host"></div>
+        <script>
+            const host = document.getElementById('closed-host');
+            const shadow = host.attachShadow({mode: 'closed'});
+            shadow.innerHTML = '<form action="/api/closed/form" method="POST"></form>';
+        </script>
+    """,
+}
+
+IFRAME_SAMPLES: Dict[str, str] = {
+    "basic_iframe": '<iframe src="/api/iframe/basic" id="basic"></iframe>',
+    "srcdoc_iframe": "<iframe srcdoc=\"<a href='/api/iframe/srcdoc'>Link</a>\"></iframe>",
+    "sandboxed_iframe": '<iframe src="/api/iframe/sandboxed" sandbox="allow-scripts"></iframe>',
+    "nested_iframes": """
+        <iframe srcdoc="
+            <iframe srcdoc='<a href=&quot;/api/iframe/nested&quot;>Nested</a>'></iframe>
+        "></iframe>
+    """,
+    "blob_iframe": """
+        <script>
+            const blob = new Blob(['<a href="/api/iframe/blob">Blob Link</a>'], {type: 'text/html'});
+            document.write('<iframe src="' + URL.createObjectURL(blob) + '"></iframe>');
+        </script>
+    """,
+}
+
+SVG_LINK_SAMPLES: Dict[str, str] = {
+    "xlink_href": """
+        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+            <a xlink:href="/api/svg/xlink"><text>XLink</text></a>
+        </svg>
+    """,
+    "svg_anchor_href": '<svg><a href="/api/svg/anchor"><rect/></a></svg>',
+    "svg_use_xlink": '<svg><use xlink:href="/icons.svg#icon1"/></svg>',
+    "svg_use_href": '<svg><use href="/icons-modern.svg#icon2"/></svg>',
+    "svg_image_href": '<svg><image href="/api/svg/image.png"/></svg>',
+    "svg_image_xlink": '<svg><image xlink:href="/api/svg/legacy-image.png"/></svg>',
+    "inline_svg_multiple": """
+        <div>
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                <a xlink:href="/api/svg/link1"><text>1</text></a>
+                <a href="/api/svg/link2"><text>2</text></a>
+                <use xlink:href="#local-icon"/>
+                <use href="/external-icons.svg#ext-icon"/>
+                <image href="/api/svg/img1.png"/>
+                <image xlink:href="/api/svg/img2.png"/>
+            </svg>
+        </div>
+    """,
+    "svg_with_fragment": '<svg><use xlink:href="#internal-symbol"/></svg>',
+    "svg_external_reference": """
+        <object data="/external.svg" type="image/svg+xml"></object>
+        <embed src="/embedded.svg" type="image/svg+xml">
+        <img src="/image.svg" alt="SVG Image">
+    """,
+    "svg_with_data_uri": """
+        <svg>
+            <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA"/>
+        </svg>
+    """,
+}
+
+MALFORMED_HTML_SAMPLES: Dict[str, str] = {
+    "unclosed_tags": '<div><a href="/api/unclosed"><span>Link</div>',
+    "missing_quotes": "<a href=/api/noquotes>No Quotes</a>",
+    "mixed_quotes": "<a href='/api/mixed\" data-url=\"/api/mixed2'>Mixed</a>",
+    "nested_invalid": '<a href="/outer"><a href="/inner">Nested Links</a></a>',
+    "script_in_attr": '<div data-url="/api/normal" onclick="fetch(\'/api/onclick\')">Click</div>',
+    "null_bytes": '<a href="/api/null\x00byte">Null</a>',
+    "unicode_bom": '\ufeff<a href="/api/bom">BOM</a>',
+    "cdata_section": '<![CDATA[<a href="/api/cdata">CDATA Link</a>]]>',
+}
+
+ENCODING_SAMPLES: Dict[str, bytes] = {
+    "utf8": '<a href="/api/utf8">UTF-8 Link</a>'.encode("utf-8"),
+    "utf16": '<a href="/api/utf16">UTF-16 Link</a>'.encode("utf-16"),
+    "latin1": '<a href="/api/latin1">Latin-1: cafe</a>'.encode("latin-1"),
+    "mixed_encoding": b'<a href="/api/mixed">\xff\xfe Mixed</a>',
+}
+
+CIRCULAR_REFERENCE_SAMPLES: Dict[str, Any] = {
+    "redirect_loop": [
+        ("/page-a", "/page-b"),
+        ("/page-b", "/page-c"),
+        ("/page-c", "/page-a"),
+    ],
+    "self_reference": "/api/self?redirect=/api/self",
+    "deep_chain": [f"/api/chain/{i}" for i in range(100)],
+}
+
+
+@pytest.fixture
+def large_html_content() -> str:
+    """Load 1MB realistic HTML fixture for performance testing."""
+    fixture_path = (
+        Path(__file__).parent.parent.parent
+        / "fixtures/performance/html/1mb_realistic.html"
+    )
+    if fixture_path.exists():
+        return fixture_path.read_text(encoding="utf-8")
+    # Fallback: generate minimal large content
+    return "<html><body>" + "<div>" * 50000 + "</div>" * 50000 + "</body></html>"
+
+
+@pytest.fixture
+def large_js_content() -> str:
+    """Load 1MB realistic JavaScript fixture for performance testing."""
+    fixture_path = (
+        Path(__file__).parent.parent.parent / "fixtures/performance/js/1mb_realistic.js"
+    )
+    if fixture_path.exists():
+        return fixture_path.read_text(encoding="utf-8")
+    # Fallback: generate minimal large content
+    return "const data = {};\n" * 30000
+
+
+@pytest.fixture
+def obfuscated_js_samples() -> Dict[str, str]:
+    """Obfuscated JavaScript samples for edge case testing."""
+    return OBFUSCATED_JS_SAMPLES.copy()
+
+
+@pytest.fixture
+def shadow_dom_samples() -> Dict[str, str]:
+    """Shadow DOM HTML samples for edge case testing."""
+    return SHADOW_DOM_SAMPLES.copy()
+
+
+@pytest.fixture
+def iframe_samples() -> Dict[str, str]:
+    """Iframe HTML samples for edge case testing."""
+    return IFRAME_SAMPLES.copy()
+
+
+@pytest.fixture
+def svg_link_samples() -> Dict[str, str]:
+    """SVG link samples for edge case testing."""
+    return SVG_LINK_SAMPLES.copy()
+
+
+@pytest.fixture
+def malformed_html_samples() -> Dict[str, str]:
+    """Malformed HTML samples for error handling tests."""
+    return MALFORMED_HTML_SAMPLES.copy()
+
+
+@pytest.fixture
+def encoding_samples() -> Dict[str, bytes]:
+    """Various encoding samples for robustness testing."""
+    return ENCODING_SAMPLES.copy()
+
+
+@pytest.fixture
+def circular_reference_samples() -> Dict[str, Any]:
+    """Circular reference samples for loop detection testing."""
+    return CIRCULAR_REFERENCE_SAMPLES.copy()
+
+
+@pytest.fixture
+def performance_thresholds() -> Dict[str, float]:
+    """Performance threshold values for benchmark tests."""
+    return PERFORMANCE_THRESHOLDS.copy()
+
+
+@pytest.fixture
+def error_http_client() -> Callable[[int, Optional[str]], MagicMock]:
+    """Factory fixture for creating HTTP clients that return specific errors.
+
+    Returns:
+        Factory function that creates mock HTTP clients with specified error behavior
+    """
+
+    def _create_error_client(
+        status_code: int = 500,
+        error_message: Optional[str] = None,
+        raise_exception: Optional[Exception] = None,
+    ) -> MagicMock:
+        """Create a mock HTTP client that returns errors.
+
+        Args:
+            status_code: HTTP status code to return
+            error_message: Optional error message in response body
+            raise_exception: Optional exception to raise instead of returning response
+
+        Returns:
+            Mock HTTP client configured for error responses
+        """
+        default_messages = {
+            400: "Bad Request",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Not Found",
+            429: "Too Many Requests",
+            500: "Internal Server Error",
+            502: "Bad Gateway",
+            503: "Service Unavailable",
+            504: "Gateway Timeout",
+        }
+
+        message = error_message or default_messages.get(status_code, "Error")
+
+        async def mock_request(url: str, **kwargs: Any) -> MockHttpResponse:
+            if raise_exception:
+                raise raise_exception
+            return MockHttpResponse(
+                status_code=status_code,
+                headers={"Content-Type": "text/html"},
+                text=f"<html><body><h1>{status_code} {message}</h1></body></html>",
+            )
+
+        client = MagicMock()
+        client.get = AsyncMock(side_effect=mock_request)
+        client.post = AsyncMock(side_effect=mock_request)
+        client.head = AsyncMock(side_effect=mock_request)
+        client.request = AsyncMock(side_effect=mock_request)
+
+        return client
+
+    return _create_error_client
+
+
+@pytest.fixture
+def timeout_http_client() -> MagicMock:
+    """HTTP client that simulates timeout errors."""
+
+    async def mock_timeout(url: str, **kwargs: Any) -> None:
+        raise httpx.TimeoutException(f"Request to {url} timed out")
+
+    client = MagicMock()
+    client.get = AsyncMock(side_effect=mock_timeout)
+    client.post = AsyncMock(side_effect=mock_timeout)
+    client.head = AsyncMock(side_effect=mock_timeout)
+
+    return client
+
+
+@pytest.fixture
+def connection_error_http_client() -> MagicMock:
+    """HTTP client that simulates connection errors."""
+
+    async def mock_connection_error(url: str, **kwargs: Any) -> None:
+        raise httpx.ConnectError(f"Failed to connect to {url}")
+
+    client = MagicMock()
+    client.get = AsyncMock(side_effect=mock_connection_error)
+    client.post = AsyncMock(side_effect=mock_connection_error)
+    client.head = AsyncMock(side_effect=mock_connection_error)
+
+    return client
+
+
+@pytest.fixture
+def memory_tracker() -> Generator[Callable[[], Dict[str, float]], None, None]:
+    """Context manager fixture for tracking memory usage.
+
+    Yields:
+        Function that returns current memory statistics
+    """
+    tracemalloc.start()
+
+    def get_memory_stats() -> Dict[str, float]:
+        current, peak = tracemalloc.get_traced_memory()
+        return {
+            "current_mb": current / 1024 / 1024,
+            "peak_mb": peak / 1024 / 1024,
+        }
+
+    yield get_memory_stats
+
+    tracemalloc.stop()
+
+
+@pytest.fixture
+def slow_http_client() -> Callable[[float], MagicMock]:
+    """Factory fixture for creating HTTP clients with artificial delays.
+
+    Returns:
+        Factory function that creates mock HTTP clients with specified delays
+    """
+    import asyncio
+
+    def _create_slow_client(delay_seconds: float = 1.0) -> MagicMock:
+        """Create a mock HTTP client with artificial delay.
+
+        Args:
+            delay_seconds: Delay in seconds before returning response
+
+        Returns:
+            Mock HTTP client with delay
+        """
+
+        async def mock_slow_request(url: str, **kwargs: Any) -> MockHttpResponse:
+            await asyncio.sleep(delay_seconds)
+            return MockHttpResponse(
+                status_code=200,
+                headers={"Content-Type": "text/html"},
+                text="<html><body>Delayed Response</body></html>",
+            )
+
+        client = MagicMock()
+        client.get = AsyncMock(side_effect=mock_slow_request)
+        client.post = AsyncMock(side_effect=mock_slow_request)
+        client.head = AsyncMock(side_effect=mock_slow_request)
+
+        return client
+
+    return _create_slow_client
+
+
+# ============================================================================
+# Phase 7.2: Edge Case Testing Fixtures - Unicode and Relative URLs
+# ============================================================================
+
+# Unicode URL samples for edge case testing
+UNICODE_URL_SAMPLES: Dict[str, Dict[str, Any]] = {
+    "idn_japanese": {
+        "original": "https://\u4f8b\u3048.jp/path",
+        "description": "Japanese IDN domain",
+        "expected_normalized": "https://xn--r8jz45g.jp/path",
+    },
+    "idn_chinese": {
+        "original": "https://\u4e2d\u6587.\u4e2d\u56fd/\u8def\u5f84",
+        "description": "Chinese IDN domain with Chinese path",
+        "expected_normalized": "https://xn--fiq228c.xn--fiqs8s/%E8%B7%AF%E5%BE%84",
+    },
+    "idn_cyrillic": {
+        "original": "https://\u043f\u0440\u0438\u043c\u0435\u0440.\u0440\u0444/test",
+        "description": "Cyrillic IDN domain",
+        "expected_normalized": "https://xn--e1afmkfd.xn--p1ai/test",
+    },
+    "idn_arabic": {
+        "original": "https://\u0645\u062b\u0627\u0644.\u0645\u0635\u0631/api",
+        "description": "Arabic IDN domain",
+        "expected_normalized": "https://xn--mgbh0fb.xn--wgbh1c/api",
+    },
+    "utf8_path_japanese": {
+        "original": "https://example.com/\u30d1\u30b9/\u30d5\u30a1\u30a4\u30eb",
+        "description": "UTF-8 encoded Japanese path",
+        "expected_normalized": "https://example.com/%E3%83%91%E3%82%B9/%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB",
+    },
+    "utf8_path_korean": {
+        "original": "https://example.com/\uacbd\ub85c/\ud30c\uc77c",
+        "description": "UTF-8 encoded Korean path",
+        "expected_normalized": "https://example.com/%EA%B2%BD%EB%A1%9C/%ED%8C%8C%EC%9D%BC",
+    },
+    "utf8_query_params": {
+        "original": "https://example.com/search?q=\u691c\u7d22\u8a9e",
+        "description": "UTF-8 query parameters",
+        "expected_normalized": "https://example.com/search?q=%E6%A4%9C%E7%B4%A2%E8%AA%9E",
+    },
+    "percent_encoded_unicode": {
+        "original": "https://example.com/%E3%83%91%E3%82%B9",
+        "description": "Already percent-encoded Unicode",
+        "expected_normalized": "https://example.com/%E3%83%91%E3%82%B9",
+    },
+    "mixed_encoding": {
+        "original": "https://example.com/api/\u30c7\u30fc\u30bf/%E3%83%86%E3%82%B9%E3%83%88",
+        "description": "Mixed raw Unicode and percent-encoded",
+        "expected_normalized": "https://example.com/api/%E3%83%87%E3%83%BC%E3%82%BF/%E3%83%86%E3%82%B9%E3%83%88",
+    },
+    "emoji_path": {
+        "original": "https://example.com/\ud83d\ude00/page",
+        "description": "Emoji in path",
+        "expected_normalized": "https://example.com/%F0%9F%98%80/page",
+    },
+    "idn_with_utf8_path": {
+        "original": "https://\u4f8b\u3048.jp/\u30d1\u30b9/\u30c6\u30b9\u30c8",
+        "description": "IDN domain with UTF-8 path",
+        "expected_normalized": "https://xn--r8jz45g.jp/%E3%83%91%E3%82%B9/%E3%83%86%E3%82%B9%E3%83%88",
+    },
+}
+
+# Relative URL samples for edge case testing
+RELATIVE_URL_SAMPLES: Dict[str, Dict[str, Any]] = {
+    "parent_single": {
+        "relative": "../parent/file.html",
+        "base": "https://example.com/dir/subdir/page.html",
+        "expected": "https://example.com/dir/parent/file.html",
+        "description": "Single parent directory traversal",
+    },
+    "parent_multiple": {
+        "relative": "../../root/file.html",
+        "base": "https://example.com/a/b/c/page.html",
+        "expected": "https://example.com/a/root/file.html",
+        "description": "Multiple parent directory traversal",
+    },
+    "parent_excessive": {
+        "relative": "../../../../../etc/passwd",
+        "base": "https://example.com/a/b/page.html",
+        "expected": "https://example.com/etc/passwd",
+        "description": "Excessive parent traversal (clamped to root)",
+    },
+    "protocol_relative_https": {
+        "relative": "//cdn.example.com/script.js",
+        "base": "https://example.com/page.html",
+        "expected": "https://cdn.example.com/script.js",
+        "description": "Protocol-relative URL with HTTPS base",
+    },
+    "protocol_relative_http": {
+        "relative": "//cdn.example.com/script.js",
+        "base": "http://example.com/page.html",
+        "expected": "http://cdn.example.com/script.js",
+        "description": "Protocol-relative URL with HTTP base",
+    },
+    "query_only": {
+        "relative": "?page=2&sort=desc",
+        "base": "https://example.com/products/list",
+        "expected": "https://example.com/products/list?page=2&sort=desc",
+        "description": "Query string only URL",
+    },
+    "query_replace": {
+        "relative": "?newparam=value",
+        "base": "https://example.com/page?oldparam=old",
+        "expected": "https://example.com/page?newparam=value",
+        "description": "Query string replaces existing query",
+    },
+    "fragment_only": {
+        "relative": "#section-3",
+        "base": "https://example.com/docs/guide.html",
+        "expected": "https://example.com/docs/guide.html#section-3",
+        "description": "Fragment only URL",
+    },
+    "fragment_replace": {
+        "relative": "#new-section",
+        "base": "https://example.com/page#old-section",
+        "expected": "https://example.com/page#new-section",
+        "description": "Fragment replaces existing fragment",
+    },
+    "current_dir_explicit": {
+        "relative": "./local/file.js",
+        "base": "https://example.com/scripts/",
+        "expected": "https://example.com/scripts/local/file.js",
+        "description": "Explicit current directory path",
+    },
+    "current_dir_implicit": {
+        "relative": "sibling.html",
+        "base": "https://example.com/dir/page.html",
+        "expected": "https://example.com/dir/sibling.html",
+        "description": "Implicit current directory (relative path)",
+    },
+    "root_relative": {
+        "relative": "/absolute/path.html",
+        "base": "https://example.com/any/where/page.html",
+        "expected": "https://example.com/absolute/path.html",
+        "description": "Root-relative path",
+    },
+    "complex_mixed": {
+        "relative": "../api/./v2/../v1/endpoint?key=val#hash",
+        "base": "https://example.com/app/pages/page.html",
+        "expected": "https://example.com/app/api/v1/endpoint?key=val#hash",
+        "description": "Complex path with mixed . and .. and query/fragment",
+    },
+    "dot_segments_normalization": {
+        "relative": "./a/./b/../c/./d",
+        "base": "https://example.com/base/",
+        "expected": "https://example.com/base/a/c/d",
+        "description": "Path with multiple dot segments for normalization",
+    },
+    "empty_path_segments": {
+        "relative": "a//b///c",
+        "base": "https://example.com/dir/",
+        "expected": "https://example.com/dir/a//b///c",
+        "description": "Path with empty segments (double slashes)",
+    },
+    "trailing_slash_preservation": {
+        "relative": "../other/",
+        "base": "https://example.com/dir/page/",
+        "expected": "https://example.com/dir/other/",
+        "description": "Trailing slash preserved in relative path",
+    },
+}
+
+
+@pytest.fixture
+def unicode_url_samples() -> Dict[str, Dict[str, Any]]:
+    """Unicode URL samples for edge case testing.
+
+    Returns:
+        Dictionary of Unicode URL test cases with expected normalization
+    """
+    return UNICODE_URL_SAMPLES.copy()
+
+
+@pytest.fixture
+def relative_url_samples() -> Dict[str, Dict[str, Any]]:
+    """Relative URL samples for edge case testing.
+
+    Returns:
+        Dictionary of relative URL test cases with base URLs and expected resolutions
+    """
+    return RELATIVE_URL_SAMPLES.copy()

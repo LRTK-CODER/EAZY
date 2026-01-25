@@ -8,6 +8,9 @@ HTML 문서에서 URL 및 자산을 추출하는 Discovery 모듈입니다.
 - meta 요소 파싱 (refresh, Open Graph)
 - data-* 속성 URL 파싱
 - base href URL 해결
+- anchor 요소 파싱 (a href)
+- iframe 요소 파싱 (src)
+- template 요소 내 URL 파싱
 """
 
 import json
@@ -165,6 +168,39 @@ class DataAttrParseResult:
 
 
 @dataclass
+class AnchorInfo:
+    """Anchor 정보."""
+
+    href: str
+    text: Optional[str] = None
+    rel: Optional[str] = None
+
+
+@dataclass
+class AnchorParseResult:
+    """Anchor 파싱 결과."""
+
+    anchors: List[AnchorInfo] = field(default_factory=list)
+
+
+@dataclass
+class IframeInfo:
+    """Iframe 정보."""
+
+    src: Optional[str] = None
+    srcdoc: Optional[str] = None
+    sandbox: Optional[str] = None
+    is_cross_origin: bool = False
+
+
+@dataclass
+class IframeParseResult:
+    """Iframe 파싱 결과."""
+
+    iframes: List[IframeInfo] = field(default_factory=list)
+
+
+@dataclass
 class ParseResult:
     """전체 파싱 결과."""
 
@@ -181,6 +217,8 @@ class ParseResult:
     og_urls: List[str] = field(default_factory=list)
     twitter_urls: List[str] = field(default_factory=list)
     data_attr_urls: List[str] = field(default_factory=list)
+    anchors: List[AnchorInfo] = field(default_factory=list)
+    iframes: List[IframeInfo] = field(default_factory=list)
 
     def get_all_urls(self) -> List[str]:
         """모든 URL 반환."""
@@ -220,6 +258,13 @@ class ParseResult:
         urls.extend(self.og_urls)
         urls.extend(self.twitter_urls)
         urls.extend(self.data_attr_urls)
+
+        for anchor in self.anchors:
+            urls.append(anchor.href)
+
+        for iframe in self.iframes:
+            if iframe.src:
+                urls.append(iframe.src)
 
         return urls
 
@@ -713,6 +758,113 @@ class MetaParser:
         return twitter_urls
 
 
+class AnchorParser:
+    """Anchor 요소 파서."""
+
+    def __init__(self, base_url: str) -> None:
+        """Initialize AnchorParser.
+
+        Args:
+            base_url: 기본 URL (상대 URL 해결용)
+        """
+        self.base_url = base_url
+
+    def parse(self, soup: BeautifulSoup) -> AnchorParseResult:
+        """BeautifulSoup에서 anchor 요소 파싱.
+
+        Args:
+            soup: BeautifulSoup 객체
+
+        Returns:
+            AnchorParseResult
+        """
+        anchors: List[AnchorInfo] = []
+
+        for a_tag in soup.find_all("a"):
+            href = a_tag.get("href")
+            if href:
+                href_str = str(href).strip()
+                # Skip non-URL schemes
+                if href_str.startswith(("javascript:", "mailto:", "tel:", "data:")):
+                    continue
+                # Skip empty/whitespace-only
+                if not href_str:
+                    continue
+
+                resolved_href = urljoin(self.base_url, href_str)
+
+                rel_attr = a_tag.get("rel")
+                if rel_attr is None:
+                    rel = None
+                elif isinstance(rel_attr, list):
+                    rel = rel_attr[0] if rel_attr else None
+                else:
+                    rel = str(rel_attr)
+
+                text = a_tag.get_text(strip=True) if a_tag.string else None
+
+                anchors.append(AnchorInfo(href=resolved_href, text=text, rel=rel))
+
+        return AnchorParseResult(anchors=anchors)
+
+
+class IframeParser:
+    """Iframe 요소 파서."""
+
+    def __init__(self, base_url: str) -> None:
+        """Initialize IframeParser.
+
+        Args:
+            base_url: 기본 URL (상대 URL 해결용)
+        """
+        self.base_url = base_url
+        self._base_domain = self._extract_domain(base_url)
+
+    def _extract_domain(self, url: str) -> str:
+        """URL에서 도메인 추출."""
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+        return parsed.netloc
+
+    def parse(self, soup: BeautifulSoup) -> IframeParseResult:
+        """BeautifulSoup에서 iframe 요소 파싱.
+
+        Args:
+            soup: BeautifulSoup 객체
+
+        Returns:
+            IframeParseResult
+        """
+        iframes: List[IframeInfo] = []
+
+        for iframe_tag in soup.find_all("iframe"):
+            src = iframe_tag.get("src")
+            srcdoc = iframe_tag.get("srcdoc")
+            sandbox = iframe_tag.get("sandbox")
+
+            src_str: Optional[str] = None
+            is_cross_origin = False
+
+            if src:
+                src_str = urljoin(self.base_url, str(src))
+                # Check cross-origin
+                src_domain = self._extract_domain(src_str)
+                if src_domain and src_domain != self._base_domain:
+                    is_cross_origin = True
+
+            iframes.append(
+                IframeInfo(
+                    src=src_str,
+                    srcdoc=str(srcdoc) if srcdoc else None,
+                    sandbox=str(sandbox) if sandbox else None,
+                    is_cross_origin=is_cross_origin,
+                )
+            )
+
+        return IframeParseResult(iframes=iframes)
+
+
 class DataAttrParser:
     """Data 속성 파서."""
 
@@ -874,12 +1026,61 @@ class HtmlElementParserModule(BaseDiscoveryModule):
         meta_result = MetaParser(base_url).parse(html)
         data_result = DataAttrParser(base_url).parse(html)
 
+        # Anchor 및 Iframe 파싱 (soup 사용)
+        anchor_result = AnchorParser(base_url).parse(soup)
+        iframe_result = IframeParser(base_url).parse(soup)
+
+        # Template 요소 내의 URL도 추출
+        template_anchors: List[AnchorInfo] = []
+        template_iframes: List[IframeInfo] = []
+        template_images: List[ImageInfo] = []
+        template_forms: List[FormInfo] = []
+        template_scripts: List[ScriptInfo] = []
+        template_links: List[LinkInfo] = []
+
+        for template in soup.find_all("template"):
+            # Template 내부 HTML을 별도 파싱
+            template_content = str(template)
+            template_soup = BeautifulSoup(template_content, "html.parser")
+
+            # Template 내부의 anchors
+            inner_anchor_result = AnchorParser(base_url).parse(template_soup)
+            template_anchors.extend(inner_anchor_result.anchors)
+
+            # Template 내부의 iframes
+            inner_iframe_result = IframeParser(base_url).parse(template_soup)
+            template_iframes.extend(inner_iframe_result.iframes)
+
+            # Template 내부의 images
+            inner_media_result = MediaParser(base_url).parse(template_content)
+            template_images.extend(inner_media_result.images)
+
+            # Template 내부의 forms
+            inner_form_result = FormParser(base_url).parse(template_content)
+            template_forms.extend(inner_form_result.forms)
+
+            # Template 내부의 scripts
+            inner_script_result = ScriptParser(base_url).parse(template_content)
+            template_scripts.extend(inner_script_result.scripts)
+
+            # Template 내부의 links
+            inner_link_result = LinkParser(base_url).parse(template_content)
+            template_links.extend(inner_link_result.links)
+
+        # 결과 합치기
+        all_anchors = anchor_result.anchors + template_anchors
+        all_iframes = iframe_result.iframes + template_iframes
+        all_images = media_result.images + template_images
+        all_forms = form_result.forms + template_forms
+        all_scripts = script_result.scripts + template_scripts
+        all_links = link_result.links + template_links
+
         return ParseResult(
-            forms=form_result.forms,
-            scripts=script_result.scripts,
+            forms=all_forms,
+            scripts=all_scripts,
             inline_urls=script_result.inline_urls,
-            links=link_result.links,
-            images=media_result.images,
+            links=all_links,
+            images=all_images,
             videos=media_result.videos,
             audios=media_result.audios,
             sources=media_result.sources,
@@ -888,6 +1089,8 @@ class HtmlElementParserModule(BaseDiscoveryModule):
             og_urls=meta_result.og_urls,
             twitter_urls=meta_result.twitter_urls,
             data_attr_urls=data_result.urls,
+            anchors=all_anchors,
+            iframes=all_iframes,
         )
 
     async def discover(
@@ -1042,3 +1245,25 @@ class HtmlElementParserModule(BaseDiscoveryModule):
                 asset_type="data_attr",
                 source=self.name,
             )
+
+        # Anchors
+        for anchor in result.anchors:
+            yield DiscoveredAsset(
+                url=anchor.href,
+                asset_type="anchor",
+                source=self.name,
+                metadata={"text": anchor.text, "rel": anchor.rel},
+            )
+
+        # Iframes
+        for iframe in result.iframes:
+            if iframe.src:
+                yield DiscoveredAsset(
+                    url=iframe.src,
+                    asset_type="iframe",
+                    source=self.name,
+                    metadata={
+                        "cross_origin": iframe.is_cross_origin,
+                        "sandbox": iframe.sandbox,
+                    },
+                )

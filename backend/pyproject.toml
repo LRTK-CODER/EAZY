@@ -23,6 +23,7 @@ dependencies = [
     "beautifulsoup4>=4.14.3",
     "lxml>=6.0.2",
     "pyjsparser>=2.7.1",
+    "tenacity>=8.2.0",
 ]
 
 [project.optional-dependencies]
@@ -53,6 +54,13 @@ testpaths = [
 asyncio_mode = "auto"
 # asyncio_default_fixture_loop_scope = "session"  <-- Removed or commented out
 python_files = "test_*.py"
+markers = [
+    "performance: marks tests as performance tests",
+    "edge_case: marks tests as edge case tests",
+    "error_handling: marks tests as error handling tests",
+    "slow: marks tests as slow (> 5 seconds)",
+    "memory: marks tests requiring memory measurement",
+]
 
 [tool.isort]
 profile = "black"
