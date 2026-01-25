@@ -15,6 +15,7 @@ Example:
 from .base import BaseDiscoveryModule
 from .models import DEFAULT_SCAN_PROFILE, DiscoveredAsset, DiscoveryContext, ScanProfile
 from .registry import DiscoveryModuleRegistry, DuplicateModuleError
+from .service import DiscoveryService
 
 __all__ = [
     # Enums
@@ -28,4 +29,6 @@ __all__ = [
     # Registry
     "DiscoveryModuleRegistry",
     "DuplicateModuleError",
+    # Service
+    "DiscoveryService",
 ]

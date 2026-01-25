@@ -2,7 +2,7 @@
 
 **Status**: 🔄 In Progress
 **Started**: 2026-01-23
-**Last Updated**: 2026-01-24
+**Last Updated**: 2026-01-25
 
 > **TDD 사이클**: 🔴 Red (실패 테스트) → 🟢 Green (최소 구현) → 🔵 Blue (리팩토링)
 
@@ -17,9 +17,9 @@
 | 3 | [phase3-network-module.md](./phase3-network-module.md) | 네트워크 모듈 | 12 | 12 | ✅ 100% | 95% |
 | 4 | [phase4-analysis-modules.md](./phase4-analysis-modules.md) | 분석 모듈 | 21 | 21 | ✅ 100% | 90% |
 | 5 | [phase5-advanced-modules.md](./phase5-advanced-modules.md) | 고급 모듈 | 42 | 42 | ✅ 100% | 92% |
-| 6 | [phase6-integration.md](./phase6-integration.md) | 통합 테스트 | 14 | 0 | 0% | 목표 80% |
+| 6 | [phase6-integration.md](./phase6-integration.md) | 통합 테스트 | 13 | 13 | ✅ 100% | 91% |
 | 7 | [phase7-performance.md](./phase7-performance.md) | 성능/Edge | 21 | 0 | 0% | 목표 80% |
-| **총계** | - | - | **173** | **138** | **80%** | **92%** |
+| **총계** | - | - | **172** | **151** | **88%** | **91%** |
 
 ---
 
@@ -62,7 +62,7 @@
                 ┌─────────────────────────┐
                 │      Phase 6            │
                 │      통합 테스트         │
-                │      (Integration)      │
+                │      ✅ COMPLETED       │
                 └────────────┬────────────┘
                              │
                              ▼
@@ -75,9 +75,9 @@
 
 ### 병렬 실행 가능 구간
 
-**Phase 1, 2, 3, 4, 5 완료** ✅ - 다음 Phase가 준비되었습니다:
-- Phase 6 (통합 테스트) ⏳ - 진행 가능
-- Phase 7 (성능/Edge Case) ⏳ - Phase 6 완료 후
+**Phase 1-6 완료** ✅ - 다음 Phase가 준비되었습니다:
+- Phase 6 (통합 테스트) ✅ - 완료
+- Phase 7 (성능/Edge Case) ⏳ - 진행 가능
 
 ### 숨겨진 의존성
 
@@ -141,7 +141,7 @@ uv run mypy app/services/discovery/
 
 ### Build & Tests
 - [x] 빌드 성공
-- [x] 모든 테스트 통과 (302개)
+- [x] 모든 테스트 통과 (556개: 단위 499 + 통합 29 + E2E 28)
 - [x] 커버리지 목표 달성 (91%)
 - [x] Flaky 테스트 없음
 
@@ -165,7 +165,8 @@ uv run mypy app/services/discovery/
 - **완료됨**: [Phase 3 - 네트워크 모듈](./phase3-network-module.md) ✅
 - **완료됨**: [Phase 4 - 분석 모듈](./phase4-analysis-modules.md) ✅
 - **완료됨**: [Phase 5 - 고급 모듈](./phase5-advanced-modules.md) ✅
-- **다음 진행**: Phase 6 (통합 테스트)
+- **완료됨**: [Phase 6 - 통합 테스트](./phase6-integration.md) ✅
+- **다음 진행**: Phase 7 (성능/Edge Case)
 - **세션 로그**: [session-logs/](./session-logs/)
 - **원본 Todolist**: [../todolist.md](../todolist.md) (deprecated)
 - **템플릿 참조**: [../plan-template.md](../plan-template.md)
@@ -176,6 +177,7 @@ uv run mypy app/services/discovery/
 
 | 날짜 | 변경 내용 |
 |------|-----------|
+| 2026-01-25 | Phase 6 완료: 통합 테스트 + E2E (556 tests, 91% coverage) |
 | 2026-01-25 | Phase 5 완료: 고급 모듈 (499 tests, 92% coverage) |
 | 2026-01-24 | Phase 3, 4 완료: 네트워크 + 분석 모듈 (302 tests, 91% coverage) |
 | 2026-01-23 | Phase 2 완료: 기본 모듈 (97 tests, 93% coverage) |
