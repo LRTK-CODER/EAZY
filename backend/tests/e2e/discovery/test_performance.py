@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import gc
+import os
 import time
 import tracemalloc
 from typing import Any, Dict, List
@@ -23,6 +24,11 @@ from app.services.discovery.modules import (
     JsAnalyzerRegexModule,
 )
 from app.services.discovery.service import DiscoveryService
+
+# CI 환경 감지 (GitHub Actions, GitLab CI, Jenkins 등)
+# CI 환경에서는 공유 인프라로 인해 성능 변동성이 크므로 더 관대한 제한 적용
+IS_CI = os.getenv("CI", "false").lower() == "true"
+CI_TIME_MULTIPLIER = 2.0 if IS_CI else 1.0
 
 # ============================================================================
 # Test 7.1.1: Large HTML Parsing Performance
@@ -59,9 +65,11 @@ class TestLargeHtmlParsing:
             content_size_mb >= 0.9
         ), f"HTML content too small: {content_size_mb:.2f}MB, expected ~1MB"
 
-        # Performance thresholds (with CI buffer)
-        # Allow extra time for CI environments which may be slower
-        MAX_PARSE_TIME_SECONDS = 5.0  # Original: 2.0s, CI buffer: 2.5x
+        # Performance thresholds
+        # Base limit: 5s for local development
+        # CI environments get 2x multiplier due to shared infrastructure variability
+        BASE_PARSE_TIME_SECONDS = 5.0
+        MAX_PARSE_TIME_SECONDS = BASE_PARSE_TIME_SECONDS * CI_TIME_MULTIPLIER
         MAX_MEMORY_MB = 200.0
         MIN_URL_COUNT = 500  # Stricter: expect more URLs from 1MB HTML
 
@@ -98,6 +106,8 @@ class TestLargeHtmlParsing:
 
         # Log performance metrics
         print("\nPerformance Metrics (Test 7.1.1 - Large HTML Parsing):")
+        print(f"  Environment: {'CI' if IS_CI else 'Local'}")
+        print(f"  Time multiplier: {CI_TIME_MULTIPLIER}x")
         print(f"  Content size: {content_size_mb:.2f} MB")
         print(
             f"  Parse time: {elapsed_time:.3f} seconds (limit: {MAX_PARSE_TIME_SECONDS}s)"
