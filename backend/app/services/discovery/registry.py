@@ -78,3 +78,27 @@ class DiscoveryModuleRegistry:
     def clear(self) -> None:
         """모든 등록된 모듈 제거 (테스트용)."""
         self._modules.clear()
+
+
+def get_default_registry() -> DiscoveryModuleRegistry:
+    """기본 Discovery 모듈 레지스트리 생성.
+
+    모든 기본 모듈이 등록된 레지스트리를 반환합니다.
+    Import는 함수 내부에서 수행하여 순환 참조를 방지합니다.
+
+    Returns:
+        기본 모듈이 등록된 DiscoveryModuleRegistry
+    """
+    from app.services.discovery.modules.config_discovery import ConfigDiscoveryModule
+    from app.services.discovery.modules.html_element_parser import (
+        HtmlElementParserModule,
+    )
+    from app.services.discovery.modules.js_analyzer_regex import JsAnalyzerRegexModule
+    from app.services.discovery.modules.network_capturer import NetworkCapturerModule
+
+    registry = DiscoveryModuleRegistry()
+    registry.register(HtmlElementParserModule())
+    registry.register(ConfigDiscoveryModule())
+    registry.register(NetworkCapturerModule())
+    registry.register(JsAnalyzerRegexModule())
+    return registry

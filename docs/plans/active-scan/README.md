@@ -1,187 +1,178 @@
-# Active Scan 개편 - TDD 구현 계획
+# Implementation Plan: Active Scan NACK 무한 재시도 버그 수정
 
-**Status**: ✅ Completed
-**Started**: 2026-01-23
-**Last Updated**: 2026-01-25
-
-> **TDD 사이클**: 🔴 Red (실패 테스트) → 🟢 Green (최소 구현) → 🔵 Blue (리팩토링)
+**Status**: ✅ Complete
+**Started**: 2026-01-27
+**Last Updated**: 2026-01-27 (Phase 3 Completed)
 
 ---
 
-## 📊 전체 진행률
+**⚠️ CRITICAL INSTRUCTIONS**: After completing each phase:
+1. ✅ Check off completed task checkboxes
+2. 🧪 Run all quality gate validation commands
+3. ⚠️ Verify ALL quality gate items pass
+4. 📅 Update "Last Updated" date above
+5. 📝 Document learnings in Notes section
+6. ➡️ Only then proceed to next phase
 
-| Phase | 파일 | 설명 | 항목 | 완료 | 진행률 | 커버리지 |
-|-------|------|------|------|------|--------|----------|
-| 1 | [phase1-foundation.md](./phase1-foundation.md) | 기반 구조 | 26 | 26 | ✅ 100% | 99% |
-| 2 | [phase2-basic-modules.md](./phase2-basic-modules.md) | 기본 모듈 | 37 | 37 | ✅ 100% | 93% |
-| 3 | [phase3-network-module.md](./phase3-network-module.md) | 네트워크 모듈 | 12 | 12 | ✅ 100% | 95% |
-| 4 | [phase4-analysis-modules.md](./phase4-analysis-modules.md) | 분석 모듈 | 21 | 21 | ✅ 100% | 90% |
-| 5 | [phase5-advanced-modules.md](./phase5-advanced-modules.md) | 고급 모듈 | 42 | 42 | ✅ 100% | 92% |
-| 6 | [phase6-integration.md](./phase6-integration.md) | 통합 테스트 | 13 | 13 | ✅ 100% | 91% |
-| 7 | [phase7-performance.md](./phase7-performance.md) | 성능/Edge | 22 | 22 | ✅ 100% | 94% |
-| **총계** | - | - | **173** | **173** | **✅ 100%** | **94%** |
+⛔ **DO NOT skip quality gates or proceed with failing checks**
 
 ---
 
-## 🔗 Phase 의존성 그래프
+## 📋 Overview
 
+### Feature Description
+Active Scan에서 4개 Asset만 스캔해도 3분 이상 완료되지 않는 버그를 수정합니다.
+
+**핵심 문제**: 분산 락 획득 실패 시 NACK 재시도에 횟수 제한이 없어 무한 루프 발생
+
+### Root Cause Analysis
 ```
-                    ┌─────────────────────┐
-                    │   Phase 1           │
-                    │   기반 구조          │
-                    │   ✅ COMPLETED      │
-                    └──────────┬──────────┘
-                               │
-           ┌───────────────────┼───────────────────┐
-           │                   │                   │
-           ▼                   ▼                   ▼
-┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
-│   Phase 2        │ │   Phase 3        │ │   Phase 4        │
-│   기본 모듈       │ │   네트워크 모듈   │ │   분석 모듈       │
-│   ✅ COMPLETED   │ │   ✅ COMPLETED   │ │   ✅ COMPLETED   │
-└────────┬─────────┘ └────────┬─────────┘ └────────┬─────────┘
-         │                    │                    │
-         │     ┌──────────────┴──────────────┐     │
-         │     │                             │     │
-         └─────┼─────────────────────────────┼─────┘
-               │                             │
-               ▼                             ▼
-        ┌─────────────────────────────────────────┐
-        │            Phase 5                      │
-        │            고급 모듈 (Advanced)          │
-        │            ✅ COMPLETED                 │
-        │  ┌─────────────────────────────────┐    │
-        │  │ 5.1 InteractionEngine     ✅    │    │
-        │  │ 5.2 TechFingerprint       ✅    │    │
-        │  │ 5.3 ThirdPartyDetector    ✅    │    │
-        │  │ 5.4 ApiSchemaGenerator    ✅    │    │
-        │  └─────────────────────────────────┘    │
-        └────────────────────┬────────────────────┘
-                             │
-                             ▼
-                ┌─────────────────────────┐
-                │      Phase 6            │
-                │      통합 테스트         │
-                │      ✅ COMPLETED       │
-                └────────────┬────────────┘
-                             │
-                             ▼
-                ┌─────────────────────────┐
-                │      Phase 7            │
-                │      성능/Edge Case      │
-                │      ✅ COMPLETED       │
-                └─────────────────────────┘
+1. CrawlWorker가 target_id 기반 분산 락 사용
+2. 같은 Target의 child task들이 동일한 락 경합
+3. 락 획득 실패 → TaskResult.create_skipped() 반환
+4. skipped 결과 → nack_task(retry=True) → 큐 앞으로 재삽입
+5. retry_count 증가는 하지만 제한 체크 없음!
+6. 결과: 무한 NACK 재시도 루프
 ```
 
-### 병렬 실행 가능 구간
+### Success Criteria
+- [x] NACK 재시도 횟수가 MAX_RETRIES(3회)로 제한됨 ✅ Phase 1
+- [x] 제한 초과 시 DLQ(Dead Letter Queue)로 이동 ✅ Phase 1
+- [x] Exponential Backoff가 재시도에 적용됨 ✅ Phase 2
+- [x] 4개 Asset 스캔이 1분 이내 완료 ✅ Phase 3 (E2E 테스트 검증)
+- [x] 기존 테스트 100% 통과 ✅ Phase 1
+- [x] 새 테스트 커버리지 ≥80% ✅ Phase 1 (7개 테스트, 64% base.py 전체)
 
-**Phase 1-6 완료** ✅ - 다음 Phase가 준비되었습니다:
-- Phase 6 (통합 테스트) ✅ - 완료
-- Phase 7 (성능/Edge Case) ✅ - 완료
-
-### 숨겨진 의존성
-
-| 컴포넌트 | 의존 대상 | 설명 |
-|----------|-----------|------|
-| `InteractionEngine` | `NetworkCapturer` ✅ | 네트워크 이벤트 캡처 결과 소비 (Phase 3 완료) |
-| `TechFingerprint` | `ResponseAnalyzer` ✅ | 헤더 분석 정보 활용 (Phase 2 완료) |
-| `ApiSchemaGenerator` | `NetworkCapturer` ✅ + `JsAnalyzer` ✅ | 복합 의존 - 의존성 충족 (Phase 3, 4 완료) |
+### User Impact
+- 스캔 완료 시간 대폭 단축 (3분+ → 1분 이내)
+- 시스템 리소스 낭비 방지 (무한 재시도 제거)
+- 안정적인 스캔 완료 보장
 
 ---
 
-## 🧪 테스트 실행 가이드
+## 🏗️ Architecture Decisions
 
-### pytest 마커
+| Decision | Rationale | Trade-offs |
+|----------|-----------|------------|
+| base.py에서 retry_count 체크 | 모든 Worker가 공통 사용하는 위치 | queue.py보다 상위 레벨에서 제어 |
+| MAX_RETRIES = 3 유지 | retry.py에 이미 정의된 값 활용 | 설정 일관성 유지 |
+| DLQ 이동 전략 | 실패한 작업 추적 및 디버깅 가능 | DLQ 모니터링 필요 |
+| Exponential Backoff 적용 | 즉시 재시도로 인한 경합 완화 | 처리 시간 약간 증가 |
 
-```bash
-# Discovery 테스트 실행
-uv run pytest tests/services/discovery/ -v
+---
 
-# 커버리지 포함
-uv run pytest tests/services/discovery/ --cov=app/services/discovery --cov-report=term-missing
+## 📦 Dependencies
 
-# 전체 테스트 (병렬)
-uv run pytest -n auto
+### Required Before Starting
+- [x] 문제 원인 분석 완료
+- [x] 관련 코드 탐색 완료
+
+### External Dependencies
+- 없음 (기존 코드 수정만 필요)
+
+---
+
+## 🧪 Test Strategy
+
+### Testing Approach
+**TDD Principle**: Write tests FIRST, then implement to make them pass
+
+### Test Pyramid for This Feature
+| Test Type | Coverage Target | Purpose |
+|-----------|-----------------|---------|
+| **Unit Tests** | ≥80% | retry_count 체크 로직, backoff 계산 |
+| **Integration Tests** | Critical paths | Worker-Queue 상호작용 |
+| **E2E Tests** | Key user flows | 전체 스캔 완료 검증 |
+
+### Test File Organization
 ```
-
-### 커버리지 측정
-
-```bash
-# 전체 커버리지
-uv run pytest --cov=app --cov-report=html
-
-# 특정 모듈 커버리지
-uv run pytest --cov=app/services/discovery --cov-report=term-missing
-```
-
-### 코드 품질 검사
-
-```bash
-# 린팅
-uv run ruff check app/services/discovery/
-
-# 포맷팅 확인
-uv run black --check app/services/discovery/
-uv run isort --check app/services/discovery/
-
-# 타입 체크
-uv run mypy app/services/discovery/
+backend/tests/
+├── workers/
+│   ├── test_base_retry_limit.py       # Phase 1 Unit
+│   └── test_crawl_worker_nack.py      # Phase 1 Integration
+├── core/
+│   ├── test_queue_backoff.py          # Phase 2 Unit
+│   └── test_retry_integration.py      # Phase 2 Integration
+└── e2e/
+    └── test_scan_completion.py        # Phase 3 E2E
 ```
 
 ---
 
-## 📋 Quality Gate (공통)
+## 🚀 Implementation Phases
 
-각 Phase 완료 시 반드시 통과해야 하는 검증 항목:
-
-### TDD 준수
-- [x] 🔴 RED: 테스트가 먼저 작성되어 실패함
-- [x] 🟢 GREEN: 최소 코드로 테스트 통과
-- [x] 🔵 BLUE: 리팩토링 후에도 테스트 통과
-
-### Build & Tests
-- [x] 빌드 성공
-- [x] 모든 테스트 통과 (650개: 단위 499 + 통합 29 + E2E 122)
-- [x] 커버리지 목표 달성 (94%)
-- [x] Flaky 테스트 없음
-
-### Code Quality
-- [x] `ruff check .` - 린팅 에러 없음
-- [x] `black --check .` - 포맷팅 준수
-- [x] `isort --check .` - import 정렬 준수
-- [x] `mypy app/` - 타입 에러 없음
-
-### Security & Performance
-- [x] 보안 취약점 없음
-- [x] 성능 저하 없음
-- [x] 메모리 누수 없음
+### Phase Structure
+- **[Phase 1: NACK 재시도 제한](./phase1-retry-limit.md)** - 핵심 버그 수정
+- **[Phase 2: Exponential Backoff](./phase2-backoff-strategy.md)** - 재시도 전략 개선
+- **[Phase 3: 통합 테스트](./phase3-integration.md)** - E2E 검증 및 최적화
 
 ---
 
-## 🔄 빠른 링크
+## ⚠️ Risk Assessment
 
-- **완료됨**: [Phase 1 - 기반 구조](./phase1-foundation.md) ✅
-- **완료됨**: [Phase 2 - 기본 모듈](./phase2-basic-modules.md) ✅
-- **완료됨**: [Phase 3 - 네트워크 모듈](./phase3-network-module.md) ✅
-- **완료됨**: [Phase 4 - 분석 모듈](./phase4-analysis-modules.md) ✅
-- **완료됨**: [Phase 5 - 고급 모듈](./phase5-advanced-modules.md) ✅
-- **완료됨**: [Phase 6 - 통합 테스트](./phase6-integration.md) ✅
-- **완료됨**: [Phase 7 - 성능/Edge Case](./phase7-performance.md) ✅
-- **🎉 모든 Phase 완료!**
-- **세션 로그**: [session-logs/](./session-logs/)
-- **원본 Todolist**: [../todolist.md](../todolist.md) (deprecated)
-- **템플릿 참조**: [../plan-template.md](../plan-template.md)
+| Risk | Probability | Impact | Mitigation Strategy |
+|------|-------------|--------|---------------------|
+| DLQ 작업 누적 | Medium | Low | DLQ 모니터링 알림 추가 |
+| Backoff로 인한 지연 | Low | Low | 적절한 delay 값 설정 |
+| 기존 테스트 실패 | Low | High | 단계별 테스트 검증 |
 
 ---
 
-## 📝 변경 이력
+## 🔄 Rollback Strategy
 
-| 날짜 | 변경 내용 |
-|------|-----------|
-| 2026-01-25 | **🎉 Phase 7 완료: 성능/Edge Case (650 tests, 94% coverage) - 프로젝트 완료!** |
-| 2026-01-25 | Phase 6 완료: 통합 테스트 + E2E (556 tests, 91% coverage) |
-| 2026-01-25 | Phase 5 완료: 고급 모듈 (499 tests, 92% coverage) |
-| 2026-01-24 | Phase 3, 4 완료: 네트워크 + 분석 모듈 (302 tests, 91% coverage) |
-| 2026-01-23 | Phase 2 완료: 기본 모듈 (97 tests, 93% coverage) |
-| 2026-01-23 | Phase 1 완료: 기반 구조 (54 tests, 99% coverage) |
-| 2026-01-23 | 초기 문서 생성, 7개 Phase 파일 구조 확립 |
+### If Phase 1 Fails
+- `git checkout backend/app/workers/base.py`
+- 테스트 파일 삭제
+
+### If Phase 2 Fails
+- Phase 1 상태로 복귀
+- `git checkout backend/app/core/queue.py`
+
+### If Phase 3 Fails
+- Phase 2 상태로 복귀
+- E2E 테스트 파일만 삭제
+
+---
+
+## 📊 Progress Tracking
+
+### Completion Status
+- **Phase 1**: ✅ 100% (Completed 2026-01-27)
+- **Phase 2**: ✅ 100% (Completed 2026-01-27)
+- **Phase 3**: ✅ 100% (Completed 2026-01-27)
+
+**Overall Progress**: 100% complete
+
+---
+
+## 📝 Files to Modify
+
+### Core Files
+| File | Changes |
+|------|---------|
+| `backend/app/workers/base.py` | retry_count 체크 로직 추가 |
+| `backend/app/core/queue.py` | backoff delay 적용 |
+| `backend/app/core/retry.py` | 기존 상수 활용 (수정 없음) |
+
+### Test Files
+| File | Purpose |
+|------|---------|
+| `backend/tests/workers/test_base_retry_limit.py` | retry 제한 단위 테스트 |
+| `backend/tests/core/test_queue_backoff.py` | backoff 단위 테스트 |
+| `backend/tests/e2e/test_scan_completion.py` | E2E 완료 테스트 |
+
+---
+
+## 📚 References
+
+### Related Code
+- `backend/app/workers/base.py:197-205` - skipped 결과 처리
+- `backend/app/core/queue.py:177-220` - nack_task 메서드
+- `backend/app/core/retry.py:15` - MAX_RETRIES 상수
+- `backend/app/workers/crawl_worker.py:270-290` - 분산 락 로직
+
+---
+
+**Plan Status**: ✅ Complete
+**Next Action**: 버그 수정 완료 - 배포 준비
+**Blocked By**: None

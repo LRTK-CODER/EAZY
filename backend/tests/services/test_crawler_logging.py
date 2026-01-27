@@ -134,7 +134,7 @@ class TestCrawlErrorLogging:
                 mock_browser.close = AsyncMock()
 
                 # Crawl should handle error gracefully
-                links, http_data = await service.crawl("https://example.com")
+                links, http_data, _ = await service.crawl("https://example.com")
 
                 # Verify error was logged
                 mock_logger.error.assert_called()

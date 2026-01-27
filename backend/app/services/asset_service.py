@@ -18,6 +18,8 @@ class AssetService:
         self.session = session
         self._pending_assets: List[Asset] = []
         self._pending_discoveries: List[Tuple[int, Asset, Optional[int]]] = []
+        # Track content_hash -> Asset for deduplication within batch
+        self._pending_hash_map: Dict[str, Asset] = {}
 
     async def __aenter__(self) -> "AssetService":
         """Enter async context manager."""
@@ -53,6 +55,7 @@ class AssetService:
         # 3. 버퍼 초기화
         self._pending_assets.clear()
         self._pending_discoveries.clear()
+        self._pending_hash_map.clear()
 
     def _generate_content_hash(self, method: str, url: str) -> str:
         """
@@ -134,10 +137,14 @@ class AssetService:
         truncated_request = self._truncate_body(request_spec)
         truncated_response = self._truncate_body(response_spec)
 
-        # Check for existing asset
-        statement = select(Asset).where(Asset.content_hash == content_hash)
-        result = await self.session.exec(statement)
-        existing_asset = result.first()
+        # First check pending buffer (same batch deduplication)
+        existing_asset = self._pending_hash_map.get(content_hash)
+
+        # If not in buffer, check database
+        if not existing_asset:
+            statement = select(Asset).where(Asset.content_hash == content_hash)
+            result = await self.session.exec(statement)
+            existing_asset = result.first()
 
         current_time = utc_now()
 
@@ -174,7 +181,10 @@ class AssetService:
             )
 
         # Buffer asset and discovery info (defer commit)
-        self._pending_assets.append(asset)
+        # Only add to pending if it's a new asset (not already in buffer)
+        if content_hash not in self._pending_hash_map:
+            self._pending_assets.append(asset)
+            self._pending_hash_map[content_hash] = asset
         self._pending_discoveries.append((task_id, asset, parent_asset_id))
 
         # Flush when batch size reached

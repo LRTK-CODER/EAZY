@@ -14,7 +14,11 @@ Example:
 
 from .base import BaseDiscoveryModule
 from .models import DEFAULT_SCAN_PROFILE, DiscoveredAsset, DiscoveryContext, ScanProfile
-from .registry import DiscoveryModuleRegistry, DuplicateModuleError
+from .registry import (
+    DiscoveryModuleRegistry,
+    DuplicateModuleError,
+    get_default_registry,
+)
 from .service import DiscoveryService
 
 __all__ = [
@@ -29,6 +33,7 @@ __all__ = [
     # Registry
     "DiscoveryModuleRegistry",
     "DuplicateModuleError",
+    "get_default_registry",
     # Service
     "DiscoveryService",
 ]

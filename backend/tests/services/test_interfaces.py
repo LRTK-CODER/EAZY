@@ -76,14 +76,16 @@ class TestMockCrawlerImplementsICrawler:
                         "response": {"status": 200, "headers": {}, "body": "<html>"},
                     }
                 },
+                [],  # js_contents
             )
         )
 
         # crawl 호출 및 반환값 검증
-        links, http_data = await mock_crawler.crawl("http://example.com")
+        links, http_data, js_contents = await mock_crawler.crawl("http://example.com")
 
         assert isinstance(links, list)
         assert isinstance(http_data, dict)
+        assert isinstance(js_contents, list)
         mock_crawler.crawl.assert_called_once_with("http://example.com")
 
     @pytest.mark.asyncio
@@ -108,10 +110,11 @@ class TestMockCrawlerImplementsICrawler:
                         "parameters": {"id": "123"},
                     }
                 },
+                [],  # js_contents
             )
         )
 
-        links, http_data = await mock_crawler.crawl("http://example.com")
+        links, http_data, js_contents = await mock_crawler.crawl("http://example.com")
 
         # 반환 구조 검증
         assert len(links) == 2

@@ -112,7 +112,7 @@ class TestProcessOneTask:
         # Mock crawler to avoid actual crawling
         with patch("app.workers.crawl_worker.CrawlerService") as MockCrawler:
             mock_crawler = MockCrawler.return_value
-            mock_crawler.crawl = AsyncMock(return_value=([], {}))
+            mock_crawler.crawl = AsyncMock(return_value=([], {}, []))
             mock_orphan_recovery.send_heartbeat = AsyncMock()
             mock_orphan_recovery.clear_heartbeat = AsyncMock()
 
@@ -176,7 +176,7 @@ class TestProcessOneTask:
 
         with patch("app.workers.crawl_worker.CrawlerService") as MockCrawler:
             mock_crawler = MockCrawler.return_value
-            mock_crawler.crawl = AsyncMock(return_value=([], {}))
+            mock_crawler.crawl = AsyncMock(return_value=([], {}, []))
             mock_orphan_recovery.send_heartbeat = AsyncMock()
             mock_orphan_recovery.clear_heartbeat = AsyncMock()
 
@@ -347,6 +347,7 @@ class TestIntegration:
                             "parameters": {},
                         }
                     },
+                    [],  # js_contents
                 )
             )
 

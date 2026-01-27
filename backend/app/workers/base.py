@@ -15,6 +15,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.core.dlq import DLQManager
 from app.core.queue import TaskManager
 from app.core.recovery import OrphanRecovery
+from app.core.retry import MAX_RETRIES
 from app.core.structured_logger import get_logger
 from app.core.utils import utc_now
 from app.models.task import Task, TaskStatus, TaskType
@@ -193,14 +194,30 @@ class BaseWorker(ABC):
             # Execute the task
             result = await self.execute(task_data, task_record)
 
-            # Handle skipped result (e.g., lock unavailable) - NACK for retry
+            # Handle skipped result (e.g., lock unavailable) - check retry limit
             if result.skipped:
-                logger.info(
-                    "Task skipped",
-                    db_task_id=db_task_id,
-                    reason=result.data.get("reason", "unknown"),
-                )
-                await self.task_manager.nack_task(task_json, retry=True)
+                retry_count = task_data.get("retry_count", 0)
+
+                if retry_count >= MAX_RETRIES:
+                    # Exceeded max retries - move to DLQ
+                    logger.warning(
+                        "Task exceeded max retries, moving to DLQ",
+                        db_task_id=db_task_id,
+                        retry_count=retry_count,
+                        max_retries=MAX_RETRIES,
+                        reason=result.data.get("reason", "unknown"),
+                    )
+                    await self.task_manager.nack_task(task_json, retry=False)
+                else:
+                    # Still within retry limit - retry
+                    logger.info(
+                        "Task skipped, will retry",
+                        db_task_id=db_task_id,
+                        retry_count=retry_count,
+                        reason=result.data.get("reason", "unknown"),
+                    )
+                    await self.task_manager.nack_task(task_json, retry=True)
+
                 await self.context.orphan_recovery.clear_heartbeat(task_id)
                 return True
 
@@ -225,7 +242,7 @@ class BaseWorker(ABC):
                 error=str(e),
             )
             await self._handle_failure(task_record, task_json, e)
-            raise
+            return False
 
     async def _get_task_record(self, task_id: int) -> Optional[Task]:
         """Fetch task record from database."""
@@ -273,12 +290,32 @@ class BaseWorker(ABC):
         Handle task failure from exception.
 
         Updates database status to FAILED and ACKs the task.
+        Handles cases where session is in rolled back state (e.g., IntegrityError).
         """
-        task.status = TaskStatus.FAILED
-        task.completed_at = utc_now()
-        task.result = json.dumps({"error": str(error)})
-        self.session.add(task)
-        await self.session.commit()
+        # First rollback the session (it may be in rolled back state from IntegrityError)
+        try:
+            await self.session.rollback()
+        except Exception:
+            pass  # Ignore rollback errors
 
-        # ACK the failed task (it's marked as FAILED in DB)
+        try:
+            # Try to update DB status
+            task.status = TaskStatus.FAILED
+            task.completed_at = utc_now()
+            task.result = json.dumps({"error": str(error)})
+            self.session.add(task)
+            await self.session.commit()
+        except Exception as db_error:
+            # DB update failed, log but continue to ACK
+            logger.error(
+                "Failed to update task status in DB",
+                error=str(db_error),
+                original_error=str(error),
+            )
+            try:
+                await self.session.rollback()
+            except Exception:
+                pass
+
+        # Always ACK the task (regardless of DB update success)
         await self.task_manager.ack_task(task_json)

@@ -63,7 +63,7 @@ async def test_worker_collects_http_data_during_crawl(db_session: AsyncSession):
         # Current signature: returns List[str]
         # Expected new signature: returns Tuple[List[str], Dict]
         mock_crawler_instance.crawl = AsyncMock(
-            return_value=(["http://example.com/page"], mock_http_data)
+            return_value=(["http://example.com/page"], mock_http_data, [])
         )
 
         # Import and call worker function
@@ -118,7 +118,7 @@ async def test_worker_passes_http_data_to_asset_service(db_session: AsyncSession
     with patch("app.worker.CrawlerService") as MockCrawler:
         mock_crawler_instance = MockCrawler.return_value
         mock_crawler_instance.crawl = AsyncMock(
-            return_value=(["http://example.com/api"], mock_http_data)
+            return_value=(["http://example.com/api"], mock_http_data, [])
         )
 
         from app.worker import process_task
@@ -182,7 +182,7 @@ async def test_worker_parses_json_response_bodies(db_session: AsyncSession):
     with patch("app.worker.CrawlerService") as MockCrawler:
         mock_crawler_instance = MockCrawler.return_value
         mock_crawler_instance.crawl = AsyncMock(
-            return_value=(["http://example.com/api/users"], mock_http_data)
+            return_value=(["http://example.com/api/users"], mock_http_data, [])
         )
 
         from app.worker import process_task
@@ -248,7 +248,7 @@ async def test_worker_excludes_image_responses(db_session: AsyncSession):
     with patch("app.worker.CrawlerService") as MockCrawler:
         mock_crawler_instance = MockCrawler.return_value
         mock_crawler_instance.crawl = AsyncMock(
-            return_value=(["http://example.com/logo.png"], mock_http_data)
+            return_value=(["http://example.com/logo.png"], mock_http_data, [])
         )
 
         from app.worker import process_task
@@ -315,7 +315,7 @@ async def test_full_integration_worker_crawler_asset(db_session: AsyncSession):
     with patch("app.worker.CrawlerService") as MockCrawler:
         mock_crawler_instance = MockCrawler.return_value
         mock_crawler_instance.crawl = AsyncMock(
-            return_value=(["http://example.com/about"], mock_http_data)
+            return_value=(["http://example.com/about"], mock_http_data, [])
         )
 
         from app.worker import process_task

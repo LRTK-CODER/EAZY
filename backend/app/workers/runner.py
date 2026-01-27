@@ -97,8 +97,10 @@ async def process_one_task(context: WorkerContext) -> bool:
         worker = create_worker(task_type, context)
         await worker.process(task_data, task_json)
     except Exception as e:
-        log.error("Task processing failed", error=str(e))
-        # Task is already ACKed in worker.process() on failure
+        # This should not happen as worker.process() handles all exceptions internally
+        # and always ACKs the task. This is a safety net.
+        log.error("Unexpected error in task processing", error=str(e))
+        await task_manager.ack_task(task_json)
 
     return True
 

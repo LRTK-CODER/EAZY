@@ -132,6 +132,7 @@ class CrawlManager:
                 depth=current_depth + 1,
                 max_depth=max_depth,
                 parent_task_id=parent_task_id,
+                crawl_url=url,  # 재귀 크롤링할 URL 저장
             )
             self.session.add(task)
             child_tasks.append(task)

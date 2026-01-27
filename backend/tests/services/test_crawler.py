@@ -40,7 +40,7 @@ async def test_crawl_page_extracts_links():
 
         # Run Code
         crawler = CrawlerService()
-        links, http_data = await crawler.crawl("https://example.com")
+        links, http_data, _ = await crawler.crawl("https://example.com")
 
         # Verify
         assert "https://example.com/page1" in links

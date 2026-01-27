@@ -100,7 +100,7 @@ class TestWorkerAckOnSuccess:
 
         # When: Worker 실행 (성공)
         with patch("app.services.crawler_service.CrawlerService.crawl") as mock_crawl:
-            mock_crawl.return_value = (["http://example.com/page1"], {})
+            mock_crawl.return_value = (["http://example.com/page1"], {}, [])
             await process_one_task(db_session, tm)
 
         # Then: processing 큐가 비어있어야 함

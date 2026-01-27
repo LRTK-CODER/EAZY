@@ -98,6 +98,7 @@ def mock_crawler_service():
                     "parameters": {},
                 },
             },
+            [],  # js_contents
         )
     )
     return mock

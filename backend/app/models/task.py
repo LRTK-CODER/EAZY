@@ -2,6 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
+from pydantic import field_validator
 from sqlalchemy import ForeignKey, Index
 from sqlmodel import Column, Field, SQLModel
 
@@ -41,6 +42,47 @@ class TaskBase(SQLModel):
             index=True,
         ),
     )
+    crawl_url: Optional[str] = Field(
+        default=None,
+        max_length=2048,
+        description="크롤링할 URL (None이면 target.url 사용)",
+    )
+
+    @field_validator("crawl_url", mode="before")
+    @classmethod
+    def validate_crawl_url(cls, v: Optional[str]) -> Optional[str]:
+        """
+        Validate crawl_url field.
+
+        Rules:
+        - None is allowed (root task uses target.url)
+        - Empty string or whitespace-only is rejected
+        - Must be absolute URL (http:// or https://)
+        - Dangerous schemes (javascript:, data:, file:) are rejected
+        """
+        if v is None:
+            return None
+
+        # Strip whitespace
+        v = v.strip()
+
+        # Reject empty string
+        if not v:
+            raise ValueError("crawl_url cannot be empty or whitespace only")
+
+        # Normalize to lowercase for scheme check
+        v_lower = v.lower()
+
+        # Reject dangerous schemes
+        dangerous_schemes = ("javascript:", "data:", "file:", "vbscript:", "about:")
+        if any(v_lower.startswith(scheme) for scheme in dangerous_schemes):
+            raise ValueError(f"crawl_url contains dangerous scheme: {v[:20]}...")
+
+        # Must be absolute URL
+        if not v_lower.startswith(("http://", "https://")):
+            raise ValueError("crawl_url must be absolute URL (http:// or https://)")
+
+        return v
 
 
 class Task(TaskBase, table=True):

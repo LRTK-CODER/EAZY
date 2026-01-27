@@ -72,10 +72,11 @@ async def test_worker_process_task(db_session, redis_client):
     with unittest.mock.patch.object(
         CrawlerService, "crawl", new_callable=unittest.mock.AsyncMock
     ) as mock_crawl:
-        # CrawlerService.crawl() returns tuple (links, http_data)
+        # CrawlerService.crawl() returns tuple (links, http_data, js_contents)
         mock_crawl.return_value = (
             ["http://example.com/page1", "http://example.com/page2"],
             {},  # http_data (empty for this test)
+            [],  # js_contents
         )
         processed = await process_one_task(db_session, tm)
     assert processed is True

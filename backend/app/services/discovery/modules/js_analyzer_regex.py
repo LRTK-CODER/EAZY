@@ -184,23 +184,39 @@ class HttpClientDetector:
         r'fetch\s*\(\s*["\']([^"\']+)["\'](?:\s*,\s*(\{[^}]*\}))?'
     )
 
-    # axios 패턴
+    # Fetch/Axios options에서 method 추출
+    OPTIONS_METHOD_PATTERN = re.compile(r'method\s*:\s*["\'](\w+)["\']', re.IGNORECASE)
+
+    # jQuery ajax에서 type 또는 method 추출
+    JQUERY_METHOD_PATTERN = re.compile(
+        r'(?:type|method)\s*:\s*["\'](\w+)["\']', re.IGNORECASE
+    )
+
+    # axios 패턴 (direct는 전체 config 객체 캡처)
     AXIOS_PATTERNS = {
         "get": re.compile(r'axios\.get\s*\(\s*["\']([^"\']+)["\']'),
         "post": re.compile(r'axios\.post\s*\(\s*["\']([^"\']+)["\']'),
         "put": re.compile(r'axios\.put\s*\(\s*["\']([^"\']+)["\']'),
         "delete": re.compile(r'axios\.delete\s*\(\s*["\']([^"\']+)["\']'),
         "patch": re.compile(r'axios\.patch\s*\(\s*["\']([^"\']+)["\']'),
-        "direct": re.compile(r'axios\s*\(\s*\{[^}]*url\s*:\s*["\']([^"\']+)["\']'),
+        "direct": re.compile(
+            r'axios\s*\(\s*(\{[^}]*url\s*:\s*["\'][^"\']+["\'][^}]*\})'
+        ),
     }
+    # axios config에서 URL 추출
+    AXIOS_URL_PATTERN = re.compile(r'url\s*:\s*["\']([^"\']+)["\']')
 
-    # jQuery 패턴
+    # jQuery 패턴 (ajax는 전체 config 객체 캡처)
     JQUERY_PATTERNS = {
-        "ajax": re.compile(r'\$\.ajax\s*\(\s*\{[^}]*url\s*:\s*["\']([^"\']+)["\']'),
+        "ajax": re.compile(
+            r'\$\.ajax\s*\(\s*(\{[^}]*url\s*:\s*["\'][^"\']+["\'][^}]*\})'
+        ),
         "get": re.compile(r'\$\.get\s*\(\s*["\']([^"\']+)["\']'),
         "post": re.compile(r'\$\.post\s*\(\s*["\']([^"\']+)["\']'),
         "getJSON": re.compile(r'\$\.getJSON\s*\(\s*["\']([^"\']+)["\']'),
     }
+    # ajax config에서 URL 추출
+    JQUERY_URL_PATTERN = re.compile(r'url\s*:\s*["\']([^"\']+)["\']')
 
     # XMLHttpRequest 패턴
     XHR_PATTERN = re.compile(r'\.open\s*\(\s*["\'](\w+)["\']\s*,\s*["\']([^"\']+)["\']')
@@ -220,10 +236,16 @@ class HttpClientDetector:
             url = match.group(1)
             options = match.group(2)
 
+            method = "GET"  # 기본값
+            if options:
+                method_match = self.OPTIONS_METHOD_PATTERN.search(options)
+                if method_match:
+                    method = method_match.group(1).upper()
+
             calls.append(
                 HttpClientCall(
                     client_type="fetch",
-                    method="GET",  # 기본값
+                    method=method,
                     url=url,
                     has_options=bool(options),
                 )
@@ -244,9 +266,20 @@ class HttpClientDetector:
 
         for method_name, pattern in self.AXIOS_PATTERNS.items():
             for match in pattern.finditer(content):
-                url = match.group(1)
-
-                method = method_name.upper() if method_name != "direct" else "GET"
+                if method_name == "direct":
+                    # direct는 전체 config 객체를 캡처
+                    config_obj = match.group(1)
+                    # config에서 URL 추출
+                    url_match = self.AXIOS_URL_PATTERN.search(config_obj)
+                    if not url_match:
+                        continue
+                    url = url_match.group(1)
+                    # config에서 method 추출
+                    method_match = self.OPTIONS_METHOD_PATTERN.search(config_obj)
+                    method = method_match.group(1).upper() if method_match else "GET"
+                else:
+                    url = match.group(1)
+                    method = method_name.upper()
 
                 calls.append(
                     HttpClientCall(
@@ -272,13 +305,22 @@ class HttpClientDetector:
 
         for method_name, pattern in self.JQUERY_PATTERNS.items():
             for match in pattern.finditer(content):
-                url = match.group(1)
-
                 if method_name == "ajax":
-                    method = "GET"  # ajax는 옵션에서 메서드 지정
+                    # ajax는 전체 config 객체를 캡처
+                    config_obj = match.group(1)
+                    # config에서 URL 추출
+                    url_match = self.JQUERY_URL_PATTERN.search(config_obj)
+                    if not url_match:
+                        continue
+                    url = url_match.group(1)
+                    # config에서 type/method 추출
+                    method_match = self.JQUERY_METHOD_PATTERN.search(config_obj)
+                    method = method_match.group(1).upper() if method_match else "GET"
                 elif method_name == "getJSON":
+                    url = match.group(1)
                     method = "GET"
                 else:
+                    url = match.group(1)
                     method = method_name.upper()
 
                 calls.append(

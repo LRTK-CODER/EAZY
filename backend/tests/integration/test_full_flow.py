@@ -52,10 +52,11 @@ async def test_full_scan_flow(
     from unittest.mock import patch
 
     with patch("app.services.crawler_service.CrawlerService.crawl") as mock_crawl:
-        # Return tuple (links, http_data) as per crawler interface
+        # Return tuple (links, http_data, js_contents) as per crawler interface
         mock_crawl.return_value = (
             ["http://example.com/page1", "http://example.com/page2"],
             {},  # Empty http_data
+            [],  # js_contents
         )
 
         # Process the task

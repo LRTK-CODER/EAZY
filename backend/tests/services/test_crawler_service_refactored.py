@@ -125,7 +125,7 @@ class TestCrawlerServiceParserRegistry:
             mock_playwright.return_value.__aenter__ = AsyncMock(return_value=mock_p)
             mock_playwright.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            links, http_data = await service.crawl("http://example.com")
+            links, http_data, _ = await service.crawl("http://example.com")
 
             # Simulate JSON response
             assert captured_handler is not None
@@ -181,7 +181,7 @@ class TestCrawlerServiceParserRegistry:
             mock_playwright.return_value.__aenter__ = AsyncMock(return_value=mock_p)
             mock_playwright.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            links, http_data = await service.crawl("http://example.com")
+            links, http_data, _ = await service.crawl("http://example.com")
 
             # Simulate HTML response
             assert captured_handler is not None
@@ -238,7 +238,7 @@ class TestCrawlerServiceParserRegistry:
             mock_playwright.return_value.__aenter__ = AsyncMock(return_value=mock_p)
             mock_playwright.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            links, http_data = await service.crawl("http://example.com")
+            links, http_data, _ = await service.crawl("http://example.com")
 
             # Simulate image response
             image_bytes = b"\x89PNG\r\n\x1a\n\x00\x00\x00"
@@ -294,7 +294,7 @@ class TestCrawlerServiceParserRegistry:
             mock_playwright.return_value.__aenter__ = AsyncMock(return_value=mock_p)
             mock_playwright.return_value.__aexit__ = AsyncMock(return_value=None)
 
-            links, http_data = await service.crawl("http://example.com")
+            links, http_data, _ = await service.crawl("http://example.com")
 
             # Simulate unknown content type response
             assert captured_handler is not None

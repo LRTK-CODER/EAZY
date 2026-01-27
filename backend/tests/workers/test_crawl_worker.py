@@ -158,7 +158,7 @@ class TestCrawlWorkerExecute:
         async def capture_crawl(url):
             nonlocal captured_url
             captured_url = url
-            return ([], {})
+            return ([], {}, [])  # links, http_data, js_contents
 
         mock_crawler_service.crawl = capture_crawl
 
@@ -192,7 +192,7 @@ class TestCrawlWorkerExecute:
         )
 
         mock_crawler_service.crawl = AsyncMock(
-            return_value=(["http://example.com/page1"], {})
+            return_value=(["http://example.com/page1"], {}, [])
         )
 
         worker = CrawlWorker(context, crawler_service=mock_crawler_service)
@@ -242,6 +242,7 @@ class TestCrawlWorkerExecute:
                         "parameters": {},
                     },
                 },
+                [],  # js_contents
             )
         )
 
@@ -288,6 +289,7 @@ class TestCrawlWorkerExecute:
                     "http://example.com/page3",
                 ],
                 {},
+                [],  # js_contents
             )
         )
 
@@ -389,7 +391,7 @@ class TestCrawlWorkerCancellation:
 
         # Return many links to trigger cancellation check
         many_links = [f"http://example.com/page{i}" for i in range(100)]
-        mock_crawler_service.crawl = AsyncMock(return_value=(many_links, {}))
+        mock_crawler_service.crawl = AsyncMock(return_value=(many_links, {}, []))
 
         worker = CrawlWorker(context, crawler_service=mock_crawler_service)
         task_data = {"db_task_id": task.id, "target_id": target.id}
@@ -429,7 +431,7 @@ class TestCrawlWorkerCancellation:
         )
 
         many_links = [f"http://example.com/page{i}" for i in range(100)]
-        mock_crawler_service.crawl = AsyncMock(return_value=(many_links, {}))
+        mock_crawler_service.crawl = AsyncMock(return_value=(many_links, {}, []))
 
         worker = CrawlWorker(context, crawler_service=mock_crawler_service)
         task_data = {"db_task_id": task.id, "target_id": target.id}
@@ -472,7 +474,7 @@ class TestCrawlWorkerCancellation:
         )
 
         many_links = [f"http://example.com/page{i}" for i in range(100)]
-        mock_crawler_service.crawl = AsyncMock(return_value=(many_links, {}))
+        mock_crawler_service.crawl = AsyncMock(return_value=(many_links, {}, []))
 
         worker = CrawlWorker(context, crawler_service=mock_crawler_service)
         task_data = {"db_task_id": task.id, "target_id": target.id}
@@ -552,6 +554,7 @@ class TestCrawlWorkerHttpData:
                         "parameters": {},
                     }
                 },
+                [],  # js_contents
             )
         )
 
@@ -605,6 +608,7 @@ class TestCrawlWorkerHttpData:
                         "parameters": {},
                     }
                 },
+                [],  # js_contents
             )
         )
 
@@ -658,6 +662,7 @@ class TestCrawlWorkerHttpData:
                         "parameters": {"q": ["test"], "page": ["1"]},
                     }
                 },
+                [],  # js_contents
             )
         )
 
@@ -788,3 +793,305 @@ class TestURLValidation:
         assert result.data.get("reason") == "unsafe_url"
         # Crawler should NOT be called
         mock_crawler_service.crawl.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_execute_rejects_unsafe_crawl_url(
+        self,
+        db_session,
+        mock_task_manager,
+        mock_dlq_manager,
+        mock_orphan_recovery,
+        mock_crawler_service,
+    ):
+        """execute()는 안전하지 않은 crawl_url에 대해 skipped 결과 반환 (child task)"""
+        from app.workers.base import WorkerContext
+        from app.workers.crawl_worker import CrawlWorker
+
+        # Create test data with safe target URL but unsafe crawl_url
+        project = Project(name="Test Project")
+        db_session.add(project)
+        await db_session.commit()
+        await db_session.refresh(project)
+
+        target = Target(
+            name="Safe Target",
+            project_id=project.id,
+            url="https://example.com",  # Safe target URL
+        )
+        db_session.add(target)
+        await db_session.commit()
+        await db_session.refresh(target)
+
+        # Child task with unsafe crawl_url (simulating discovered internal URL)
+        task = Task(
+            project_id=project.id,
+            target_id=target.id,
+            type=TaskType.CRAWL,
+            depth=1,  # Child task
+            parent_task_id=None,  # Would have parent in real scenario
+            crawl_url="http://localhost:8080/internal-api",  # Unsafe crawl_url
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        context = WorkerContext(
+            session=db_session,
+            task_manager=mock_task_manager,
+            dlq_manager=mock_dlq_manager,
+            orphan_recovery=mock_orphan_recovery,
+        )
+
+        worker = CrawlWorker(context, crawler_service=mock_crawler_service)
+        task_data = {"db_task_id": task.id, "target_id": target.id}
+
+        result = await worker.execute(task_data, task)
+
+        # Should return skipped result for unsafe crawl_url
+        assert result.skipped is True
+        assert result.data.get("reason") == "unsafe_crawl_url"
+        assert result.data.get("crawl_url") == "http://localhost:8080/internal-api"
+        # Crawler should NOT be called
+        mock_crawler_service.crawl.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_execute_allows_safe_crawl_url(
+        self,
+        db_session,
+        mock_task_manager,
+        mock_dlq_manager,
+        mock_orphan_recovery,
+        mock_crawler_service,
+    ):
+        """execute()는 안전한 crawl_url에 대해 정상 처리"""
+        from app.workers.base import WorkerContext
+        from app.workers.crawl_worker import CrawlWorker
+
+        # Create test data with safe URLs
+        project = Project(name="Test Project")
+        db_session.add(project)
+        await db_session.commit()
+        await db_session.refresh(project)
+
+        target = Target(
+            name="Safe Target",
+            project_id=project.id,
+            url="https://example.com",
+        )
+        db_session.add(target)
+        await db_session.commit()
+        await db_session.refresh(target)
+
+        # Child task with safe crawl_url
+        task = Task(
+            project_id=project.id,
+            target_id=target.id,
+            type=TaskType.CRAWL,
+            depth=1,
+            crawl_url="https://example.com/discovered-page",  # Safe crawl_url
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        context = WorkerContext(
+            session=db_session,
+            task_manager=mock_task_manager,
+            dlq_manager=mock_dlq_manager,
+            orphan_recovery=mock_orphan_recovery,
+        )
+
+        # Mock crawler to return empty results
+        mock_crawler_service.crawl.return_value = ([], {}, [])
+
+        worker = CrawlWorker(context, crawler_service=mock_crawler_service)
+        task_data = {"db_task_id": task.id, "target_id": target.id}
+
+        result = await worker.execute(task_data, task)
+
+        # Should process normally (not skipped for SSRF)
+        # Note: May be skipped for other reasons (e.g., lock) but not for unsafe_crawl_url
+        if result.skipped:
+            assert result.data.get("reason") != "unsafe_crawl_url"
+        else:
+            # Crawler should be called with the safe crawl_url
+            mock_crawler_service.crawl.assert_called()
+
+
+class TestCrawlWorkerNetworkData:
+    """CrawlWorker network_requests/network_responses 변환 테스트 (Phase 3)"""
+
+    @pytest.fixture
+    async def setup_test_data(self, db_session):
+        """Create test project, target, and task"""
+        project = Project(name="Test Project")
+        db_session.add(project)
+        await db_session.commit()
+        await db_session.refresh(project)
+
+        target = Target(
+            name="Test Target", project_id=project.id, url="http://example.com"
+        )
+        db_session.add(target)
+        await db_session.commit()
+        await db_session.refresh(target)
+
+        task = Task(
+            project_id=project.id,
+            target_id=target.id,
+            type=TaskType.CRAWL,
+            status=TaskStatus.PENDING,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        return project, target, task
+
+    @pytest.mark.asyncio
+    async def test_discovery_context_includes_network_requests(
+        self,
+        db_session,
+        mock_task_manager,
+        mock_dlq_manager,
+        mock_orphan_recovery,
+        mock_crawler_service,
+        setup_test_data,
+    ):
+        """DiscoveryContext에 network_requests가 전달되는지 확인 (TDD RED)."""
+        from app.services.discovery import DiscoveryService
+        from app.workers.crawl_worker import CrawlWorker
+
+        project, target, task = setup_test_data
+
+        # Mock crawler with XHR request
+        mock_crawler_service.crawl = AsyncMock(
+            return_value=(
+                [],
+                {
+                    "http://example.com/api/users": {
+                        "request": {
+                            "method": "POST",
+                            "headers": {"Content-Type": "application/json"},
+                            "body": '{"name": "test"}',
+                            "resource_type": "xhr",
+                        },
+                        "response": {"status": 200, "headers": {}, "body": "{}"},
+                    }
+                },
+                [],  # js_contents
+            )
+        )
+
+        # Capture DiscoveryContext
+        captured_context = None
+        mock_discovery = AsyncMock(spec=DiscoveryService)
+
+        async def capture_context(ctx):
+            nonlocal captured_context
+            captured_context = ctx
+            return []
+
+        mock_discovery.run = capture_context
+
+        context = WorkerContext(
+            session=db_session,
+            task_manager=mock_task_manager,
+            dlq_manager=mock_dlq_manager,
+            orphan_recovery=mock_orphan_recovery,
+        )
+
+        worker = CrawlWorker(
+            context,
+            crawler_service=mock_crawler_service,
+            discovery_service=mock_discovery,
+        )
+        task_data = {"db_task_id": task.id, "target_id": target.id}
+
+        await worker.execute(task_data, task)
+
+        # Verify network_requests in crawl_data
+        assert captured_context is not None, "DiscoveryContext was not captured"
+        assert (
+            "network_requests" in captured_context.crawl_data
+        ), "network_requests missing from crawl_data"
+        network_requests = captured_context.crawl_data["network_requests"]
+        assert len(network_requests) == 1
+        assert network_requests[0]["url"] == "http://example.com/api/users"
+        assert network_requests[0]["method"] == "POST"
+        assert network_requests[0]["resource_type"] == "xhr"
+
+    @pytest.mark.asyncio
+    async def test_discovery_context_includes_network_responses(
+        self,
+        db_session,
+        mock_task_manager,
+        mock_dlq_manager,
+        mock_orphan_recovery,
+        mock_crawler_service,
+        setup_test_data,
+    ):
+        """DiscoveryContext에 network_responses가 전달되는지 확인 (TDD RED)."""
+        from app.services.discovery import DiscoveryService
+        from app.workers.crawl_worker import CrawlWorker
+
+        project, target, task = setup_test_data
+
+        # Mock crawler with response
+        mock_crawler_service.crawl = AsyncMock(
+            return_value=(
+                [],
+                {
+                    "http://example.com/api/data": {
+                        "request": {
+                            "method": "GET",
+                            "headers": {},
+                            "resource_type": "fetch",
+                        },
+                        "response": {
+                            "status": 200,
+                            "headers": {"Content-Type": "application/json"},
+                            "body": '{"data": "test"}',
+                        },
+                    }
+                },
+                [],
+            )
+        )
+
+        # Capture DiscoveryContext
+        captured_context = None
+        mock_discovery = AsyncMock(spec=DiscoveryService)
+
+        async def capture_context(ctx):
+            nonlocal captured_context
+            captured_context = ctx
+            return []
+
+        mock_discovery.run = capture_context
+
+        context = WorkerContext(
+            session=db_session,
+            task_manager=mock_task_manager,
+            dlq_manager=mock_dlq_manager,
+            orphan_recovery=mock_orphan_recovery,
+        )
+
+        worker = CrawlWorker(
+            context,
+            crawler_service=mock_crawler_service,
+            discovery_service=mock_discovery,
+        )
+        task_data = {"db_task_id": task.id, "target_id": target.id}
+
+        await worker.execute(task_data, task)
+
+        # Verify network_responses in crawl_data
+        assert captured_context is not None, "DiscoveryContext was not captured"
+        assert (
+            "network_responses" in captured_context.crawl_data
+        ), "network_responses missing from crawl_data"
+        network_responses = captured_context.crawl_data["network_responses"]
+        assert len(network_responses) == 1
+        assert network_responses[0]["url"] == "http://example.com/api/data"
+        assert network_responses[0]["status"] == 200

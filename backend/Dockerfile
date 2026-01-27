@@ -67,6 +67,10 @@ COPY app/ ./app/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
 
+# Copy entrypoint script
+COPY scripts/entrypoint.sh ./scripts/
+RUN chmod +x ./scripts/entrypoint.sh
+
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash eazy && \
     chown -R eazy:eazy /app /ms-playwright
@@ -80,5 +84,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Expose API port
 EXPOSE 8000
 
-# Default command: run FastAPI server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Entrypoint handles migrations and app startup
+ENTRYPOINT ["./scripts/entrypoint.sh"]
+
+# Default command: run as API server
+CMD ["api"]

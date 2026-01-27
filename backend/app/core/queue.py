@@ -14,6 +14,7 @@ Phase 4.5: Priority Queue Support
 
 import json
 import logging
+import time
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -41,6 +42,7 @@ class TaskManager:
         self.queue_key = "eazy_task_queue"
         self.processing_key = "eazy_task_queue:processing"
         self.dlq_key = "eazy_task_queue:dlq"
+        self.delayed_key = "eazy_task_queue:delayed"
 
     async def enqueue_crawl_task(
         self,
@@ -202,17 +204,29 @@ class TaskManager:
             return True
 
         task_data = parse_result.data
-        priority_value = task_data.get("priority", TaskPriority.NORMAL.value)
-        priority = TaskPriority(priority_value)
 
         if retry:
             # Increment retry_count
             task_data["retry_count"] = task_data.get("retry_count", 0) + 1
             updated_json = json.dumps(task_data)
 
-            # Return to the same priority queue (front for priority retry)
-            queue_key = get_queue_key(self.queue_key, priority)
-            await self.redis.lpush(queue_key, updated_json)
+            # Exponential Backoff delay 계산
+            from app.core.retry import calculate_backoff
+
+            delay = calculate_backoff(task_data["retry_count"])
+            execute_at = time.time() + delay
+
+            # Delayed queue에 추가 (ZSET: score = execute_at)
+            await self.redis.zadd(self.delayed_key, {updated_json: execute_at})
+
+            logger.info(
+                "Task scheduled for retry",
+                extra={
+                    "task_id": task_data.get("id"),
+                    "retry_count": task_data["retry_count"],
+                    "delay_seconds": delay,
+                },
+            )
         else:
             # DLQ로 이동 (priority info preserved in payload)
             await self.redis.lpush(self.dlq_key, task_json)
@@ -380,3 +394,34 @@ class TaskManager:
                     continue
 
         return promoted_count
+
+    async def process_delayed_tasks(self) -> int:
+        """
+        지연 큐에서 실행 시간이 된 작업을 main queue로 이동합니다.
+
+        Returns:
+            int: 이동된 작업 수
+        """
+        now = time.time()
+        count = 0
+
+        # 실행 시간이 지난 작업들 조회 (score <= now)
+        tasks = await self.redis.zrangebyscore(
+            self.delayed_key, "-inf", now, start=0, num=100
+        )
+
+        for task_json in tasks:
+            # 원래 우선순위 큐로 이동
+            parse_result = SafeJsonParser.parse(task_json)
+            if parse_result.success:
+                priority = TaskPriority(
+                    parse_result.data.get("priority", TaskPriority.NORMAL.value)
+                )
+                queue_key = get_queue_key(self.queue_key, priority)
+                await self.redis.rpush(queue_key, task_json)  # 뒤에 삽입
+
+            # 지연 큐에서 제거
+            await self.redis.zrem(self.delayed_key, task_json)
+            count += 1
+
+        return count

@@ -120,7 +120,7 @@ class TestCrawlWorkerLockIntegration:
 
         # Mock crawler service
         mock_crawler = MagicMock()
-        mock_crawler.crawl = AsyncMock(return_value=([], {}))
+        mock_crawler.crawl = AsyncMock(return_value=([], {}, []))
 
         worker = CrawlWorker(
             context=worker_context,
@@ -157,7 +157,7 @@ class TestCrawlWorkerLockIntegration:
         mock_session.get = AsyncMock(return_value=target)
 
         mock_crawler = MagicMock()
-        mock_crawler.crawl = AsyncMock(return_value=([], {}))
+        mock_crawler.crawl = AsyncMock(return_value=([], {}, []))
 
         worker = CrawlWorker(
             context=worker_context,
@@ -212,7 +212,7 @@ class TestCrawlWorkerLockIntegration:
         mock_session.get = AsyncMock(return_value=None)
 
         mock_crawler = MagicMock()
-        mock_crawler.crawl = AsyncMock(return_value=([], {}))
+        mock_crawler.crawl = AsyncMock(return_value=([], {}, []))
 
         worker = CrawlWorker(
             context=worker_context,
@@ -241,7 +241,7 @@ class TestCrawlWorkerLockIntegration:
         mock_session.get = AsyncMock(return_value=target)
 
         mock_crawler = MagicMock()
-        mock_crawler.crawl = AsyncMock(return_value=([], {}))
+        mock_crawler.crawl = AsyncMock(return_value=([], {}, []))
 
         worker = CrawlWorker(
             context=worker_context,
@@ -291,7 +291,7 @@ class TestLockFailureHandling:
         redis.set = AsyncMock(return_value=None)
 
         mock_crawler = MagicMock()
-        mock_crawler.crawl = AsyncMock(return_value=([], {}))
+        mock_crawler.crawl = AsyncMock(return_value=([], {}, []))
 
         worker = CrawlWorker(
             context=worker_context,
@@ -325,7 +325,7 @@ class TestLockFailureHandling:
         redis.set = AsyncMock(return_value=None)
 
         mock_crawler = MagicMock()
-        mock_crawler.crawl = AsyncMock(return_value=([], {}))
+        mock_crawler.crawl = AsyncMock(return_value=([], {}, []))
 
         worker = CrawlWorker(
             context=worker_context,
@@ -447,7 +447,7 @@ class TestConcurrentLocks:
         )
 
         mock_crawler = MagicMock()
-        mock_crawler.crawl = AsyncMock(return_value=([], {}))
+        mock_crawler.crawl = AsyncMock(return_value=([], {}, []))
 
         worker1 = CrawlWorker(context=context1, crawler_service=mock_crawler)
         worker2 = CrawlWorker(context=context2, crawler_service=mock_crawler)

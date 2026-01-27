@@ -7,7 +7,7 @@ Protocol은 명시적 상속 없이 structural subtyping을 지원하므로,
 
 from typing import Dict, List, Protocol, Tuple
 
-from app.types.http import HttpData
+from app.types.http import HttpData, JsContent
 
 
 class ICrawler(Protocol):
@@ -29,12 +29,14 @@ class ICrawler(Protocol):
 
         # Mock 주입 (테스트)
         mock_crawler = MagicMock()
-        mock_crawler.crawl = AsyncMock(return_value=([], {}))
+        mock_crawler.crawl = AsyncMock(return_value=([], {}, []))
         worker = CrawlWorker(mock_crawler)
         ```
     """
 
-    async def crawl(self, url: str) -> Tuple[List[str], Dict[str, HttpData]]:
+    async def crawl(
+        self, url: str
+    ) -> Tuple[List[str], Dict[str, HttpData], List[JsContent]]:
         """
         페이지를 크롤링하고 HTTP 데이터를 캡처합니다.
 
@@ -46,5 +48,6 @@ class ICrawler(Protocol):
             - List[str]: 발견된 고유 URL 목록
             - Dict[str, HttpData]: URL을 키로 하는 HTTP 데이터 딕셔너리
                 - HttpData는 request, response, parameters 키를 가질 수 있음
+            - List[JsContent]: JavaScript 파일 content 목록
         """
         ...

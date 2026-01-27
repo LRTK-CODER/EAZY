@@ -59,11 +59,11 @@ async def test_worker_auto_extracts_url_parameters(db_session: AsyncSession):
         },
     }
 
-    # Mock crawler to return tuple (links, http_data)
+    # Mock crawler to return tuple (links, http_data, js_contents)
     with patch("app.worker.CrawlerService") as MockCrawler:
         mock_crawler_instance = MockCrawler.return_value
         mock_crawler_instance.crawl = AsyncMock(
-            return_value=(urls_with_params, http_data)
+            return_value=(urls_with_params, http_data, [])
         )
 
         from app.worker import process_task
@@ -134,11 +134,11 @@ async def test_worker_includes_parameters_in_asset_storage(db_session: AsyncSess
         }
     }
 
-    # Mock crawler to return tuple (links, http_data)
+    # Mock crawler to return tuple (links, http_data, js_contents)
     with patch("app.worker.CrawlerService") as MockCrawler:
         mock_crawler_instance = MockCrawler.return_value
         mock_crawler_instance.crawl = AsyncMock(
-            return_value=([url_with_many_params], http_data)
+            return_value=([url_with_many_params], http_data, [])
         )
 
         from app.worker import process_task

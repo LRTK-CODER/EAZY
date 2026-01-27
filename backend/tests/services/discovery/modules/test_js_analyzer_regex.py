@@ -582,3 +582,257 @@ class TestJsAnalyzerModuleIntegration:
         ]
         # 시크릿이 탐지될 수 있음 (패턴에 따라 다름)
         assert isinstance(secret_assets_standard, list)
+
+
+# ============================================================================
+# Test 11: HTTP Method Extraction from Options
+# ============================================================================
+
+
+class TestFetchMethodExtraction:
+    """fetch 호출에서 HTTP 메소드 추출 테스트."""
+
+    def test_fetch_post_method_extraction(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """fetch POST 메소드 추출."""
+        js_code = """fetch("/api/users", { method: "POST", body: data })"""
+
+        calls = http_detector.detect_fetch(js_code)
+
+        assert len(calls) == 1
+        assert calls[0].method == "POST"
+
+    def test_fetch_put_method_extraction(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """fetch PUT 메소드 추출 (소문자)."""
+        js_code = """fetch("/api/users/1", { method: "put" })"""
+
+        calls = http_detector.detect_fetch(js_code)
+
+        assert len(calls) == 1
+        assert calls[0].method == "PUT"
+
+    def test_fetch_delete_method_extraction(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """fetch DELETE 메소드 추출."""
+        js_code = """fetch("/api/users/1", { method: "DELETE" })"""
+
+        calls = http_detector.detect_fetch(js_code)
+
+        assert len(calls) == 1
+        assert calls[0].method == "DELETE"
+
+    def test_fetch_patch_method_extraction(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """fetch PATCH 메소드 추출."""
+        js_code = """fetch("/api/users/1", { method: "PATCH", body: JSON.stringify(updates) })"""
+
+        calls = http_detector.detect_fetch(js_code)
+
+        assert len(calls) == 1
+        assert calls[0].method == "PATCH"
+
+    def test_fetch_without_method_defaults_to_get(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """메소드 없는 fetch는 GET 기본값."""
+        js_code = """fetch("/api/data", { headers: { "X-Custom": "value" } })"""
+
+        calls = http_detector.detect_fetch(js_code)
+
+        assert len(calls) == 1
+        assert calls[0].method == "GET"
+
+    def test_fetch_no_options_defaults_to_get(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """옵션 없는 fetch는 GET."""
+        js_code = """fetch("/api/data")"""
+
+        calls = http_detector.detect_fetch(js_code)
+
+        assert len(calls) == 1
+        assert calls[0].method == "GET"
+
+
+class TestJqueryMethodExtraction:
+    """jQuery AJAX에서 HTTP 메소드 추출 테스트."""
+
+    def test_jquery_ajax_type_delete(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """$.ajax type: DELETE 추출."""
+        js_code = """$.ajax({ url: "/api/users/1", type: "DELETE" })"""
+
+        calls = http_detector.detect_jquery(js_code)
+
+        assert len(calls) == 1
+        assert calls[0].method == "DELETE"
+
+    def test_jquery_ajax_type_post(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """$.ajax type: POST 추출."""
+        js_code = """$.ajax({ url: "/api/users", type: "POST", data: userData })"""
+
+        calls = http_detector.detect_jquery(js_code)
+
+        assert len(calls) == 1
+        assert calls[0].method == "POST"
+
+    def test_jquery_ajax_method_attribute(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """$.ajax method 속성 추출."""
+        js_code = """$.ajax({ url: "/api/data", method: "PATCH" })"""
+
+        calls = http_detector.detect_jquery(js_code)
+
+        assert len(calls) == 1
+        assert calls[0].method == "PATCH"
+
+    def test_jquery_ajax_lowercase_type(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """$.ajax 소문자 type 추출."""
+        js_code = """$.ajax({ url: "/api/users", type: "put" })"""
+
+        calls = http_detector.detect_jquery(js_code)
+
+        assert len(calls) == 1
+        assert calls[0].method == "PUT"
+
+    def test_jquery_ajax_no_type_defaults_to_get(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """type/method 없는 $.ajax는 GET 기본값."""
+        js_code = """$.ajax({ url: "/api/data" })"""
+
+        calls = http_detector.detect_jquery(js_code)
+
+        assert len(calls) == 1
+        assert calls[0].method == "GET"
+
+
+class TestAxiosDirectMethodExtraction:
+    """Axios direct 호출에서 HTTP 메소드 추출 테스트."""
+
+    def test_axios_direct_post_method(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """axios({ method: "POST" }) 추출."""
+        js_code = """axios({ url: "/api/submit", method: "POST" })"""
+
+        calls = http_detector.detect_axios(js_code)
+
+        assert len(calls) == 1
+        assert calls[0].method == "POST"
+
+    def test_axios_direct_put_method(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """axios({ method: "PUT" }) 추출."""
+        js_code = """axios({ url: "/api/users/1", method: "PUT", data: updates })"""
+
+        calls = http_detector.detect_axios(js_code)
+
+        assert len(calls) == 1
+        assert calls[0].method == "PUT"
+
+    def test_axios_direct_delete_method(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """axios({ method: "DELETE" }) 추출."""
+        js_code = """axios({ url: "/api/users/1", method: "delete" })"""
+
+        calls = http_detector.detect_axios(js_code)
+
+        assert len(calls) == 1
+        assert calls[0].method == "DELETE"
+
+    def test_axios_direct_no_method_defaults_to_get(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """method 없는 axios direct는 GET 기본값."""
+        js_code = """axios({ url: "/api/data" })"""
+
+        calls = http_detector.detect_axios(js_code)
+
+        assert len(calls) == 1
+        assert calls[0].method == "GET"
+
+    def test_axios_explicit_methods_still_work(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """axios.get(), axios.post() 등 명시적 메소드 호출은 그대로 동작."""
+        js_code = """
+        axios.get("/api/users");
+        axios.post("/api/users");
+        axios.put("/api/users/1");
+        axios.delete("/api/users/1");
+        axios.patch("/api/users/1");
+        """
+
+        calls = http_detector.detect_axios(js_code)
+
+        methods = [c.method for c in calls]
+        assert "GET" in methods
+        assert "POST" in methods
+        assert "PUT" in methods
+        assert "DELETE" in methods
+        assert "PATCH" in methods
+
+
+class TestMultipleMethodsInCode:
+    """여러 HTTP 메소드가 혼합된 코드 테스트."""
+
+    def test_mixed_http_methods_detection(
+        self,
+        http_detector: HttpClientDetector,
+    ) -> None:
+        """다양한 HTTP 메소드가 있는 코드에서 모두 정확히 탐지."""
+        js_code = """
+        // GET 요청
+        fetch("/api/users");
+
+        // POST 요청
+        fetch("/api/users", { method: "POST", body: JSON.stringify(data) });
+
+        // DELETE 요청
+        $.ajax({ url: "/api/users/1", type: "DELETE" });
+
+        // PUT 요청
+        axios({ url: "/api/users/1", method: "PUT", data: updates });
+
+        // PATCH 요청
+        axios.patch("/api/users/1", updates);
+        """
+
+        calls = http_detector.detect_all(js_code)
+
+        methods = [c.method for c in calls]
+        assert "GET" in methods
+        assert "POST" in methods
+        assert "DELETE" in methods
+        assert "PUT" in methods
+        assert "PATCH" in methods

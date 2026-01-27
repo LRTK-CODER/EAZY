@@ -34,3 +34,5 @@ htmlcov/
 .env
 .env.local
 .venv/
+
+backups/

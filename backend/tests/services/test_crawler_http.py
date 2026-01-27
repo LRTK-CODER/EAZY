@@ -103,13 +103,15 @@ async def test_crawler_collects_http_request_data():
 
     result = await service.crawl("http://example.com")
 
-    # Expected new return signature: Tuple[List[str], Dict[str, Any]]
-    # Should FAIL: result is still just List[str]
-    assert isinstance(result, tuple), "crawl() should return tuple (links, http_data)"
-    links, http_data = result
+    # Expected new return signature: Tuple[List[str], Dict[str, Any], List[JsContent]]
+    assert isinstance(
+        result, tuple
+    ), "crawl() should return tuple (links, http_data, js_contents)"
+    links, http_data, js_contents = result
 
     # Verify structure
     assert isinstance(http_data, dict), "http_data should be a dictionary"
+    assert isinstance(js_contents, list), "js_contents should be a list"
 
 
 @pytest.mark.asyncio
@@ -121,8 +123,10 @@ async def test_crawler_collects_http_response_data():
     result = await service.crawl("http://example.com")
 
     # Should FAIL: result is List[str], not tuple
-    assert isinstance(result, tuple), "crawl() should return (links, http_data)"
-    links, http_data = result
+    assert isinstance(
+        result, tuple
+    ), "crawl() should return (links, http_data, js_contents)"
+    links, http_data, js_contents = result
 
     # http_data should contain response information
     assert isinstance(http_data, dict), "http_data should be dict"
@@ -146,8 +150,10 @@ async def test_crawler_enforces_body_size_limit():
     result = await service.crawl("http://example.com")
 
     # Should FAIL: result is List[str], not tuple
-    assert isinstance(result, tuple), "crawl() should return (links, http_data)"
-    links, http_data = result
+    assert isinstance(
+        result, tuple
+    ), "crawl() should return (links, http_data, js_contents)"
+    links, http_data, js_contents = result
 
     # Verify body truncation logic exists (will fail)
     # When implemented, response bodies should be max 10KB

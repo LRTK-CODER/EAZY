@@ -106,7 +106,7 @@ class TestCrawlManagerCreatesChildTasks:
 
     @pytest.mark.asyncio
     async def test_sets_correct_depth_and_parent(self, crawl_manager, mock_session):
-        """자식 Task: depth=parent+1, parent_task_id=부모ID"""
+        """자식 Task: depth=parent+1, parent_task_id=부모ID, crawl_url=발견된URL"""
         # Given
         discovered_urls = ["https://example.com/page1"]
         parent_task_id = 5
@@ -131,6 +131,8 @@ class TestCrawlManagerCreatesChildTasks:
         assert add_call_args.parent_task_id == parent_task_id
         assert add_call_args.status == TaskStatus.PENDING
         assert add_call_args.type == TaskType.CRAWL
+        # crawl_url이 설정되어야 함 (재귀 크롤링 버그 수정)
+        assert add_call_args.crawl_url == "https://example.com/page1"
 
     @pytest.mark.asyncio
     async def test_enqueues_child_task_to_redis(self, crawl_manager, mock_redis):

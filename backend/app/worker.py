@@ -98,7 +98,7 @@ async def process_task(
             assert task_record.target_id is not None
 
             crawler = CrawlerService()
-            links, http_data = await crawler.crawl(target.url)
+            links, http_data, _ = await crawler.crawl(target.url)
 
             # Save Assets (using Context Manager for batch processing)
             saved_count = 0
@@ -240,7 +240,7 @@ async def process_one_task(session: AsyncSession, task_manager: TaskManager) -> 
             # CrawlerService currently launches browser in crawl_page.
 
             # Extract links and HTTP data
-            links, http_data = await crawler.crawl(target.url)
+            links, http_data, _ = await crawler.crawl(target.url)
 
             # 4. Save Assets (using Context Manager for batch processing)
             saved_count = 0

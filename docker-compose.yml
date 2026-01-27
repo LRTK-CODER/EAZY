@@ -64,7 +64,7 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
-      start_period: 10s
+      start_period: 30s
       retries: 3
 
   # ==========================================================================
@@ -76,7 +76,7 @@ services:
       dockerfile: Dockerfile
     container_name: eazy-worker
     restart: unless-stopped
-    command: ["python", "-m", "app.workers.pool"]
+    command: ["worker"]
     environment:
       - POSTGRES_SERVER=db
       - POSTGRES_DB=eazy

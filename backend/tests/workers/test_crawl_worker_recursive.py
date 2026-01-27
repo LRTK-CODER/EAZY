@@ -127,6 +127,7 @@ class TestCrawlWorkerRecursive:
                         "parameters": {},
                     },
                 },
+                [],  # js_contents
             )
         )
 
@@ -200,6 +201,7 @@ class TestCrawlWorkerRecursive:
                         "parameters": {},
                     },
                 },
+                [],  # js_contents
             )
         )
 
@@ -252,7 +254,7 @@ class TestCrawlWorkerRecursive:
         )
 
         # Mock crawler to return no links
-        mock_crawler_service.crawl = AsyncMock(return_value=([], {}))
+        mock_crawler_service.crawl = AsyncMock(return_value=([], {}, []))
 
         # Mock CrawlManager
         mock_crawl_manager = MagicMock()
@@ -275,3 +277,94 @@ class TestCrawlWorkerRecursive:
         assert result.success is True
         assert result.data.get("child_tasks_spawned") == 0
         assert result.data.get("found_links") == 0
+
+    @pytest.fixture
+    async def setup_child_task_with_crawl_url(self, db_session):
+        """Create test data with child task that has crawl_url set"""
+        project = Project(name="Child Task Test Project")
+        db_session.add(project)
+        await db_session.commit()
+        await db_session.refresh(project)
+
+        target = Target(
+            name="Test Target",
+            project_id=project.id,
+            url="http://example.com",  # root URL
+            scope=TargetScope.DOMAIN,
+        )
+        db_session.add(target)
+        await db_session.commit()
+        await db_session.refresh(target)
+
+        # Child task with crawl_url set (should crawl this URL, not target.url)
+        task = Task(
+            project_id=project.id,
+            target_id=target.id,
+            type=TaskType.CRAWL,
+            status=TaskStatus.PENDING,
+            depth=1,
+            max_depth=3,
+            parent_task_id=None,
+            crawl_url="http://example.com/login",  # 크롤링할 URL
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        return project, target, task
+
+    @pytest.mark.asyncio
+    async def test_worker_crawls_crawl_url_not_target_url(
+        self,
+        db_session,
+        redis_client,
+        mock_task_manager,
+        mock_dlq_manager,
+        mock_orphan_recovery,
+        mock_crawler_service,
+        setup_child_task_with_crawl_url,
+    ):
+        """
+        Given: crawl_url이 설정된 child task
+        When: worker.execute() 호출
+        Then: crawler가 crawl_url을 크롤링 (target.url이 아닌)
+        """
+        from app.workers.crawl_worker import CrawlWorker
+
+        project, target, task = setup_child_task_with_crawl_url
+
+        context = WorkerContext(
+            session=db_session,
+            task_manager=mock_task_manager,
+            dlq_manager=mock_dlq_manager,
+            orphan_recovery=mock_orphan_recovery,
+        )
+
+        # Mock crawler
+        mock_crawler_service.crawl = AsyncMock(
+            return_value=(
+                [],  # no links
+                {},  # no http_data
+                [],  # js_contents
+            )
+        )
+
+        # Mock CrawlManager
+        mock_crawl_manager = MagicMock()
+        mock_crawl_manager.spawn_child_tasks = AsyncMock(return_value=[])
+        mock_crawl_manager_factory = MagicMock(return_value=mock_crawl_manager)
+
+        worker = CrawlWorker(
+            context,
+            crawler_service=mock_crawler_service,
+            crawl_manager_factory=mock_crawl_manager_factory,
+        )
+        task_data = {"db_task_id": task.id, "target_id": target.id}
+
+        result = await worker.execute(task_data, task)
+
+        # Verify crawler was called with crawl_url, NOT target.url
+        mock_crawler_service.crawl.assert_called_once_with("http://example.com/login")
+
+        # Verify result
+        assert result.success is True

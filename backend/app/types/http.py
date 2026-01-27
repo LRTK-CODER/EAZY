@@ -7,7 +7,7 @@ HTTP Type Definitions - TypedDict for HTTP request/response data structures.
 from typing import Any, Dict, Optional, TypedDict, Union
 
 
-class HttpRequestData(TypedDict):
+class HttpRequestData(TypedDict, total=False):
     """
     HTTP 요청 데이터 구조.
 
@@ -15,11 +15,13 @@ class HttpRequestData(TypedDict):
         method: HTTP 메서드 (GET, POST, PUT, PATCH, DELETE 등)
         headers: HTTP 요청 헤더 딕셔너리
         body: 요청 본문 (POST/PUT/PATCH 요청에서 사용, 없으면 None)
+        resource_type: Playwright resource_type (document, xhr, fetch, script 등)
     """
 
     method: str
     headers: Dict[str, str]
     body: Optional[str]
+    resource_type: str
 
 
 class HttpResponseData(TypedDict):
@@ -71,3 +73,24 @@ class ParsedContent(TypedDict):
     body: Optional[str]
     truncated: bool
     original_size: int
+
+
+class JsContent(TypedDict, total=False):
+    """JavaScript 파일 content 구조.
+
+    CrawlerService에서 수집한 JavaScript 파일의 content를 저장합니다.
+    외부 .js 파일과 인라인 <script> 태그 모두 포함됩니다.
+
+    Attributes:
+        url: JavaScript 파일의 URL (인라인: {source_url}#inline-{index})
+        content: JavaScript 코드 내용
+        content_type: HTTP Content-Type 헤더 값 (인라인: text/javascript)
+        is_inline: 인라인 스크립트 여부 (True: <script> 태그, False: 외부 파일)
+        source_url: 인라인 스크립트의 부모 페이지 URL (외부 파일은 없음)
+    """
+
+    url: str
+    content: str
+    content_type: str
+    is_inline: bool
+    source_url: str
