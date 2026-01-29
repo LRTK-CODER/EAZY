@@ -194,10 +194,14 @@ class TestCrawlWorkerLockIntegration:
             crawler_service=mock_crawler,
         )
 
-        with pytest.raises(Exception, match="Crawl failed"):
-            await worker.execute(sample_task_data, sample_task)
+        # New architecture returns failure result instead of raising exception
+        result = await worker.execute(sample_task_data, sample_task)
 
-        # Verify lock was released even on exception
+        # Verify task failed (crawl error was handled)
+        assert result.success is False
+        assert "Crawl failed" in (result.error or "")
+
+        # Verify lock was released even on error
         redis = mock_task_manager.redis
         redis.eval.assert_called()
 
@@ -257,9 +261,9 @@ class TestCrawlWorkerLockIntegration:
             (call for call in set_calls if "lock" in str(call).lower()), None
         )
         assert lock_call is not None
-        # Key should be like "eazy:lock:target:100"
+        # Key should be like "eazy:lock:task:1" (task-based lock to avoid child-parent contention)
         call_str = str(lock_call)
-        assert "target" in call_str.lower()
+        assert "task" in call_str.lower()
 
 
 # =============================================================================

@@ -2,6 +2,7 @@ import hashlib
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urlparse
 
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -30,29 +31,73 @@ class AssetService:
         await self.flush()
 
     async def flush(self) -> None:
-        """Flush pending assets and discoveries to database."""
-        if not self._pending_assets:
+        """Flush pending assets and discoveries to database.
+
+        Uses PostgreSQL upsert (INSERT ... ON CONFLICT DO UPDATE) to handle
+        race conditions when parallel workers try to insert assets with the
+        same content_hash simultaneously.
+        """
+        # Early return only if BOTH buffers are empty
+        # (existing DB assets may have been modified and need commit via dirty tracking)
+        if not self._pending_assets and not self._pending_discoveries:
             return
 
-        # 1. Assets 저장
-        self.session.add_all(self._pending_assets)
-        await self.session.flush()  # ID 생성됨
+        # 1. Upsert new assets using PostgreSQL ON CONFLICT DO UPDATE
+        # This handles race conditions where parallel workers insert same content_hash
+        if self._pending_assets:
+            for asset in self._pending_assets:
+                stmt = (
+                    pg_insert(Asset)
+                    .values(
+                        target_id=asset.target_id,
+                        content_hash=asset.content_hash,
+                        type=asset.type,
+                        source=asset.source,
+                        method=asset.method,
+                        url=asset.url,
+                        path=asset.path,
+                        last_task_id=asset.last_task_id,
+                        first_seen_at=asset.first_seen_at,
+                        last_seen_at=asset.last_seen_at,
+                        request_spec=asset.request_spec,
+                        response_spec=asset.response_spec,
+                        parameters=asset.parameters,
+                    )
+                    .on_conflict_do_update(
+                        index_elements=["content_hash"],
+                        set_={
+                            "last_seen_at": asset.last_seen_at,
+                            "last_task_id": asset.last_task_id,
+                            "request_spec": asset.request_spec,
+                            "response_spec": asset.response_spec,
+                            "parameters": asset.parameters,
+                        },
+                    )
+                    .returning(Asset.id)
+                )
+                result = await self.session.execute(stmt)
+                asset.id = result.scalar_one()
+            # After all upserts, flush to ensure IDs are committed
+            await self.session.flush()
 
         # 2. Discoveries 생성 (이제 asset.id 접근 가능)
-        discoveries = []
-        for task_id, asset, parent_id in self._pending_discoveries:
-            discovery = AssetDiscovery(
-                task_id=task_id,
-                asset_id=asset.id,
-                parent_asset_id=parent_id,
-                discovered_at=utc_now(),
-            )
-            discoveries.append(discovery)
+        if self._pending_discoveries:
+            discoveries = []
+            for task_id, asset, parent_id in self._pending_discoveries:
+                discovery = AssetDiscovery(
+                    task_id=task_id,
+                    asset_id=asset.id,
+                    parent_asset_id=parent_id,
+                    discovered_at=utc_now(),
+                )
+                discoveries.append(discovery)
 
-        self.session.add_all(discoveries)
+            self.session.add_all(discoveries)
+
+        # 3. Commit all changes (new assets + modified existing assets + discoveries)
         await self.session.commit()
 
-        # 3. 버퍼 초기화
+        # 4. 버퍼 초기화
         self._pending_assets.clear()
         self._pending_discoveries.clear()
         self._pending_hash_map.clear()
@@ -146,6 +191,11 @@ class AssetService:
             result = await self.session.exec(statement)
             existing_asset = result.first()
 
+            # FIX: Add DB-loaded asset to hash_map to prevent duplicate loads
+            # This prevents StaleDataError when the same asset is processed multiple times
+            if existing_asset:
+                self._pending_hash_map[content_hash] = existing_asset
+
         current_time = utc_now()
 
         if existing_asset:
@@ -181,8 +231,9 @@ class AssetService:
             )
 
         # Buffer asset and discovery info (defer commit)
-        # Only add to pending if it's a new asset (not already in buffer)
-        if content_hash not in self._pending_hash_map:
+        # Only add NEW assets to _pending_assets (for session.add_all)
+        # Existing DB assets are already tracked by SQLAlchemy's dirty tracking
+        if not existing_asset:
             self._pending_assets.append(asset)
             self._pending_hash_map[content_hash] = asset
         self._pending_discoveries.append((task_id, asset, parent_asset_id))

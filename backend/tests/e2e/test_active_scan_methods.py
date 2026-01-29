@@ -14,10 +14,10 @@ import pytest
 from app.core.dlq import DLQManager
 from app.core.queue import TaskManager
 from app.core.recovery import OrphanRecovery
+from app.domain.services.data_transformer import DataTransformer
 from app.services.discovery import DiscoveryContext, DiscoveryService, ScanProfile
 from app.services.discovery.registry import get_default_registry
 from app.workers.base import WorkerContext
-from app.workers.crawl_worker import _transform_to_network_requests
 
 
 @pytest.fixture
@@ -270,7 +270,8 @@ class TestE2ENetworkRequestCapture:
         }
 
         # When: Transform to network_requests (Phase 3)
-        network_requests = _transform_to_network_requests(http_data)
+        transformer = DataTransformer()
+        network_requests = transformer.transform_to_network_requests(http_data)
 
         # Then: resource_type and method are preserved
         assert len(network_requests) == 2

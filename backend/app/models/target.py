@@ -15,7 +15,7 @@ class TargetScope(str, Enum):
 
 class TargetBase(SQLModel):
     name: str = Field(index=True, max_length=255)
-    url: str = Field(max_length=2048)
+    url: str = Field()
     description: Optional[str] = Field(default=None)
     scope: TargetScope = Field(default=TargetScope.DOMAIN)
 

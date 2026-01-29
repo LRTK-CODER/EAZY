@@ -44,7 +44,6 @@ class TaskBase(SQLModel):
     )
     crawl_url: Optional[str] = Field(
         default=None,
-        max_length=2048,
         description="크롤링할 URL (None이면 target.url 사용)",
     )
 

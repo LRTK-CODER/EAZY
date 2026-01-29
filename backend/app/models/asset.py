@@ -31,8 +31,8 @@ class AssetBase(SQLModel):
     type: AssetType = Field(default=AssetType.URL)
     source: AssetSource = Field(default=AssetSource.HTML)
     method: str = Field(default="GET", max_length=10)
-    url: str = Field(max_length=2048)
-    path: str = Field(max_length=2048)
+    url: str = Field()
+    path: str = Field()
 
     # JSONB fields
     request_spec: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
