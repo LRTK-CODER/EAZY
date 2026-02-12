@@ -1,6 +1,5 @@
 """Unit tests for HTML regex parser."""
 
-
 from eazy.crawler.regex_parser import (
     extract_api_endpoints,
     extract_buttons,
@@ -87,8 +86,7 @@ class TestExtractForms:
     def test_extract_forms_basic_form(self):
         # Arrange
         html = (
-            '<form action="/login" method="POST">'
-            '<input name="user" type="text"></form>'
+            '<form action="/login" method="POST"><input name="user" type="text"></form>'
         )
 
         # Act
@@ -210,7 +208,7 @@ class TestExtractForms:
 class TestExtractButtons:
     def test_extract_buttons_basic_button(self):
         # Arrange
-        html = '<button>Click Me</button>'
+        html = "<button>Click Me</button>"
 
         # Act
         result = extract_buttons(html)
