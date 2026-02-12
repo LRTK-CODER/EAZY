@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from eazy.models.crawl_types import FormData
+from eazy.models.crawl_types import ButtonInfo, FormData
 
 # Compile regex pattern at module level for performance
 HREF_PATTERN = re.compile(r'href\s*=\s*["\'](.*?)["\']', re.IGNORECASE)
@@ -23,6 +23,14 @@ TEXTAREA_PATTERN = re.compile(
 NAME_PATTERN = re.compile(r'name\s*=\s*["\'](.*?)["\']', re.IGNORECASE)
 TYPE_PATTERN = re.compile(r'type\s*=\s*["\'](.*?)["\']', re.IGNORECASE)
 VALUE_PATTERN = re.compile(r'value\s*=\s*["\'](.*?)["\']', re.IGNORECASE)
+BUTTON_PATTERN = re.compile(
+    r'<button\b([^>]*?)>(.*?)</button>', re.DOTALL | re.IGNORECASE
+)
+ONCLICK_PATTERN = re.compile(r'onclick\s*=\s*["\'](.*?)["\']', re.IGNORECASE)
+INPUT_SUBMIT_PATTERN = re.compile(
+    r'<input\b([^>]*?)type\s*=\s*["\'](?:submit|button)["\']([^>]*?)/?>',
+    re.DOTALL | re.IGNORECASE
+)
 
 # Protocols to filter out
 EXCLUDED_PROTOCOLS = ('javascript:', 'mailto:', 'tel:')
@@ -110,3 +118,65 @@ def extract_forms(html: str, base_url: str = "") -> list[FormData]:
         )
 
     return forms
+
+
+def extract_buttons(html: str) -> list[ButtonInfo]:
+    """Extract all button elements from HTML.
+
+    Args:
+        html: Raw HTML content to parse.
+
+    Returns:
+        List of ButtonInfo objects representing each button found. Empty list if
+        no buttons found. Extracts <button> tags and <input type="submit">/
+        <input type="button"> tags.
+    """
+    buttons = []
+
+    # Extract <button> tags
+    for button_attrs, button_text in BUTTON_PATTERN.findall(html):
+        # Extract type attribute
+        type_match = TYPE_PATTERN.search(button_attrs)
+        button_type = type_match.group(1) if type_match else None
+
+        # Extract onclick attribute
+        onclick_match = ONCLICK_PATTERN.search(button_attrs)
+        onclick = onclick_match.group(1) if onclick_match else None
+
+        # Strip whitespace from text content
+        text = button_text.strip() if button_text else None
+
+        buttons.append(
+            ButtonInfo(
+                text=text,
+                type=button_type,
+                onclick=onclick,
+            )
+        )
+
+    # Extract <input type="submit"> and <input type="button"> tags
+    for match in INPUT_SUBMIT_PATTERN.finditer(html):
+        # Combine all attributes (before and after type attribute)
+        all_attrs = match.group(1) + match.group(2)
+
+        # Extract type attribute
+        type_match = TYPE_PATTERN.search(all_attrs)
+        button_type = type_match.group(1) if type_match else "submit"
+
+        # Extract value attribute (used as button text)
+        value_match = VALUE_PATTERN.search(all_attrs)
+        text = value_match.group(1) if value_match else None
+
+        # Extract onclick attribute
+        onclick_match = ONCLICK_PATTERN.search(all_attrs)
+        onclick = onclick_match.group(1) if onclick_match else None
+
+        buttons.append(
+            ButtonInfo(
+                text=text,
+                type=button_type,
+                onclick=onclick,
+            )
+        )
+
+    return buttons
