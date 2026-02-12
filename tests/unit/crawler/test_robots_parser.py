@@ -86,3 +86,61 @@ class TestRobotsParser:
 
         # Assert
         assert parser.get_crawl_delay("*") is None
+
+
+class TestIsAllowed:
+    def test_is_allowed_no_rules_returns_true(self):
+        # Arrange
+        parser = RobotsParser("")
+
+        # Act
+        result = parser.is_allowed("https://example.com/anything")
+
+        # Assert
+        assert result is True
+
+    def test_is_allowed_disallow_path_returns_false(self):
+        # Arrange
+        robots_txt = "User-agent: *\nDisallow: /admin\n"
+        parser = RobotsParser(robots_txt)
+
+        # Act
+        result = parser.is_allowed("https://example.com/admin/page")
+
+        # Assert
+        assert result is False
+
+    def test_is_allowed_allow_path_returns_true(self):
+        # Arrange
+        robots_txt = "User-agent: *\nAllow: /admin/public\nDisallow: /admin\n"
+        parser = RobotsParser(robots_txt)
+
+        # Act
+        result = parser.is_allowed("https://example.com/admin/public/page")
+
+        # Assert
+        assert result is True
+
+    def test_is_allowed_wildcard_pattern(self):
+        # Arrange
+        robots_txt = "User-agent: *\nDisallow: /*.pdf\n"
+        parser = RobotsParser(robots_txt)
+
+        # Act & Assert
+        assert parser.is_allowed("https://example.com/doc/report.pdf") is False
+        assert parser.is_allowed("https://example.com/page") is True
+
+    def test_is_allowed_specific_user_agent_rules(self):
+        # Arrange
+        robots_txt = (
+            "User-agent: EazyBot\n"
+            "Disallow: /secret\n"
+            "\n"
+            "User-agent: *\n"
+            "Disallow: /admin\n"
+        )
+        parser = RobotsParser(robots_txt)
+
+        # Act & Assert — EazyBot uses its own rules, not *
+        assert parser.is_allowed("https://example.com/secret", "EazyBot") is False
+        assert parser.is_allowed("https://example.com/admin", "EazyBot") is True
