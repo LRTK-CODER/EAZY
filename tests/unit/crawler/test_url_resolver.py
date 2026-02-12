@@ -1,6 +1,6 @@
 """Unit tests for URL resolver module."""
 
-from eazy.crawler.url_resolver import resolve_url
+from eazy.crawler.url_resolver import normalize_url, resolve_url
 
 
 class TestResolveUrl:
@@ -69,3 +69,76 @@ class TestResolveUrl:
 
         # Assert
         assert result == "https://other.com/resource"
+
+
+class TestNormalizeUrl:
+    def test_remove_fragment(self):
+        # Arrange
+        url = "https://example.com/page#section"
+
+        # Act
+        result = normalize_url(url)
+
+        # Assert
+        assert result == "https://example.com/page"
+
+    def test_normalize_trailing_slash(self):
+        # Arrange
+        url = "https://example.com/page/"
+
+        # Act
+        result = normalize_url(url)
+
+        # Assert
+        # Trailing slash on non-root path is removed for consistency
+        assert result == "https://example.com/page"
+
+    def test_lowercase_scheme_and_host(self):
+        # Arrange
+        url = "HTTP://EXAMPLE.COM/Path"
+
+        # Act
+        result = normalize_url(url)
+
+        # Assert
+        assert result == "http://example.com/Path"
+
+    def test_remove_default_port_80(self):
+        # Arrange
+        url = "http://example.com:80/page"
+
+        # Act
+        result = normalize_url(url)
+
+        # Assert
+        assert result == "http://example.com/page"
+
+    def test_remove_default_port_443(self):
+        # Arrange
+        url = "https://example.com:443/page"
+
+        # Act
+        result = normalize_url(url)
+
+        # Assert
+        assert result == "https://example.com/page"
+
+    def test_sort_query_parameters(self):
+        # Arrange
+        url = "https://example.com/search?b=2&a=1"
+
+        # Act
+        result = normalize_url(url)
+
+        # Assert
+        assert result == "https://example.com/search?a=1&b=2"
+
+    def test_preserve_non_default_port(self):
+        # Arrange
+        url = "https://example.com:8080/page"
+
+        # Act
+        result = normalize_url(url)
+
+        # Assert
+        assert result == "https://example.com:8080/page"
