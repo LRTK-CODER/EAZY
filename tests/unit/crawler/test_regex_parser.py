@@ -1,8 +1,12 @@
 """Unit tests for HTML regex parser."""
 
 
-from eazy.crawler.regex_parser import extract_buttons, extract_forms, extract_links
-from eazy.models.crawl_types import ButtonInfo, FormData
+from eazy.crawler.regex_parser import (
+    extract_api_endpoints,
+    extract_buttons,
+    extract_forms,
+    extract_links,
+)
 
 
 class TestExtractLinks:
@@ -263,3 +267,100 @@ class TestExtractButtons:
         assert result[0].text == "Go"
         assert result[0].type == "submit"
         assert result[0].onclick is None
+
+
+class TestExtractApiEndpoints:
+    def test_extract_api_endpoints_fetch_pattern(self):
+        # Arrange
+        html = "<script>fetch('/api/users')</script>"
+
+        # Act
+        result = extract_api_endpoints(html)
+
+        # Assert
+        assert len(result) == 1
+        assert result[0].url == "/api/users"
+        assert result[0].method == "GET"
+        assert result[0].source == "fetch"
+
+    def test_extract_api_endpoints_axios_pattern(self):
+        # Arrange
+        html = """
+            <script>axios.get('/api/data')</script>
+            <script>axios.post('/api/submit')</script>
+        """
+
+        # Act
+        result = extract_api_endpoints(html)
+
+        # Assert
+        assert len(result) == 2
+        assert result[0].url == "/api/data"
+        assert result[0].method == "GET"
+        assert result[0].source == "axios"
+        assert result[1].url == "/api/submit"
+        assert result[1].method == "POST"
+        assert result[1].source == "axios"
+
+    def test_extract_api_endpoints_xhr_pattern(self):
+        # Arrange
+        html = "<script>xhr.open('GET', '/api/items')</script>"
+
+        # Act
+        result = extract_api_endpoints(html)
+
+        # Assert
+        assert len(result) == 1
+        assert result[0].url == "/api/items"
+        assert result[0].method == "GET"
+        assert result[0].source == "xhr"
+
+    def test_extract_api_endpoints_jquery_pattern(self):
+        # Arrange
+        html = "<script>$.ajax({url: '/api/config'})</script>"
+
+        # Act
+        result = extract_api_endpoints(html)
+
+        # Assert
+        assert len(result) == 1
+        assert result[0].url == "/api/config"
+        assert result[0].method == "GET"
+        assert result[0].source == "jquery"
+
+    def test_extract_api_endpoints_full_url(self):
+        # Arrange
+        html = "<script>fetch('https://api.example.com/v1/users')</script>"
+
+        # Act
+        result = extract_api_endpoints(html)
+
+        # Assert
+        assert len(result) == 1
+        assert result[0].url == "https://api.example.com/v1/users"
+        assert result[0].method == "GET"
+        assert result[0].source == "fetch"
+
+    def test_extract_api_endpoints_from_empty_html_returns_empty_list(self):
+        # Arrange
+        html = ""
+
+        # Act
+        result = extract_api_endpoints(html)
+
+        # Assert
+        assert result == []
+
+    def test_extract_api_endpoints_deduplicates(self):
+        # Arrange
+        html = """
+            <script>fetch('/api/users')</script>
+            <script>axios.get('/api/users')</script>
+        """
+
+        # Act
+        result = extract_api_endpoints(html)
+
+        # Assert
+        assert len(result) == 1
+        assert result[0].url == "/api/users"
