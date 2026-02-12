@@ -30,7 +30,9 @@ htmlcov/
 *.swo
 
 # Claude
-.claude/
+.claude/*
+!.claude/hooks/
+!.claude/settings.local.json
 .omc/
 
 # uv
