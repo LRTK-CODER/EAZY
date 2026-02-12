@@ -5,18 +5,20 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CrawlConfig(BaseModel):
     """Configuration for a crawl session."""
+
+    model_config = ConfigDict(frozen=True)
 
     target_url: str
     max_depth: int = 3
     max_pages: int | None = None
     respect_robots: bool = True
     include_subdomains: bool = False
-    exclude_patterns: list[str] = []
+    exclude_patterns: list[str] = Field(default_factory=list)
     user_agent: str = "EAZY/0.1"
     request_delay: float = 0.0
     timeout: int = 30
@@ -28,7 +30,7 @@ class FormData(BaseModel):
 
     action: str
     method: str = "GET"
-    inputs: list[dict[str, Any]] = []
+    inputs: list[dict[str, Any]] = Field(default_factory=list)
     has_file_upload: bool = False
 
 
@@ -56,10 +58,10 @@ class PageResult(BaseModel):
     depth: int
     parent_url: str | None = None
     title: str | None = None
-    links: list[str] = []
-    forms: list[FormData] = []
-    buttons: list[ButtonInfo] = []
-    api_endpoints: list[EndpointInfo] = []
+    links: list[str] = Field(default_factory=list)
+    forms: list[FormData] = Field(default_factory=list)
+    buttons: list[ButtonInfo] = Field(default_factory=list)
+    api_endpoints: list[EndpointInfo] = Field(default_factory=list)
     crawled_at: datetime
     error: str | None = None
 
@@ -71,5 +73,5 @@ class CrawlResult(BaseModel):
     started_at: datetime
     completed_at: datetime
     config: CrawlConfig
-    pages: list[PageResult] = []
-    statistics: dict[str, Any] = {}
+    pages: list[PageResult] = Field(default_factory=list)
+    statistics: dict[str, Any] = Field(default_factory=dict)
