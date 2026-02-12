@@ -1,8 +1,7 @@
 """Unit tests for HTML regex parser."""
 
-import pytest
 
-from eazy.crawler.regex_parser import extract_links
+from eazy.crawler.regex_parser import extract_forms, extract_links
 
 
 class TestExtractLinks:
@@ -77,3 +76,127 @@ class TestExtractLinks:
 
         # Assert
         assert result == ["/valid"]
+
+
+class TestExtractForms:
+    def test_extract_forms_basic_form(self):
+        # Arrange
+        html = (
+            '<form action="/login" method="POST">'
+            '<input name="user" type="text"></form>'
+        )
+
+        # Act
+        result = extract_forms(html)
+
+        # Assert
+        assert len(result) == 1
+        assert result[0].action == "/login"
+        assert result[0].method == "POST"
+
+    def test_extract_forms_extracts_input_fields(self):
+        # Arrange
+        html = """
+            <form action="/submit" method="POST">
+                <input name="username" type="text" value="">
+                <input name="password" type="password" value="">
+                <input name="remember" type="checkbox" value="1">
+            </form>
+        """
+
+        # Act
+        result = extract_forms(html)
+
+        # Assert
+        assert len(result) == 1
+        assert len(result[0].inputs) == 3
+        assert all(isinstance(inp, dict) for inp in result[0].inputs)
+        assert all(
+            "name" in inp and "type" in inp and "value" in inp
+            for inp in result[0].inputs
+        )
+
+    def test_extract_forms_multiple_forms(self):
+        # Arrange
+        html = """
+            <form action="/login" method="POST">
+                <input name="user" type="text">
+            </form>
+            <form action="/search" method="GET">
+                <input name="q" type="text">
+            </form>
+        """
+
+        # Act
+        result = extract_forms(html)
+
+        # Assert
+        assert len(result) == 2
+        assert result[0].action == "/login"
+        assert result[1].action == "/search"
+
+    def test_extract_forms_without_action(self):
+        # Arrange
+        html = '<form><input name="q"></form>'
+
+        # Act
+        result = extract_forms(html)
+
+        # Assert
+        assert len(result) == 1
+        assert result[0].action == ""
+
+    def test_extract_forms_default_method_get(self):
+        # Arrange
+        html = '<form action="/search"><input name="q"></form>'
+
+        # Act
+        result = extract_forms(html)
+
+        # Assert
+        assert len(result) == 1
+        assert result[0].method == "GET"
+
+    def test_extract_forms_select_and_textarea(self):
+        # Arrange
+        html = """
+            <form action="/profile" method="POST">
+                <select name="color">
+                    <option>Red</option>
+                    <option>Blue</option>
+                </select>
+                <textarea name="bio"></textarea>
+            </form>
+        """
+
+        # Act
+        result = extract_forms(html)
+
+        # Assert
+        assert len(result) == 1
+        assert len(result[0].inputs) == 2
+        input_names = [inp["name"] for inp in result[0].inputs]
+        input_types = [inp["type"] for inp in result[0].inputs]
+        assert "color" in input_names
+        assert "bio" in input_names
+        assert "select" in input_types
+        assert "textarea" in input_types
+
+    def test_extract_forms_hidden_and_file_inputs(self):
+        # Arrange
+        html = """
+            <form action="/upload" method="POST">
+                <input type="hidden" name="token" value="abc">
+                <input type="file" name="doc">
+            </form>
+        """
+
+        # Act
+        result = extract_forms(html)
+
+        # Assert
+        assert len(result) == 1
+        assert result[0].has_file_upload is True
+        input_names = [inp["name"] for inp in result[0].inputs]
+        assert "token" in input_names
+        assert "doc" in input_names
