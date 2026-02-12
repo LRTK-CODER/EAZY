@@ -1,7 +1,8 @@
 """Unit tests for HTML regex parser."""
 
 
-from eazy.crawler.regex_parser import extract_forms, extract_links
+from eazy.crawler.regex_parser import extract_buttons, extract_forms, extract_links
+from eazy.models.crawl_types import ButtonInfo, FormData
 
 
 class TestExtractLinks:
@@ -200,3 +201,65 @@ class TestExtractForms:
         input_names = [inp["name"] for inp in result[0].inputs]
         assert "token" in input_names
         assert "doc" in input_names
+
+
+class TestExtractButtons:
+    def test_extract_buttons_basic_button(self):
+        # Arrange
+        html = '<button>Click Me</button>'
+
+        # Act
+        result = extract_buttons(html)
+
+        # Assert
+        assert len(result) == 1
+        assert result[0].text == "Click Me"
+        assert result[0].type is None
+        assert result[0].onclick is None
+
+    def test_extract_buttons_with_onclick_handler(self):
+        # Arrange
+        html = '<button onclick="doSomething()">Act</button>'
+
+        # Act
+        result = extract_buttons(html)
+
+        # Assert
+        assert len(result) == 1
+        assert result[0].text == "Act"
+        assert result[0].onclick == "doSomething()"
+
+    def test_extract_buttons_submit_type(self):
+        # Arrange
+        html = '<button type="submit">Submit</button>'
+
+        # Act
+        result = extract_buttons(html)
+
+        # Assert
+        assert len(result) == 1
+        assert result[0].text == "Submit"
+        assert result[0].type == "submit"
+
+    def test_extract_buttons_from_empty_html_returns_empty_list(self):
+        # Arrange
+        html = ""
+
+        # Act
+        result = extract_buttons(html)
+
+        # Assert
+        assert result == []
+
+    def test_extract_buttons_input_submit(self):
+        # Arrange
+        html = '<input type="submit" value="Go">'
+
+        # Act
+        result = extract_buttons(html)
+
+        # Assert
+        assert len(result) == 1
+        assert result[0].text == "Go"
+        assert result[0].type == "submit"
+        assert result[0].onclick is None
