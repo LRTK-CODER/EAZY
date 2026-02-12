@@ -124,7 +124,14 @@ cd src/frontend && pnpm build      # 프로덕션 빌드
 cd src/frontend && pnpm test       # 테스트 실행
 ```
 
-## 7. 핵심 지침
+## 7. Git 커밋 규칙
+- **커밋 전 반드시 lint/format 사전 실행**: `uv run ruff check --fix <파일들> && uv run ruff format <파일들>`
+  - 이 프로젝트는 pre-commit hook (ruff)이 설정되어 있어, 규칙 위반 시 hook이 파일을 자동 수정하고 커밋이 실패한다.
+  - 커밋 전에 미리 lint/format을 맞추면 hook 실패를 방지할 수 있다.
+- **Python line-length = 88** (pyproject.toml `[tool.ruff]` 설정). 코드 작성 시 88자를 초과하지 않도록 주의한다.
+
+## 8. 핵심 지침
+
 - **TDD 엄격 준수**: RED -> GREEN -> REFACTOR 사이클. 실패하는 테스트를 먼저 작성하고, 그 다음 구현한다.
 - **테스트 커버리지**: 항상 80% 이상 유지
 - **보안 도구 특성**: 안전한 페이로드 가이드라인 준수 - 대상에 파괴적인 페이로드를 절대 전송하지 않는다
@@ -135,7 +142,7 @@ cd src/frontend && pnpm test       # 테스트 실행
   - 대시보드 -> 백엔드: REST API (Phase 3)
   - 비동기 처리: Celery + Redis (Phase 2+)
 
-## 8. 테스트 컨벤션
+## 9. 테스트 컨벤션
 ```python
 # 파일명: test_{모듈명}.py
 # 클래스명: Test{컴포넌트명}
