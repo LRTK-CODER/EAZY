@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from eazy.models.crawl_types import ButtonInfo, FormData
+from eazy.models.crawl_types import ButtonInfo, EndpointInfo, FormData
 
 # Compile regex pattern at module level for performance
 HREF_PATTERN = re.compile(r'href\s*=\s*["\'](.*?)["\']', re.IGNORECASE)
@@ -30,6 +30,19 @@ ONCLICK_PATTERN = re.compile(r'onclick\s*=\s*["\'](.*?)["\']', re.IGNORECASE)
 INPUT_SUBMIT_PATTERN = re.compile(
     r'<input\b([^>]*?)type\s*=\s*["\'](?:submit|button)["\']([^>]*?)/?>',
     re.DOTALL | re.IGNORECASE
+)
+FETCH_PATTERN = re.compile(r'fetch\s*\(\s*[\'"]([^\'"]+)[\'"]', re.IGNORECASE)
+AXIOS_PATTERN = re.compile(
+    r'axios\.(get|post|put|delete|patch)\s*\(\s*[\'"]([^\'"]+)[\'"]',
+    re.IGNORECASE
+)
+XHR_PATTERN = re.compile(
+    r'\.open\s*\(\s*[\'"](\w+)[\'"]\s*,\s*[\'"]([^\'"]+)[\'"]',
+    re.IGNORECASE
+)
+JQUERY_PATTERN = re.compile(
+    r'\$\.ajax\s*\(\s*\{[^}]*url\s*:\s*[\'"]([^\'"]+)[\'"]',
+    re.IGNORECASE
 )
 
 # Protocols to filter out
@@ -180,3 +193,55 @@ def extract_buttons(html: str) -> list[ButtonInfo]:
         )
 
     return buttons
+
+
+def extract_api_endpoints(html: str) -> list[EndpointInfo]:
+    """Extract API endpoint patterns from HTML JavaScript code.
+
+    Args:
+        html: Raw HTML content to parse for JavaScript API calls.
+
+    Returns:
+        List of EndpointInfo objects representing discovered API endpoints.
+        Empty list if no endpoints found. Deduplicates by URL, keeping first
+        occurrence. Detects fetch(), axios.*, xhr.open(), and $.ajax()
+        patterns.
+    """
+    endpoints: list[EndpointInfo] = []
+    seen_urls: set[str] = set()
+
+    # Extract fetch() patterns
+    for url in FETCH_PATTERN.findall(html):
+        if url not in seen_urls:
+            seen_urls.add(url)
+            endpoints.append(
+                EndpointInfo(url=url, method="GET", source="fetch")
+            )
+
+    # Extract axios patterns
+    for method, url in AXIOS_PATTERN.findall(html):
+        if url not in seen_urls:
+            seen_urls.add(url)
+            endpoints.append(
+                EndpointInfo(
+                    url=url, method=method.upper(), source="axios"
+                )
+            )
+
+    # Extract XHR patterns
+    for method, url in XHR_PATTERN.findall(html):
+        if url not in seen_urls:
+            seen_urls.add(url)
+            endpoints.append(
+                EndpointInfo(url=url, method=method.upper(), source="xhr")
+            )
+
+    # Extract jQuery $.ajax patterns
+    for url in JQUERY_PATTERN.findall(html):
+        if url not in seen_urls:
+            seen_urls.add(url)
+            endpoints.append(
+                EndpointInfo(url=url, method="GET", source="jquery")
+            )
+
+    return endpoints
