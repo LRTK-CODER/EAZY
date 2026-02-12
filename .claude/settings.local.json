@@ -11,6 +11,11 @@
       "Bash(uv run:*)"
     ]
   },
+  "enabledMcpjsonServers": [
+    "context7",
+    "playwright",
+    "sequential-thinking"
+  ],
   "hooks": {
     "PreToolUse": [
       {
@@ -24,5 +29,6 @@
         ]
       }
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true
 }
