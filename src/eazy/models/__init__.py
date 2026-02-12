@@ -1,4 +1,4 @@
-"""Data models for the EAZY crawl engine."""
+"""Pydantic data models for the EAZY project."""
 
 from eazy.models.crawl_types import (
     ButtonInfo,

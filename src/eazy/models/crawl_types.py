@@ -9,7 +9,20 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class CrawlConfig(BaseModel):
-    """Configuration for a crawl session."""
+    """Configuration for a crawl session.
+
+    Attributes:
+        target_url: The root URL to start crawling from.
+        max_depth: Maximum link-follow depth from the root page.
+        max_pages: Maximum number of pages to crawl. None means unlimited.
+        respect_robots: Whether to obey robots.txt rules.
+        include_subdomains: Whether to include subdomains in crawl scope.
+        exclude_patterns: Glob patterns for URLs to exclude.
+        user_agent: User-Agent header string sent with requests.
+        request_delay: Delay in seconds between consecutive requests.
+        timeout: Request timeout in seconds.
+        max_retries: Maximum retry count for failed requests.
+    """
 
     model_config = ConfigDict(frozen=True)
 
@@ -26,7 +39,14 @@ class CrawlConfig(BaseModel):
 
 
 class FormData(BaseModel):
-    """Extracted form data from a web page."""
+    """Extracted form data from a web page.
+
+    Attributes:
+        action: Form action URL.
+        method: HTTP method (GET or POST).
+        inputs: List of input field metadata dicts.
+        has_file_upload: Whether the form contains a file input.
+    """
 
     action: str
     method: str = "GET"
@@ -35,7 +55,13 @@ class FormData(BaseModel):
 
 
 class EndpointInfo(BaseModel):
-    """Discovered API endpoint information."""
+    """Discovered API endpoint information.
+
+    Attributes:
+        url: Endpoint URL path or full URL.
+        method: HTTP method used by the endpoint.
+        source: How the endpoint was discovered (e.g. "fetch", "xhr").
+    """
 
     url: str
     method: str = "GET"
@@ -43,7 +69,13 @@ class EndpointInfo(BaseModel):
 
 
 class ButtonInfo(BaseModel):
-    """Extracted button information from a web page."""
+    """Extracted button information from a web page.
+
+    Attributes:
+        text: Visible button text.
+        type: Button type attribute (e.g. "submit", "button").
+        onclick: Inline onclick handler code.
+    """
 
     text: str | None = None
     type: str | None = None
@@ -51,7 +83,21 @@ class ButtonInfo(BaseModel):
 
 
 class PageResult(BaseModel):
-    """Result of crawling a single page."""
+    """Result of crawling a single page.
+
+    Attributes:
+        url: The crawled page URL.
+        status_code: HTTP response status code.
+        depth: Link depth from the root page.
+        parent_url: URL of the page that linked to this one.
+        title: HTML title of the page.
+        links: List of discovered link URLs.
+        forms: List of extracted form data.
+        buttons: List of extracted button info.
+        api_endpoints: List of discovered API endpoints.
+        crawled_at: Timestamp when the page was crawled.
+        error: Error message if the page failed to load.
+    """
 
     url: str
     status_code: int
@@ -67,7 +113,16 @@ class PageResult(BaseModel):
 
 
 class CrawlResult(BaseModel):
-    """Result of an entire crawl session."""
+    """Result of an entire crawl session.
+
+    Attributes:
+        target_url: The root URL that was crawled.
+        started_at: Timestamp when the crawl started.
+        completed_at: Timestamp when the crawl finished.
+        config: The configuration used for this crawl.
+        pages: List of individual page results.
+        statistics: Summary statistics of the crawl.
+    """
 
     target_url: str
     started_at: datetime

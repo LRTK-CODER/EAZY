@@ -1,4 +1,4 @@
-"""Tests for crawl data models (RED phase - models not yet implemented)."""
+"""Unit tests for crawl data models."""
 
 from datetime import datetime
 
