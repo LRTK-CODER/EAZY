@@ -5,7 +5,6 @@ from datetime import datetime
 from pathlib import Path
 
 from eazy.crawler.exporter import CrawlResultExporter
-
 from eazy.models.crawl_types import (
     CrawlConfig,
     CrawlResult,

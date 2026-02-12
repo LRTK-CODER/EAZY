@@ -3,7 +3,6 @@
 from datetime import datetime
 
 from eazy.crawler.sitemap import Sitemap
-
 from eazy.models.crawl_types import (
     EndpointInfo,
     FormData,
