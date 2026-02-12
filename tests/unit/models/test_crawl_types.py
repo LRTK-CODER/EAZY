@@ -66,7 +66,10 @@ class TestFormData:
         form = FormData(
             action="/login",
             method="POST",
-            inputs=[{"name": "username", "type": "text"}, {"name": "password", "type": "password"}],
+            inputs=[
+                {"name": "username", "type": "text"},
+                {"name": "password", "type": "password"},
+            ],
         )
         assert form.action == "/login"
         assert form.method == "POST"
