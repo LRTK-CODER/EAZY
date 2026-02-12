@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 import respx
-from eazy.crawler.http_client import HttpClient
 
+from eazy.crawler.http_client import HttpClient
 from eazy.models.crawl_types import CrawlConfig
 
 
