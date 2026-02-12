@@ -1,6 +1,7 @@
 """Unit tests for URL resolver module."""
 
-from eazy.crawler.url_resolver import normalize_url, resolve_url
+from eazy.crawler.url_resolver import is_in_scope, normalize_url, resolve_url
+from eazy.models.crawl_types import CrawlConfig
 
 
 class TestResolveUrl:
@@ -142,3 +143,86 @@ class TestNormalizeUrl:
 
         # Assert
         assert result == "https://example.com:8080/page"
+
+
+class TestIsInScope:
+    def test_same_domain_returns_true(self):
+        # Arrange
+        config = CrawlConfig(target_url="https://example.com/app")
+        url = "https://example.com/app/page"
+
+        # Act
+        result = is_in_scope(url, config)
+
+        # Assert
+        assert result is True
+
+    def test_different_domain_returns_false(self):
+        # Arrange
+        config = CrawlConfig(target_url="https://example.com")
+        url = "https://other.com/page"
+
+        # Act
+        result = is_in_scope(url, config)
+
+        # Assert
+        assert result is False
+
+    def test_subdomain_excluded_by_default(self):
+        # Arrange
+        config = CrawlConfig(target_url="https://example.com", include_subdomains=False)
+        url = "https://sub.example.com/page"
+
+        # Act
+        result = is_in_scope(url, config)
+
+        # Assert
+        assert result is False
+
+    def test_subdomain_included_when_enabled(self):
+        # Arrange
+        config = CrawlConfig(target_url="https://example.com", include_subdomains=True)
+        url = "https://sub.example.com/page"
+
+        # Act
+        result = is_in_scope(url, config)
+
+        # Assert
+        assert result is True
+
+    def test_exclude_pattern_pdf(self):
+        # Arrange
+        config = CrawlConfig(
+            target_url="https://example.com", exclude_patterns=["*.pdf"]
+        )
+        url = "https://example.com/doc/report.pdf"
+
+        # Act
+        result = is_in_scope(url, config)
+
+        # Assert
+        assert result is False
+
+    def test_exclude_pattern_admin(self):
+        # Arrange
+        config = CrawlConfig(
+            target_url="https://example.com", exclude_patterns=["/admin/*"]
+        )
+        url = "https://example.com/admin/settings"
+
+        # Act
+        result = is_in_scope(url, config)
+
+        # Assert
+        assert result is False
+
+    def test_path_prefix_filter(self):
+        # Arrange
+        config = CrawlConfig(target_url="https://example.com/app/v2")
+        url = "https://example.com/other/page"
+
+        # Act
+        result = is_in_scope(url, config)
+
+        # Assert
+        assert result is False
