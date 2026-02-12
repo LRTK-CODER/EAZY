@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import re
+from urllib.parse import urlparse
+
 
 class RobotsParser:
     """Parse robots.txt content and check URL permissions.
@@ -72,3 +75,69 @@ class RobotsParser:
         if agent in self._crawl_delays:
             return self._crawl_delays[agent]
         return None
+
+    def is_allowed(self, url: str, user_agent: str = "*") -> bool:
+        """Check whether a URL is allowed for the given user agent.
+
+        Args:
+            url: Absolute URL to check.
+            user_agent: User-agent string. Defaults to "*".
+
+        Returns:
+            True if crawling is allowed, False otherwise.
+        """
+        path = urlparse(url).path
+
+        agent = user_agent.lower()
+
+        # Use specific UA rules if available, otherwise fall back to *
+        if agent in self._rules:
+            rules = self._rules[agent]
+        elif "*" in self._rules:
+            rules = self._rules["*"]
+        else:
+            return True
+
+        # Find the most specific matching rule (longest pattern wins).
+        # If tied on length, Allow wins over Disallow.
+        best_match: tuple[bool, str] | None = None
+        best_length = -1
+
+        for is_allow, pattern in rules:
+            if self._match_pattern(path, pattern):
+                pat_len = len(pattern)
+                if pat_len > best_length or (pat_len == best_length and is_allow):
+                    best_match = (is_allow, pattern)
+                    best_length = pat_len
+
+        if best_match is None:
+            return True
+
+        return best_match[0]
+
+    @staticmethod
+    def _match_pattern(path: str, pattern: str) -> bool:
+        """Match a URL path against a robots.txt pattern.
+
+        Supports ``*`` wildcard and ``$`` end-of-string anchor.
+
+        Args:
+            path: URL path to test.
+            pattern: Robots.txt pattern (e.g. ``/admin``, ``/*.pdf``).
+
+        Returns:
+            True if the path matches the pattern.
+        """
+        # Convert robots.txt pattern to regex:
+        #   * → .* (wildcard), $ → $ (end anchor), others → escaped
+        parts = []
+        for char in pattern:
+            if char == "*":
+                parts.append(".*")
+            elif char == "$":
+                parts.append("$")
+            else:
+                parts.append(re.escape(char))
+
+        regex = f"^{''.join(parts)}"
+        return re.search(regex, path) is not None
