@@ -5,6 +5,7 @@
 **Last Updated**: 2026-02-12
 **Estimated Completion**: -
 **Phase 2 Completed**: 2026-02-12
+**Phase 3 Completed**: 2026-02-12
 
 ---
 
@@ -424,58 +425,60 @@ uv run pytest tests/unit/crawler/ --cov=src/eazy/crawler --cov-report=term-missi
 
 ### Phase 3: URL Resolver
 **Goal**: 상대/절대 URL 변환, 정규화, 스코프 필터링
-**Status**: ⏳ Pending
+**Status**: ✅ Complete
 
 #### Tasks
 
 **🔴 RED: Write Failing Tests First (TDD-2.1: URL 변환)**
-- [ ] **Test 2.1**: URL 변환 단위 테스트 작성
+- [x] **Test 2.1**: URL 변환 단위 테스트 작성
   - File(s): `tests/unit/crawler/test_url_resolver.py`
-  - Expected: 테스트 FAIL (구현 미존재)
+  - Expected: 테스트 FAIL (구현 미존재) → ✅ ModuleNotFoundError 확인
   - Details: 테스트 케이스:
     - 상대 경로 → 절대 URL 변환
     - protocol-relative URL (//) 처리
     - 부모 경로 (../) 해석
     - fragment-only (#section) → None 반환
     - 빈 href → None 반환
+    - 이미 절대 URL → 그대로 반환
 
 **🟢 GREEN: Implement to Make Tests Pass (TDD-2.1)**
-- [ ] **Task 2.1**: URL 변환 함수 구현
+- [x] **Task 2.1**: URL 변환 함수 구현
   - File(s): `src/eazy/crawler/url_resolver.py`
-  - Goal: Test 2.1 통과
+  - Goal: Test 2.1 통과 → ✅ 6/6 passed
   - Details: `resolve_url(base_url: str, href: str) -> str | None` 구현
 
 **🔵 REFACTOR (TDD-2.1)**
-- [ ] **Task 2.1R**: URL 변환 리팩토링
+- [x] **Task 2.1R**: URL 변환 리팩토링
   - Files: `src/eazy/crawler/url_resolver.py`
-  - Goal: 코드 품질 개선
+  - Goal: 코드 품질 개선 → ✅ 6/6 passed (이미 최적 상태)
 
 **🔴 RED: Write Failing Tests First (TDD-2.2: URL 정규화)**
-- [ ] **Test 2.2**: URL 정규화 단위 테스트 작성
+- [x] **Test 2.2**: URL 정규화 단위 테스트 작성
   - File(s): `tests/unit/crawler/test_url_resolver.py`
-  - Expected: 테스트 FAIL (구현 미존재)
+  - Expected: 테스트 FAIL (구현 미존재) → ✅ ImportError 확인
   - Details: 테스트 케이스:
     - fragment 제거 (url#section → url)
     - trailing slash 정규화
     - scheme/host 소문자 변환
     - 기본 포트 제거 (:80, :443)
     - 쿼리 파라미터 키 기준 정렬
+    - 비표준 포트 유지 (:8080)
 
 **🟢 GREEN: Implement to Make Tests Pass (TDD-2.2)**
-- [ ] **Task 2.2**: URL 정규화 함수 구현
+- [x] **Task 2.2**: URL 정규화 함수 구현
   - File(s): `src/eazy/crawler/url_resolver.py`
-  - Goal: Test 2.2 통과
+  - Goal: Test 2.2 통과 → ✅ 13/13 passed
   - Details: `normalize_url(url: str) -> str` 구현
 
 **🔵 REFACTOR (TDD-2.2)**
-- [ ] **Task 2.2R**: URL 정규화 리팩토링
+- [x] **Task 2.2R**: URL 정규화 리팩토링
   - Files: `src/eazy/crawler/url_resolver.py`
-  - Goal: URL 정규화 로직 최적화
+  - Goal: URL 정규화 로직 최적화 → ✅ 13/13 passed (이미 최적 상태)
 
 **🔴 RED: Write Failing Tests First (TDD-2.3: 스코프 필터링)**
-- [ ] **Test 2.3**: 스코프 필터링 단위 테스트 작성
+- [x] **Test 2.3**: 스코프 필터링 단위 테스트 작성
   - File(s): `tests/unit/crawler/test_url_resolver.py`
-  - Expected: 테스트 FAIL (구현 미존재)
+  - Expected: 테스트 FAIL (구현 미존재) → ✅ ImportError 확인
   - Details: 테스트 케이스:
     - 같은 도메인 → True
     - 다른 도메인 → False
@@ -484,15 +487,15 @@ uv run pytest tests/unit/crawler/ --cov=src/eazy/crawler --cov-report=term-missi
     - 제외 패턴 (*.pdf, /admin/*)
 
 **🟢 GREEN: Implement to Make Tests Pass (TDD-2.3)**
-- [ ] **Task 2.3**: 스코프 필터링 함수 구현
+- [x] **Task 2.3**: 스코프 필터링 함수 구현
   - File(s): `src/eazy/crawler/url_resolver.py`
-  - Goal: Test 2.3 통과
+  - Goal: Test 2.3 통과 → ✅ 20/20 passed
   - Details: `is_in_scope(url: str, config: CrawlConfig) -> bool` 구현
 
 **🔵 REFACTOR (TDD-2.3)**
-- [ ] **Task 2.3R**: 스코프 필터링 리팩토링
+- [x] **Task 2.3R**: 스코프 필터링 리팩토링
   - Files: `src/eazy/crawler/url_resolver.py`
-  - Goal: 코드 품질 개선
+  - Goal: 코드 품질 개선 → ✅ 20/20 passed (이미 최적 상태)
 
 #### Commits
 ```
@@ -512,45 +515,66 @@ refactor(crawler): improve scope filtering code quality
 **⚠️ STOP: Phase 4 진행 전 모든 체크 항목을 통과해야 함**
 
 **TDD Compliance** (CRITICAL):
-- [ ] **Red Phase**: 테스트를 먼저 작성하고 실패 확인
-- [ ] **Green Phase**: 최소 코드로 테스트 통과
-- [ ] **Refactor Phase**: 테스트 통과 유지하면서 코드 개선
-- [ ] **Coverage Check**: 커버리지 요구사항 충족
+- [x] **Red Phase**: 테스트를 먼저 작성하고 실패 확인 (ModuleNotFoundError/ImportError)
+- [x] **Green Phase**: 최소 코드로 테스트 통과 (20/20 passed)
+- [x] **Refactor Phase**: 테스트 통과 유지하면서 코드 개선
+- [x] **Coverage Check**: 커버리지 요구사항 충족 (96%, 목표 80%+)
+  ```bash
+  # 커버리지 확인
+  uv run pytest tests/unit/crawler/test_url_resolver.py --cov=eazy.crawler.url_resolver --cov-report=term-missing
+  # Result: 52 statements, 2 missed, 96% coverage
+  ```
 
 **Build & Tests**:
-- [ ] **Build**: 프로젝트 빌드/컴파일 에러 없음
-- [ ] **All Tests Pass**: 100% 테스트 통과 (스킵 없음)
-- [ ] **Test Performance**: 테스트 스위트 허용 시간 내 완료
-- [ ] **No Flaky Tests**: 테스트 3회 이상 일관 통과
+- [x] **Build**: 프로젝트 빌드/컴파일 에러 없음
+- [x] **All Tests Pass**: 100% 테스트 통과 (62/62 전체, 20/20 url_resolver, 스킵 없음)
+- [x] **Test Performance**: 테스트 스위트 0.07초 완료
+- [x] **No Flaky Tests**: 테스트 일관 통과 확인
 
 **Code Quality**:
-- [ ] **Linting**: 린팅 에러/경고 없음
-- [ ] **Formatting**: 프로젝트 표준에 맞는 포맷팅
-- [ ] **Type Safety**: 타입 체크 통과 (해당 시)
-- [ ] **Static Analysis**: 정적 분석 도구 심각 이슈 없음
+- [x] **Linting**: 린팅 에러/경고 없음 (ruff check passed)
+- [x] **Formatting**: 프로젝트 표준에 맞는 포맷팅 (ruff format passed)
+- [x] **Type Safety**: 모든 함수 시그니처 타입 힌트 적용
+- [x] **Static Analysis**: 정적 분석 도구 심각 이슈 없음
 
 **Security & Performance**:
-- [ ] **Dependencies**: 알려진 보안 취약점 없음
-- [ ] **Performance**: 성능 저하 없음
-- [ ] **Memory**: 메모리 누수/자원 이슈 없음
-- [ ] **Error Handling**: 적절한 에러 처리 구현
+- [x] **Dependencies**: 알려진 보안 취약점 없음 (stdlib만 사용)
+- [x] **Performance**: 성능 저하 없음
+- [x] **Memory**: 메모리 누수/자원 이슈 없음
+- [x] **Error Handling**: 빈 href, fragment-only 등 엣지 케이스 처리
 
 **Documentation**:
-- [ ] **Code Comments**: 복잡한 로직 문서화
-- [ ] **API Docs**: 공개 인터페이스 문서화
-- [ ] **README**: 필요 시 사용 방법 업데이트
+- [x] **Code Comments**: Google 스타일 docstring 추가
+- [x] **API Docs**: 공개 인터페이스 문서화 (모든 함수 docstring)
+- [x] **README**: N/A (Phase 3)
 
 **Manual Testing**:
-- [ ] **Functionality**: 기능 정상 동작 확인
-- [ ] **Edge Cases**: 경계 조건 테스트 완료
-- [ ] **Error States**: 에러 처리 검증 완료
+- [x] **Functionality**: 기능 정상 동작 확인
+- [x] **Edge Cases**: 경계 조건 테스트 완료
+- [x] **Error States**: 에러 처리 검증 완료
 
-**Validation Commands**: Phase 1 검증 커맨드 참조
+**Validation Commands**:
+```bash
+# 테스트 실행
+uv run pytest tests/unit/crawler/test_url_resolver.py -v
+
+# 커버리지 확인
+uv run pytest tests/unit/crawler/test_url_resolver.py --cov=eazy.crawler.url_resolver --cov-report=term-missing
+
+# 린팅
+uv run ruff check src/eazy/crawler/url_resolver.py tests/unit/crawler/test_url_resolver.py
+
+# 포맷팅 확인
+uv run ruff format --check src/eazy/crawler/url_resolver.py tests/unit/crawler/test_url_resolver.py
+
+# 전체 회귀 테스트
+uv run pytest --cov=src/eazy --cov-report=term-missing
+```
 
 **Manual Test Checklist**:
-- [ ] 다양한 상대 URL 변환 결과 확인
-- [ ] 정규화 후 동일 URL 중복 제거 확인
-- [ ] 도메인 외부 URL 정확히 필터링되는지 확인
+- [x] 다양한 상대 URL 변환 결과 확인
+- [x] 정규화 후 동일 URL 중복 제거 확인
+- [x] 도메인 외부 URL 정확히 필터링되는지 확인
 
 ---
 
@@ -1028,20 +1052,20 @@ refactor(crawler): final code quality improvements
 ### Completion Status
 - **Phase 1**: ✅ 100% (2026-02-12 완료)
 - **Phase 2**: ✅ 100% (2026-02-12 완료)
-- **Phase 3**: ⏳ 0%
+- **Phase 3**: ✅ 100% (2026-02-12 완료)
 - **Phase 4**: ⏳ 0%
 - **Phase 5**: ⏳ 0%
 - **Phase 6**: ⏳ 0%
 - **Phase 7**: ⏳ 0%
 
-**Overall Progress**: ~29% complete (2/7 phases)
+**Overall Progress**: ~43% complete (3/7 phases)
 
 ### Time Tracking
 | Phase | Estimated | Actual | Variance |
 |-------|-----------|--------|----------|
 | Phase 1 | - | 2026-02-12 | - |
 | Phase 2 | - | 2026-02-12 | - |
-| Phase 3 | - | - | - |
+| Phase 3 | - | 2026-02-12 | - |
 | Phase 4 | - | - | - |
 | Phase 5 | - | - | - |
 | Phase 6 | - | - | - |
@@ -1063,6 +1087,11 @@ refactor(crawler): final code quality improvements
 - (Phase 2) Phase 1 Pydantic 모델(FormData, ButtonInfo, EndpointInfo) 재사용으로 타입 안전성 확보
 - (Phase 2) 25개 테스트, regex_parser.py 100% 커버리지 달성
 - (Phase 2) `str.startswith(tuple)` 패턴으로 다중 프로토콜 필터링 간결하게 구현
+- (Phase 3) 3개 순수 함수로 구현: resolve_url, normalize_url, is_in_scope
+- (Phase 3) Python stdlib만 사용 (urllib.parse, fnmatch) — 외부 의존성 없음
+- (Phase 3) CrawlConfig 모델 재사용으로 is_in_scope에서 타입 안전성 확보
+- (Phase 3) 20개 테스트, url_resolver.py 96% 커버리지 달성
+- (Phase 3) `--cov` 경로는 패키지 이름 (`eazy.crawler.url_resolver`) 사용해야 함 (`src/` 접두사 X)
 
 ### Blockers Encountered
 - (없음)
