@@ -250,6 +250,68 @@ class TestCrawlResult:
         assert result.statistics == {}
 
 
+class TestCrawlConfigPatternNormalization:
+    """Tests for pattern normalization fields on CrawlConfig."""
+
+    def test_crawl_config_max_samples_per_pattern_default_3(self):
+        """CrawlConfig max_samples_per_pattern defaults to 3."""
+        config = CrawlConfig(target_url="https://example.com")
+        assert config.max_samples_per_pattern == 3
+
+    def test_crawl_config_enable_pattern_normalization_default_true(
+        self,
+    ):
+        """CrawlConfig enable_pattern_normalization defaults to True."""
+        config = CrawlConfig(target_url="https://example.com")
+        assert config.enable_pattern_normalization is True
+
+
+class TestCrawlResultPatternGroups:
+    """Tests for pattern_groups field on CrawlResult."""
+
+    def test_crawl_result_has_pattern_groups_field(self):
+        """CrawlResult stores a PatternNormalizationResult."""
+        now = datetime.now()
+        config = CrawlConfig(target_url="https://example.com")
+        pattern = URLPattern(
+            scheme="https",
+            netloc="example.com",
+            pattern_path="/items/<int>",
+            segment_types=(SegmentType.INT,),
+        )
+        group = PatternGroup(
+            pattern=pattern,
+            sample_urls=["https://example.com/items/1"],
+            total_count=1,
+        )
+        pnr = PatternNormalizationResult(
+            groups=[group],
+            total_urls_processed=1,
+            total_patterns_found=1,
+        )
+        result = CrawlResult(
+            target_url="https://example.com",
+            started_at=now,
+            completed_at=now,
+            config=config,
+            pattern_groups=pnr,
+        )
+        assert result.pattern_groups is not None
+        assert len(result.pattern_groups.groups) == 1
+
+    def test_crawl_result_pattern_groups_default_none(self):
+        """CrawlResult pattern_groups defaults to None."""
+        now = datetime.now()
+        config = CrawlConfig(target_url="https://example.com")
+        result = CrawlResult(
+            target_url="https://example.com",
+            started_at=now,
+            completed_at=now,
+            config=config,
+        )
+        assert result.pattern_groups is None
+
+
 class TestSegmentType:
     """Tests for SegmentType enum."""
 

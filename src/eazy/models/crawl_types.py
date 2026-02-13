@@ -102,6 +102,8 @@ class CrawlConfig(BaseModel):
     request_delay: float = 0.0
     timeout: int = 30
     max_retries: int = 3
+    enable_pattern_normalization: bool = True
+    max_samples_per_pattern: int = 3
 
 
 class FormData(BaseModel):
@@ -196,3 +198,4 @@ class CrawlResult(BaseModel):
     config: CrawlConfig
     pages: list[PageResult] = Field(default_factory=list)
     statistics: dict[str, Any] = Field(default_factory=dict)
+    pattern_groups: PatternNormalizationResult | None = None
