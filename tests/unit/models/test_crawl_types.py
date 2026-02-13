@@ -12,6 +12,10 @@ from eazy.models.crawl_types import (
     EndpointInfo,
     FormData,
     PageResult,
+    PatternGroup,
+    PatternNormalizationResult,
+    SegmentType,
+    URLPattern,
 )
 
 
@@ -244,3 +248,115 @@ class TestCrawlResult:
         )
         assert result.pages == []
         assert result.statistics == {}
+
+
+class TestSegmentType:
+    """Tests for SegmentType enum."""
+
+    def test_segment_type_has_all_six_values(self):
+        """SegmentType should have uuid, int, date, hash, slug, string."""
+        expected = {"uuid", "int", "date", "hash", "slug", "string"}
+        actual = {member.value for member in SegmentType}
+        assert actual == expected
+
+    def test_segment_type_values_are_lowercase_strings(self):
+        """All SegmentType values should be lowercase strings."""
+        for member in SegmentType:
+            assert member.value == member.value.lower()
+            assert isinstance(member.value, str)
+
+
+class TestURLPattern:
+    """Tests for URLPattern model."""
+
+    def test_url_pattern_creation_with_valid_data(self):
+        """URLPattern should store scheme, netloc, pattern_path, segment_types."""
+        pattern = URLPattern(
+            scheme="https",
+            netloc="example.com",
+            pattern_path="/users/{INT}/posts/{SLUG}",
+            segment_types=(SegmentType.INT, SegmentType.SLUG),
+        )
+        assert pattern.scheme == "https"
+        assert pattern.netloc == "example.com"
+        assert pattern.pattern_path == "/users/{INT}/posts/{SLUG}"
+        assert pattern.segment_types == (
+            SegmentType.INT,
+            SegmentType.SLUG,
+        )
+
+    def test_url_pattern_frozen_immutable(self):
+        """URLPattern should be immutable (frozen=True)."""
+        pattern = URLPattern(
+            scheme="https",
+            netloc="example.com",
+            pattern_path="/users/{INT}",
+            segment_types=(SegmentType.INT,),
+        )
+        with pytest.raises(ValidationError):
+            pattern.scheme = "http"
+
+
+class TestPatternGroup:
+    """Tests for PatternGroup model."""
+
+    def test_pattern_group_creation_with_defaults(self):
+        """PatternGroup should default max_samples=3 and empty lists."""
+        url_pattern = URLPattern(
+            scheme="https",
+            netloc="example.com",
+            pattern_path="/items/{INT}",
+            segment_types=(SegmentType.INT,),
+        )
+        group = PatternGroup(pattern=url_pattern)
+        assert group.pattern == url_pattern
+        assert group.sample_urls == []
+        assert group.total_count == 0
+        assert group.max_samples == 3
+
+    def test_pattern_group_tracks_total_count(self):
+        """PatternGroup should track total_count independently."""
+        url_pattern = URLPattern(
+            scheme="https",
+            netloc="example.com",
+            pattern_path="/items/{INT}",
+            segment_types=(SegmentType.INT,),
+        )
+        group = PatternGroup(
+            pattern=url_pattern,
+            sample_urls=[
+                "https://example.com/items/1",
+                "https://example.com/items/2",
+            ],
+            total_count=150,
+        )
+        assert group.total_count == 150
+        assert len(group.sample_urls) == 2
+
+
+class TestPatternNormalizationResult:
+    """Tests for PatternNormalizationResult model."""
+
+    def test_pattern_normalization_result_creation(self):
+        """PatternNormalizationResult should store groups and stats."""
+        url_pattern = URLPattern(
+            scheme="https",
+            netloc="example.com",
+            pattern_path="/items/{INT}",
+            segment_types=(SegmentType.INT,),
+        )
+        group = PatternGroup(
+            pattern=url_pattern,
+            sample_urls=["https://example.com/items/1"],
+            total_count=10,
+        )
+        result = PatternNormalizationResult(
+            groups=[group],
+            total_urls_processed=100,
+            total_patterns_found=1,
+            total_urls_skipped=5,
+        )
+        assert len(result.groups) == 1
+        assert result.total_urls_processed == 100
+        assert result.total_patterns_found == 1
+        assert result.total_urls_skipped == 5

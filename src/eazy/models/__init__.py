@@ -7,6 +7,10 @@ from eazy.models.crawl_types import (
     EndpointInfo,
     FormData,
     PageResult,
+    PatternGroup,
+    PatternNormalizationResult,
+    SegmentType,
+    URLPattern,
 )
 
 __all__ = [
@@ -16,4 +20,8 @@ __all__ = [
     "EndpointInfo",
     "FormData",
     "PageResult",
+    "PatternGroup",
+    "PatternNormalizationResult",
+    "SegmentType",
+    "URLPattern",
 ]
