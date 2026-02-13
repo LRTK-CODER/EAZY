@@ -422,3 +422,48 @@ class TestPatternNormalizationResult:
         assert result.total_urls_processed == 100
         assert result.total_patterns_found == 1
         assert result.total_urls_skipped == 5
+
+
+class TestCrawlConfigSmartCrawling:
+    """Tests for smart crawling fields on CrawlConfig."""
+
+    def test_crawl_config_headless_default_true(self):
+        """CrawlConfig headless defaults to True."""
+        config = CrawlConfig(target_url="https://example.com")
+        assert config.headless is True
+
+    def test_crawl_config_wait_until_default_networkidle(self):
+        """CrawlConfig wait_until defaults to 'networkidle'."""
+        config = CrawlConfig(target_url="https://example.com")
+        assert config.wait_until == "networkidle"
+
+    def test_crawl_config_viewport_width_default_1280(self):
+        """CrawlConfig viewport_width defaults to 1280."""
+        config = CrawlConfig(target_url="https://example.com")
+        assert config.viewport_width == 1280
+
+    def test_crawl_config_viewport_height_default_720(self):
+        """CrawlConfig viewport_height defaults to 720."""
+        config = CrawlConfig(target_url="https://example.com")
+        assert config.viewport_height == 720
+
+    def test_crawl_config_auto_detect_spa_default_true(self):
+        """CrawlConfig auto_detect_spa defaults to True."""
+        config = CrawlConfig(target_url="https://example.com")
+        assert config.auto_detect_spa is True
+
+    def test_crawl_config_smart_fields_backward_compatible(self):
+        """Existing CrawlConfig usage works without smart fields."""
+        config = CrawlConfig(
+            target_url="https://example.com",
+            max_depth=5,
+            max_pages=100,
+        )
+        assert config.max_depth == 5
+        assert config.max_pages == 100
+        # Smart fields should have defaults
+        assert config.headless is True
+        assert config.wait_until == "networkidle"
+        assert config.viewport_width == 1280
+        assert config.viewport_height == 720
+        assert config.auto_detect_spa is True

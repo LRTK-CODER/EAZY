@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -88,6 +88,13 @@ class CrawlConfig(BaseModel):
         request_delay: Delay in seconds between consecutive requests.
         timeout: Request timeout in seconds.
         max_retries: Maximum retry count for failed requests.
+        enable_pattern_normalization: Whether to enable URL normalization.
+        max_samples_per_pattern: Max sample URLs per pattern group.
+        headless: Whether to run the browser in headless mode.
+        wait_until: Page load event to wait for during navigation.
+        viewport_width: Browser viewport width in pixels.
+        viewport_height: Browser viewport height in pixels.
+        auto_detect_spa: Whether to auto-detect SPA frameworks.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -104,6 +111,13 @@ class CrawlConfig(BaseModel):
     max_retries: int = 3
     enable_pattern_normalization: bool = True
     max_samples_per_pattern: int = 3
+    headless: bool = True
+    wait_until: Literal["networkidle", "domcontentloaded", "load", "commit"] = (
+        "networkidle"
+    )
+    viewport_width: int = 1280
+    viewport_height: int = 720
+    auto_detect_spa: bool = True
 
 
 class FormData(BaseModel):
