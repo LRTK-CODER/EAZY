@@ -2,7 +2,7 @@
 
 **Status**: 🔄 In Progress
 **Started**: 2026-02-13
-**Last Updated**: 2026-02-13
+**Last Updated**: 2026-02-14
 **Estimated Completion**: 2026-02-14
 
 ---
@@ -117,12 +117,12 @@ tests/
 ### Phase 1: CLI 앱 기본 구조
 **Goal**: Typer 앱에 --help, --version, crawl/scan 서브커맨드 등록 및 엔트리 포인트 설정
 **Estimated Time**: 2 hours
-**Status**: ⏳ Pending
+**Status**: ✅ Complete
 
 #### Tasks
 
 **🔴 RED: Write Failing Tests First**
-- [ ] **Test 1.1**: 기존 CLI 앱 구조 테스트 확인 및 실패 검증
+- [x] **Test 1.1**: 기존 CLI 앱 구조 테스트 확인 및 실패 검증
   - File(s): `tests/unit/cli/test_app.py` (이미 존재 - 9개 테스트, 3개 클래스)
   - Expected: Tests FAIL (red) - `eazy.cli.app` 모듈이 아직 없어 ImportError
   - Details: 기존 테스트가 다음을 커버하는지 확인하고, 부족한 케이스 보강:
@@ -131,7 +131,7 @@ tests/
     - `eazy` 인수 없이 실행 시 help 텍스트 표시
     - `crawl` 서브커맨드가 --help 출력에 등록됨
     - `scan` 서브커맨드가 --help 출력에 등록됨
-- [ ] **Test 1.5**: 공유 테스트 fixture 생성
+- [x] **Test 1.5**: 공유 테스트 fixture 생성
   - File(s): `tests/conftest.py`
   - Expected: fixture 정의만 존재 (테스트 실행의 전제 조건)
   - Details:
@@ -140,18 +140,18 @@ tests/
     - `mock_crawl_result` fixture (pages, statistics 포함 CrawlResult)
 
 **🟢 GREEN: Implement to Make Tests Pass**
-- [ ] **Task 1.2**: pyproject.toml에 의존성 추가
+- [x] **Task 1.2**: pyproject.toml에 의존성 추가
   - File(s): `pyproject.toml`
   - Goal: Make Test 1.1 pass with minimal code
   - Details:
     - `typer>=0.9.0`, `rich>=13.0`을 `[project.dependencies]`에 추가
     - `[project.scripts] eazy = "eazy.cli:main"` 엔트리 포인트 추가
     - `uv sync` 실행하여 설치
-- [ ] **Task 1.3**: CLI 패키지 및 메인 엔트리 포인트 생성
+- [x] **Task 1.3**: CLI 패키지 및 메인 엔트리 포인트 생성
   - File(s): `src/eazy/cli/__init__.py`
   - Goal: `main()` 함수가 `app()`를 호출
   - Details: 패키지 초기화, `main()` 함수 정의
-- [ ] **Task 1.4**: Typer 앱 생성 및 서브커맨드 등록
+- [x] **Task 1.4**: Typer 앱 생성 및 서브커맨드 등록
   - File(s): `src/eazy/cli/app.py`
   - Goal: Make Test 1.1 pass
   - Details:
@@ -159,48 +159,48 @@ tests/
     - `--version` 콜백 추가
     - `crawl`, `scan` 빈 스텁 커맨드 등록
 **🔵 REFACTOR: Clean Up Code**
-- [ ] **Task 1.6**: 코드 품질 리팩토링
+- [x] **Task 1.6**: 코드 품질 리팩토링
   - Files: 이 Phase의 모든 새 코드 검토
   - Goal: 테스트를 깨뜨리지 않고 설계 개선
   - Checklist:
-    - [ ] Google 스타일 docstring 추가
-    - [ ] 모든 함수 시그니처에 타입 힌트
-    - [ ] Ruff lint/format 통과 확인
+    - [x] Google 스타일 docstring 추가
+    - [x] 모든 함수 시그니처에 타입 힌트
+    - [x] Ruff lint/format 통과 확인
 
 #### Quality Gate ✋
 
 **⚠️ STOP: Do NOT proceed to Phase 2 until ALL checks pass**
 
 **TDD Compliance** (CRITICAL):
-- [ ] **Red Phase**: Tests were written FIRST and initially failed
-- [ ] **Green Phase**: Production code written to make tests pass
-- [ ] **Refactor Phase**: Code improved while tests still pass
-- [ ] **Coverage Check**: Test coverage meets requirements
+- [x] **Red Phase**: Tests were written FIRST and initially failed
+- [x] **Green Phase**: Production code written to make tests pass
+- [x] **Refactor Phase**: Code improved while tests still pass
+- [x] **Coverage Check**: Test coverage meets requirements (86%)
   ```bash
   uv run pytest --cov=src/eazy/cli --cov-report=term-missing tests/unit/cli/test_app.py
   ```
 
 **Build & Tests**:
-- [ ] **All Tests Pass**: `uv run pytest tests/unit/cli/test_app.py -v`
-- [ ] **No Regressions**: `uv run pytest tests/ -v`
-- [ ] **No Flaky Tests**: 3회 반복 실행 시 일관된 결과
+- [x] **All Tests Pass**: `uv run pytest tests/unit/cli/test_app.py -v` (9 passed)
+- [x] **No Regressions**: `uv run pytest tests/ -v` (118 passed)
+- [x] **No Flaky Tests**: 3회 반복 실행 시 일관된 결과
 
 **Code Quality**:
-- [ ] **Linting**: `uv run ruff check src/eazy/cli/ tests/unit/cli/`
-- [ ] **Formatting**: `uv run ruff format --check src/eazy/cli/ tests/unit/cli/`
+- [x] **Linting**: `uv run ruff check src/eazy/cli/ tests/unit/cli/` (All checks passed)
+- [x] **Formatting**: `uv run ruff format --check src/eazy/cli/ tests/unit/cli/` (4 files already formatted)
 
 **Security & Performance**:
-- [ ] **Dependencies**: 새 의존성(typer, rich)에 알려진 보안 취약점 없음
-- [ ] **Error Handling**: 적절한 에러 처리 구현
+- [x] **Dependencies**: 새 의존성(typer, rich)에 알려진 보안 취약점 없음
+- [x] **Error Handling**: 적절한 에러 처리 구현
 
 **Documentation**:
-- [ ] **Code Comments**: 복잡한 로직에 주석
-- [ ] **API Docs**: 공개 인터페이스 문서화 (docstring)
+- [x] **Code Comments**: 복잡한 로직에 주석
+- [x] **API Docs**: 공개 인터페이스 문서화 (docstring)
 
 **Manual Testing**:
-- [ ] **Functionality**: `uv run eazy --help` 가 crawl, scan 커맨드 포함 Usage 표시
-- [ ] **Edge Cases**: `uv run eazy --version` 이 "0.1.0" 표시
-- [ ] **Error States**: `uv run eazy crawl --help` 가 crawl 서브커맨드 help 표시
+- [x] **Functionality**: `uv run eazy --help` 가 crawl, scan 커맨드 포함 Usage 표시
+- [x] **Edge Cases**: `uv run eazy --version` 이 "0.1.0" 표시
+- [x] **Error States**: `uv run eazy crawl --help` 가 crawl 서브커맨드 help 표시
 
 **Validation Commands**:
 ```bash
@@ -219,9 +219,9 @@ uv run pytest tests/ -v
 ```
 
 **Manual Test Checklist**:
-- [ ] `uv run eazy --help` 이 Usage와 crawl/scan 커맨드를 표시
-- [ ] `uv run eazy --version` 이 "0.1.0"을 표시
-- [ ] `uv run eazy crawl --help` 가 crawl 서브커맨드 help를 표시
+- [x] `uv run eazy --help` 이 Usage와 crawl/scan 커맨드를 표시
+- [x] `uv run eazy --version` 이 "0.1.0"을 표시
+- [x] `uv run eazy crawl --help` 가 crawl 서브커맨드 help를 표시
 
 ---
 
@@ -639,17 +639,17 @@ uv run ruff format --check src/ tests/
 ## 📊 Progress Tracking
 
 ### Completion Status
-- **Phase 1**: ⏳ 0%
+- **Phase 1**: ✅ 100%
 - **Phase 2**: ⏳ 0%
 - **Phase 3**: ⏳ 0%
 - **Phase 4**: ⏳ 0%
 
-**Overall Progress**: 0% complete
+**Overall Progress**: 25% complete
 
 ### Time Tracking
 | Phase | Estimated | Actual | Variance |
 |-------|-----------|--------|----------|
-| Phase 1 | 2 hours | - | - |
+| Phase 1 | 2 hours | Complete | - |
 | Phase 2 | 3 hours | - | - |
 | Phase 3 | 3 hours | - | - |
 | Phase 4 | 3 hours | - | - |
@@ -663,10 +663,12 @@ uv run ruff format --check src/ tests/
 - CrawlerEngine은 완전 async - CLI는 sync Typer에서 async 엔진으로 브릿지 필요
 - CrawlConfig는 frozen (immutable) - 모든 CLI 옵션으로 한번에 생성
 - CrawlResultExporter.to_json()이 이미 pretty-printed JSON 제공
-- conftest.py가 현재 비어있음 - 공유 CLI 테스트 fixture 배치에 적합
+- conftest.py에 cli_runner, mock_page_result, mock_crawl_result fixture 추가 완료
+- Typer `no_args_is_help=True`는 exit code 2 반환 — `ctx.invoked_subcommand` 체크로 대체하여 exit code 0 달성
+- `from __future__ import annotations` 사용 금지 — Typer가 런타임 타입 평가 필요
 
 ### Blockers Encountered
-- (구현 시 기록)
+- Linux 환경에서 `jq` 미설치로 pre-commit-lint.sh hook 실패 → python3 fallback 추가로 해결
 
 ### Improvements for Future Plans
 - (구현 완료 후 기록)
@@ -704,5 +706,5 @@ uv run ruff format --check src/ tests/
 ---
 
 **Plan Status**: 🔄 In Progress
-**Next Action**: Phase 1 RED - CLI 앱 구조 테스트 작성
+**Next Action**: Phase 2 RED - crawl 커맨드 옵션 및 실행 테스트 작성
 **Blocked By**: None
