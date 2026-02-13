@@ -6,6 +6,8 @@ from typing import Optional
 
 import typer
 
+from eazy.cli.display import create_progress_spinner
+from eazy.cli.formatters import format_result
 from eazy.crawler.engine import CrawlerEngine
 from eazy.crawler.exporter import CrawlResultExporter
 from eazy.models.crawl_types import CrawlConfig
@@ -80,6 +82,12 @@ def crawl(
     output: Optional[str] = typer.Option(
         None, "--output", "-o", help="Save results to file."
     ),
+    format: str = typer.Option(
+        "table",
+        "--format",
+        "-f",
+        help="Output format: json, text, table.",
+    ),
 ) -> None:
     """Crawl a target URL and discover its structure."""
     config = CrawlConfig(
@@ -95,16 +103,15 @@ def crawl(
         max_retries=retries,
     )
     engine = CrawlerEngine(config)
-    result = asyncio.run(engine.crawl())
 
-    exporter = CrawlResultExporter()
-    json_output = exporter.to_json(result)
+    with create_progress_spinner():
+        result = asyncio.run(engine.crawl())
 
     if output:
-        exporter.save_to_file(result, Path(output))
+        CrawlResultExporter().save_to_file(result, Path(output))
         typer.echo(f"Results saved to {output}")
 
-    typer.echo(json_output)
+    typer.echo(format_result(result, format))
 
 
 @app.command()
