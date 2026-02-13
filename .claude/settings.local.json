@@ -28,6 +28,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-task-update.sh",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   },
   "enableAllProjectMcpServers": true
