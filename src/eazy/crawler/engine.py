@@ -16,6 +16,7 @@ from eazy.crawler.regex_parser import (
 )
 from eazy.crawler.robots_parser import RobotsParser
 from eazy.crawler.sitemap import Sitemap
+from eazy.crawler.url_pattern import URLPatternNormalizer
 from eazy.crawler.url_resolver import is_in_scope, normalize_url, resolve_url
 from eazy.models.crawl_types import CrawlConfig, CrawlResult, PageResult
 
@@ -37,6 +38,11 @@ class CrawlerEngine:
         self._sitemap = Sitemap()
         self._visited: set[str] = set()
         self._robots: RobotsParser | None = None
+        self._normalizer: URLPatternNormalizer | None = (
+            URLPatternNormalizer(max_samples=config.max_samples_per_pattern)
+            if config.enable_pattern_normalization
+            else None
+        )
 
     async def crawl(self) -> CrawlResult:
         """Run a BFS crawl and return the result.
@@ -73,11 +79,15 @@ class CrawlerEngine:
                     url, self._config.user_agent
                 ):
                     continue
+                if self._normalizer and self._normalizer.should_skip(url):
+                    continue
 
                 self._visited.add(url)
                 response = await client.fetch(url)
                 page = self._build_page_result(response, url, depth, parent_url)
                 self._sitemap.add_page(page)
+                if self._normalizer:
+                    self._normalizer.add_url(url)
 
                 if not response.error and response.status_code < 400:
                     for link in page.links:
@@ -92,6 +102,9 @@ class CrawlerEngine:
             config=self._config,
             pages=self._sitemap.pages,
             statistics=self._sitemap.get_statistics(),
+            pattern_groups=(
+                self._normalizer.get_results() if self._normalizer else None
+            ),
         )
 
     async def _fetch_robots(self, client: HttpClient) -> None:

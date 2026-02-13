@@ -311,6 +311,166 @@ class TestCrawlConfiguration:
         assert "https://example.com/doc.pdf" not in urls
 
 
+class TestPatternNormalization:
+    """Test URL pattern normalization integration."""
+
+    @respx.mock
+    async def test_crawl_with_pattern_normalization_skips_duplicate_patterns(
+        self,
+    ) -> None:
+        """Pattern normalization skips URLs beyond max_samples."""
+        # Arrange
+        config = CrawlConfig(
+            target_url="https://example.com",
+            respect_robots=False,
+            enable_pattern_normalization=True,
+            max_samples_per_pattern=3,
+        )
+        respx.get("https://example.com/").mock(
+            return_value=httpx.Response(
+                200,
+                text=(
+                    "<html><body>"
+                    '<a href="/posts/1">P1</a>'
+                    '<a href="/posts/2">P2</a>'
+                    '<a href="/posts/3">P3</a>'
+                    '<a href="/posts/4">P4</a>'
+                    "</body></html>"
+                ),
+            )
+        )
+        for i in range(1, 5):
+            respx.get(f"https://example.com/posts/{i}").mock(
+                return_value=httpx.Response(
+                    200,
+                    text=f"<html><body>Post {i}</body></html>",
+                )
+            )
+
+        # Act
+        engine = CrawlerEngine(config)
+        result = await engine.crawl()
+
+        # Assert — root + 3 posts sampled, 4th skipped
+        assert len(result.pages) == 4
+
+    @respx.mock
+    async def test_crawl_without_pattern_normalization_crawls_all(
+        self,
+    ) -> None:
+        """Disabled normalization crawls every URL."""
+        # Arrange
+        config = CrawlConfig(
+            target_url="https://example.com",
+            respect_robots=False,
+            enable_pattern_normalization=False,
+        )
+        respx.get("https://example.com/").mock(
+            return_value=httpx.Response(
+                200,
+                text=(
+                    "<html><body>"
+                    '<a href="/posts/1">P1</a>'
+                    '<a href="/posts/2">P2</a>'
+                    '<a href="/posts/3">P3</a>'
+                    '<a href="/posts/4">P4</a>'
+                    "</body></html>"
+                ),
+            )
+        )
+        for i in range(1, 5):
+            respx.get(f"https://example.com/posts/{i}").mock(
+                return_value=httpx.Response(
+                    200,
+                    text=f"<html><body>Post {i}</body></html>",
+                )
+            )
+
+        # Act
+        engine = CrawlerEngine(config)
+        result = await engine.crawl()
+
+        # Assert — all 5 pages crawled
+        assert len(result.pages) == 5
+
+    @respx.mock
+    async def test_crawl_result_includes_pattern_groups(self) -> None:
+        """CrawlResult includes pattern_groups when normalization enabled."""
+        # Arrange
+        config = CrawlConfig(
+            target_url="https://example.com",
+            respect_robots=False,
+            enable_pattern_normalization=True,
+            max_samples_per_pattern=3,
+        )
+        respx.get("https://example.com/").mock(
+            return_value=httpx.Response(
+                200,
+                text=(
+                    "<html><body>"
+                    '<a href="/posts/1">P1</a>'
+                    '<a href="/posts/2">P2</a>'
+                    "</body></html>"
+                ),
+            )
+        )
+        for i in range(1, 3):
+            respx.get(f"https://example.com/posts/{i}").mock(
+                return_value=httpx.Response(
+                    200,
+                    text=f"<html><body>Post {i}</body></html>",
+                )
+            )
+
+        # Act
+        engine = CrawlerEngine(config)
+        result = await engine.crawl()
+
+        # Assert
+        assert result.pattern_groups is not None
+        assert len(result.pattern_groups.groups) >= 1
+
+    @respx.mock
+    async def test_crawl_pattern_normalization_statistics(self) -> None:
+        """Pattern normalization statistics are accurate."""
+        # Arrange
+        config = CrawlConfig(
+            target_url="https://example.com",
+            respect_robots=False,
+            enable_pattern_normalization=True,
+            max_samples_per_pattern=3,
+        )
+        respx.get("https://example.com/").mock(
+            return_value=httpx.Response(
+                200,
+                text=(
+                    "<html><body>"
+                    '<a href="/posts/1">P1</a>'
+                    '<a href="/posts/2">P2</a>'
+                    '<a href="/posts/3">P3</a>'
+                    "</body></html>"
+                ),
+            )
+        )
+        for i in range(1, 4):
+            respx.get(f"https://example.com/posts/{i}").mock(
+                return_value=httpx.Response(
+                    200,
+                    text=f"<html><body>Post {i}</body></html>",
+                )
+            )
+
+        # Act
+        engine = CrawlerEngine(config)
+        result = await engine.crawl()
+
+        # Assert — root + 3 posts = 4 processed
+        assert result.pattern_groups is not None
+        assert result.pattern_groups.total_urls_processed == 4
+        # root pattern (/) + posts pattern (/posts/<int>)
+        assert result.pattern_groups.total_patterns_found == 2
+
+
 class TestFullWorkflow:
     """Test full crawl workflow and result structure."""
 

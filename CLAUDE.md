@@ -76,6 +76,7 @@ EAZY/
 - 변수/함수는 `snake_case`, 클래스는 `PascalCase`
 - 모든 I/O 작업에 `async/await` 사용
 - 모든 데이터 모델에 Pydantic v2 사용
+- **주석/Docstring 언어**: 모든 코드 주석(inline comment)과 docstring은 **영문**으로 작성
 - **Docstring**: Google 스타일 (https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)
   ```python
   def fetch_page(url: str, timeout: int = 30) -> PageResult:

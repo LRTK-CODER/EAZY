@@ -3,9 +3,75 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class SegmentType(str, Enum):
+    """URL 세그먼트 동적 타입 분류.
+
+    URL 경로의 각 세그먼트를 분석하여 동적 파라미터의 타입을
+    식별하기 위한 열거형. 우선순위: uuid → int → date → hash → slug.
+    """
+
+    UUID = "uuid"
+    INT = "int"
+    DATE = "date"
+    HASH = "hash"
+    SLUG = "slug"
+    STRING = "string"
+
+
+class URLPattern(BaseModel):
+    """정규화된 URL 패턴.
+
+    Attributes:
+        scheme: URL 스킴 (e.g. "https").
+        netloc: 호스트와 포트 (e.g. "example.com").
+        pattern_path: 동적 세그먼트가 치환된 경로 패턴.
+        segment_types: 경로 내 동적 세그먼트 타입 순서.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    scheme: str
+    netloc: str
+    pattern_path: str
+    segment_types: tuple[SegmentType, ...]
+
+
+class PatternGroup(BaseModel):
+    """동일 패턴 URL 그룹.
+
+    Attributes:
+        pattern: 그룹의 URL 패턴.
+        sample_urls: 대표 샘플 URL 목록.
+        total_count: 이 패턴에 매칭된 전체 URL 수.
+        max_samples: 보관할 최대 샘플 수.
+    """
+
+    pattern: URLPattern
+    sample_urls: list[str] = Field(default_factory=list)
+    total_count: int = 0
+    max_samples: int = 3
+
+
+class PatternNormalizationResult(BaseModel):
+    """패턴 정규화 전체 결과.
+
+    Attributes:
+        groups: 패턴 그룹 목록.
+        total_urls_processed: 처리된 전체 URL 수.
+        total_patterns_found: 발견된 고유 패턴 수.
+        total_urls_skipped: 스킵된 URL 수.
+    """
+
+    groups: list[PatternGroup] = Field(default_factory=list)
+    total_urls_processed: int = 0
+    total_patterns_found: int = 0
+    total_urls_skipped: int = 0
 
 
 class CrawlConfig(BaseModel):
@@ -36,6 +102,8 @@ class CrawlConfig(BaseModel):
     request_delay: float = 0.0
     timeout: int = 30
     max_retries: int = 3
+    enable_pattern_normalization: bool = True
+    max_samples_per_pattern: int = 3
 
 
 class FormData(BaseModel):
@@ -130,3 +198,4 @@ class CrawlResult(BaseModel):
     config: CrawlConfig
     pages: list[PageResult] = Field(default_factory=list)
     statistics: dict[str, Any] = Field(default_factory=dict)
+    pattern_groups: PatternNormalizationResult | None = None
