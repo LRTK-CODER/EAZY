@@ -2,7 +2,7 @@
 
 **Status**: 🔄 In Progress
 **Started**: 2026-02-13
-**Last Updated**: 2026-02-13 (Phase 2A complete)
+**Last Updated**: 2026-02-13 (Phase 2B complete)
 **Estimated Completion**: 2026-02-20
 
 ---
@@ -323,13 +323,13 @@ uv run ruff format --check src/ tests/
 ### Phase 2B: Network Interceptor - API Endpoint Capture
 **Goal**: Playwright의 네트워크 이벤트를 캡처하여 XHR/fetch API 호출을 식별
 **Estimated Time**: 2 hours
-**Status**: Pending
+**Status**: ✅ Complete (248 tests, 100% coverage on NetworkInterceptor)
 
 #### Tasks
 
 **RED: Write Failing Tests First**
 
-- [ ] **Test 2B.1**: NetworkInterceptor 단위 테스트
+- [x] **Test 2B.1**: NetworkInterceptor 단위 테스트
   - File(s): `tests/unit/crawler/test_network_interceptor.py` (신규 파일)
   - Expected: Tests FAIL (red) because NetworkInterceptor doesn't exist
   - Details:
@@ -344,7 +344,7 @@ uv run ruff format --check src/ tests/
 
 **GREEN: Implement to Make Tests Pass**
 
-- [ ] **Task 2B.2**: NetworkInterceptor 클래스 구현
+- [x] **Task 2B.2**: NetworkInterceptor 클래스 구현
   - File(s): `src/eazy/crawler/network_interceptor.py` (신규 파일)
   - Goal: Test 2B.1 통과
   - Details:
@@ -357,44 +357,44 @@ uv run ruff format --check src/ tests/
 
 **REFACTOR: Clean Up Code**
 
-- [ ] **Task 2B.3**: 코드 품질 개선
+- [x] **Task 2B.3**: 코드 품질 개선
   - Files: `src/eazy/crawler/network_interceptor.py`
   - Goal: 테스트 깨지지 않으면서 설계 개선
   - Checklist:
-    - [ ] Google 스타일 docstring 추가
-    - [ ] listener cleanup 보장 (context manager 패턴 고려)
-    - [ ] 중복 제거 로직 최적화
+    - [x] Google 스타일 docstring 추가
+    - [x] listener cleanup 보장 (stop()에서 remove_listener 호출)
+    - [x] 중복 제거 로직 최적화 (set[tuple[str, str]] + frozenset 필터)
 
 #### Quality Gate
 
 **STOP: Do NOT proceed to Phase 3 until ALL checks pass**
 
 **TDD Compliance** (CRITICAL):
-- [ ] **Red Phase**: Tests were written FIRST and initially failed
-- [ ] **Green Phase**: Production code written to make tests pass
-- [ ] **Refactor Phase**: Code improved while tests still pass
-- [ ] **Coverage Check**: NetworkInterceptor 커버리지 >= 80%
+- [x] **Red Phase**: Tests were written FIRST and initially failed
+- [x] **Green Phase**: Production code written to make tests pass
+- [x] **Refactor Phase**: Code improved while tests still pass
+- [x] **Coverage Check**: NetworkInterceptor 커버리지 100% (>= 80%)
 
 **Build & Tests**:
-- [ ] **All Tests Pass**: 기존 + Phase 1 + 2A + 2B 테스트 전부 통과
-- [ ] **No Flaky Tests**: 일관된 결과
+- [x] **All Tests Pass**: 240 existing + 8 new = 248 total passed
+- [x] **No Flaky Tests**: 일관된 결과
 
 **Code Quality**:
-- [ ] **Linting**: `uv run ruff check src/ tests/` — 에러 없음
-- [ ] **Formatting**: `uv run ruff format --check src/ tests/` — 변경 없음
+- [x] **Linting**: `uv run ruff check src/ tests/` — All checks passed
+- [x] **Formatting**: `uv run ruff format --check src/ tests/` — Already formatted
 
 **Validation Commands**:
 ```bash
 uv run pytest tests/ -v
-uv run pytest tests/ --cov=src/eazy/crawler/network_interceptor --cov-report=term-missing
+uv run pytest tests/ --cov=eazy.crawler.network_interceptor --cov-report=term-missing
 uv run ruff check src/ tests/
 uv run ruff format --check src/ tests/
 ```
 
 **Manual Test Checklist**:
-- [ ] XHR 요청이 EndpointInfo로 정확히 캡처됨
-- [ ] fetch 요청이 EndpointInfo로 정확히 캡처됨
-- [ ] 이미지/CSS/폰트 등 정적 리소스는 무시됨
+- [x] XHR 요청이 EndpointInfo로 정확히 캡처됨
+- [x] fetch 요청이 EndpointInfo로 정확히 캡처됨
+- [x] 이미지/CSS/폰트 등 정적 리소스는 무시됨
 
 ---
 
@@ -767,19 +767,19 @@ uv run ruff format --check src/ tests/
 ### Completion Status
 - **Phase 1**: 100% ✅
 - **Phase 2A**: 100% ✅
-- **Phase 2B**: 0%
+- **Phase 2B**: 100% ✅
 - **Phase 3**: 0%
 - **Phase 4**: 0%
 - **Phase 5**: 0%
 
-**Overall Progress**: 33% complete (2/6 phases)
+**Overall Progress**: 50% complete (3/6 phases)
 
 ### Time Tracking
 | Phase | Estimated | Actual | Variance |
 |-------|-----------|--------|----------|
 | Phase 1 | 3 hours | ~30 min | -2.5h (faster) |
 | Phase 2A | 2 hours | ~15 min | -1.75h (faster) |
-| Phase 2B | 2 hours | - | - |
+| Phase 2B | 2 hours | ~10 min | -1.83h (faster) |
 | Phase 3 | 4 hours | - | - |
 | Phase 4 | 3 hours | - | - |
 | Phase 5 | 3 hours | - | - |
@@ -797,6 +797,10 @@ uv run ruff format --check src/ tests/
 - Phase 2A: `resolve_url()` 재사용으로 URL 변환 중복 제거
 - Phase 2A: SPA 감지 = 프레임워크 마커(#root, #app 등) + script count threshold(>=5)
 - Phase 2A: 모든 selector 호출을 try/except로 감싸서 실패 시 빈 결과 반환 (87% coverage, 미커버 라인은 except 분기)
+- Phase 2B: `page.on()` / `page.remove_listener()` are sync — no async/await needed
+- Phase 2B: MagicMock (not AsyncMock) for request handler tests, no `pytest.mark.asyncio`
+- Phase 2B: `_API_RESOURCE_TYPES` as `ClassVar[frozenset[str]]` for O(1) membership check
+- Phase 2B: Dedup via `set[tuple[str, str]]` keyed on (url, method) — simple and effective
 
 ### Blockers Encountered
 - (Phase 진행 시 추가)
