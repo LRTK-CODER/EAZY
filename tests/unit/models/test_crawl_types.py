@@ -11,6 +11,11 @@ from eazy.models.crawl_types import (
     CrawlResult,
     EndpointInfo,
     FormData,
+    GraphEdge,
+    GraphEdgeType,
+    GraphNode,
+    GraphNodeType,
+    KnowledgeGraph,
     PageResult,
     PatternGroup,
     PatternNormalizationResult,
@@ -422,3 +427,185 @@ class TestPatternNormalizationResult:
         assert result.total_urls_processed == 100
         assert result.total_patterns_found == 1
         assert result.total_urls_skipped == 5
+
+
+class TestCrawlConfigSmartCrawling:
+    """Tests for smart crawling fields on CrawlConfig."""
+
+    def test_crawl_config_headless_default_true(self):
+        """CrawlConfig headless defaults to True."""
+        config = CrawlConfig(target_url="https://example.com")
+        assert config.headless is True
+
+    def test_crawl_config_wait_until_default_networkidle(self):
+        """CrawlConfig wait_until defaults to 'networkidle'."""
+        config = CrawlConfig(target_url="https://example.com")
+        assert config.wait_until == "networkidle"
+
+    def test_crawl_config_viewport_width_default_1280(self):
+        """CrawlConfig viewport_width defaults to 1280."""
+        config = CrawlConfig(target_url="https://example.com")
+        assert config.viewport_width == 1280
+
+    def test_crawl_config_viewport_height_default_720(self):
+        """CrawlConfig viewport_height defaults to 720."""
+        config = CrawlConfig(target_url="https://example.com")
+        assert config.viewport_height == 720
+
+    def test_crawl_config_auto_detect_spa_default_true(self):
+        """CrawlConfig auto_detect_spa defaults to True."""
+        config = CrawlConfig(target_url="https://example.com")
+        assert config.auto_detect_spa is True
+
+    def test_crawl_config_smart_fields_backward_compatible(self):
+        """Existing CrawlConfig usage works without smart fields."""
+        config = CrawlConfig(
+            target_url="https://example.com",
+            max_depth=5,
+            max_pages=100,
+        )
+        assert config.max_depth == 5
+        assert config.max_pages == 100
+        # Smart fields should have defaults
+        assert config.headless is True
+        assert config.wait_until == "networkidle"
+        assert config.viewport_width == 1280
+        assert config.viewport_height == 720
+        assert config.auto_detect_spa is True
+
+
+class TestGraphNodeType:
+    """Tests for GraphNodeType enum."""
+
+    def test_graph_node_type_has_page_api_resource(self):
+        """GraphNodeType should have page, api, resource values."""
+        expected = {"page", "api", "resource"}
+        actual = {member.value for member in GraphNodeType}
+        assert actual == expected
+
+
+class TestGraphEdgeType:
+    """Tests for GraphEdgeType enum."""
+
+    def test_graph_edge_type_has_hyperlink_form_api_redirect(self):
+        """GraphEdgeType should have hyperlink, form_action, api_call, redirect."""
+        expected = {"hyperlink", "form_action", "api_call", "redirect"}
+        actual = {member.value for member in GraphEdgeType}
+        assert actual == expected
+
+
+class TestGraphNode:
+    """Tests for GraphNode model."""
+
+    def test_graph_node_creation(self):
+        """GraphNode should store url, node_type, and metadata."""
+        node = GraphNode(
+            url="https://example.com",
+            node_type=GraphNodeType.PAGE,
+            metadata={"status_code": 200, "title": "Home"},
+        )
+        assert node.url == "https://example.com"
+        assert node.node_type == GraphNodeType.PAGE
+        assert node.metadata == {"status_code": 200, "title": "Home"}
+
+    def test_graph_node_frozen_immutable(self):
+        """GraphNode should be immutable (frozen=True)."""
+        node = GraphNode(
+            url="https://example.com",
+            node_type=GraphNodeType.PAGE,
+        )
+        with pytest.raises(ValidationError):
+            node.url = "https://other.com"
+
+
+class TestGraphEdge:
+    """Tests for GraphEdge model."""
+
+    def test_graph_edge_creation(self):
+        """GraphEdge should store source, target, and edge_type."""
+        edge = GraphEdge(
+            source="https://example.com",
+            target="https://example.com/about",
+            edge_type=GraphEdgeType.HYPERLINK,
+        )
+        assert edge.source == "https://example.com"
+        assert edge.target == "https://example.com/about"
+        assert edge.edge_type == GraphEdgeType.HYPERLINK
+
+
+class TestKnowledgeGraph:
+    """Tests for KnowledgeGraph model."""
+
+    def test_knowledge_graph_creation(self):
+        """KnowledgeGraph should start with empty nodes and edges."""
+        graph = KnowledgeGraph()
+        assert graph.nodes == {}
+        assert graph.edges == []
+
+    def test_knowledge_graph_add_node(self):
+        """KnowledgeGraph add_node should add node keyed by url."""
+        graph = KnowledgeGraph()
+        node = GraphNode(
+            url="https://example.com",
+            node_type=GraphNodeType.PAGE,
+        )
+        graph.add_node(node)
+        assert "https://example.com" in graph.nodes
+        assert graph.nodes["https://example.com"] == node
+
+    def test_knowledge_graph_add_edge(self):
+        """KnowledgeGraph add_edge should append edge to list."""
+        graph = KnowledgeGraph()
+        edge = GraphEdge(
+            source="https://example.com",
+            target="https://example.com/about",
+            edge_type=GraphEdgeType.HYPERLINK,
+        )
+        graph.add_edge(edge)
+        assert len(graph.edges) == 1
+        assert graph.edges[0] == edge
+
+    def test_knowledge_graph_get_nodes_by_type(self):
+        """KnowledgeGraph get_nodes_by_type should filter by node_type."""
+        graph = KnowledgeGraph()
+        page_node = GraphNode(
+            url="https://example.com",
+            node_type=GraphNodeType.PAGE,
+        )
+        api_node = GraphNode(
+            url="https://example.com/api/users",
+            node_type=GraphNodeType.API,
+        )
+        graph.add_node(page_node)
+        graph.add_node(api_node)
+        pages = graph.get_nodes_by_type(GraphNodeType.PAGE)
+        apis = graph.get_nodes_by_type(GraphNodeType.API)
+        assert len(pages) == 1
+        assert pages[0] == page_node
+        assert len(apis) == 1
+        assert apis[0] == api_node
+
+    def test_knowledge_graph_statistics(self):
+        """KnowledgeGraph statistics should return total_nodes and total_edges."""
+        graph = KnowledgeGraph()
+        graph.add_node(
+            GraphNode(
+                url="https://example.com",
+                node_type=GraphNodeType.PAGE,
+            )
+        )
+        graph.add_node(
+            GraphNode(
+                url="https://example.com/about",
+                node_type=GraphNodeType.PAGE,
+            )
+        )
+        graph.add_edge(
+            GraphEdge(
+                source="https://example.com",
+                target="https://example.com/about",
+                edge_type=GraphEdgeType.HYPERLINK,
+            )
+        )
+        stats = graph.statistics
+        assert stats == {"total_nodes": 2, "total_edges": 1}

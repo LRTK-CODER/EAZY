@@ -10,6 +10,7 @@ from eazy.cli.display import create_progress_spinner
 from eazy.cli.formatters import format_result
 from eazy.crawler.engine import CrawlerEngine
 from eazy.crawler.exporter import CrawlResultExporter
+from eazy.crawler.smart_engine import SmartCrawlerEngine
 from eazy.models.crawl_types import CrawlConfig
 
 __version__ = "0.1.0"
@@ -66,6 +67,9 @@ def crawl(
     user_agent: str = typer.Option(
         "EAZY/0.1", "--user-agent", help="User-Agent header."
     ),
+    smart: bool = typer.Option(
+        False, "--smart", help="Use Playwright-based smart crawling."
+    ),
     respect_robots: bool = typer.Option(
         True,
         "--respect-robots/--no-respect-robots",
@@ -102,7 +106,7 @@ def crawl(
         timeout=timeout,
         max_retries=retries,
     )
-    engine = CrawlerEngine(config)
+    engine = SmartCrawlerEngine(config) if smart else CrawlerEngine(config)
 
     with create_progress_spinner():
         result = asyncio.run(engine.crawl())

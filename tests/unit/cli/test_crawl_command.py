@@ -269,3 +269,72 @@ class TestCrawlErrorHandling:
         result = runner.invoke(app, ["crawl"])
 
         assert result.exit_code != 0
+
+
+class TestCrawlSmartOption:
+    """Tests for crawl command --smart option."""
+
+    @patch("eazy.cli.app.SmartCrawlerEngine")
+    def test_crawl_smart_option_exists(self, mock_smart_engine_cls, mock_crawl_result):
+        """Test --smart flag is accepted by the CLI."""
+        mock_engine = AsyncMock()
+        mock_engine.crawl.return_value = mock_crawl_result
+        mock_smart_engine_cls.return_value = mock_engine
+
+        result = runner.invoke(app, ["crawl", "http://example.com", "--smart"])
+
+        assert result.exit_code == 0
+
+    @patch("eazy.cli.app.CrawlerEngine")
+    @patch("eazy.cli.app.SmartCrawlerEngine")
+    def test_crawl_smart_invokes_smart_engine(
+        self, mock_smart_engine_cls, mock_regex_engine_cls, mock_crawl_result
+    ):
+        """Test --smart uses SmartCrawlerEngine, not CrawlerEngine."""
+        mock_engine = AsyncMock()
+        mock_engine.crawl.return_value = mock_crawl_result
+        mock_smart_engine_cls.return_value = mock_engine
+
+        runner.invoke(app, ["crawl", "http://example.com", "--smart"])
+
+        mock_smart_engine_cls.assert_called_once()
+        mock_regex_engine_cls.assert_not_called()
+
+    @patch("eazy.cli.app.SmartCrawlerEngine")
+    @patch("eazy.cli.app.CrawlerEngine")
+    def test_crawl_without_smart_uses_regex_engine(
+        self, mock_regex_engine_cls, mock_smart_engine_cls, mock_crawl_result
+    ):
+        """Test default crawl uses CrawlerEngine, not SmartCrawlerEngine."""
+        mock_engine = AsyncMock()
+        mock_engine.crawl.return_value = mock_crawl_result
+        mock_regex_engine_cls.return_value = mock_engine
+
+        runner.invoke(app, ["crawl", "http://example.com"])
+
+        mock_regex_engine_cls.assert_called_once()
+        mock_smart_engine_cls.assert_not_called()
+
+    @patch("eazy.cli.app.SmartCrawlerEngine")
+    def test_crawl_smart_output_json_includes_graph(
+        self, mock_smart_engine_cls, mock_crawl_result
+    ):
+        """Test --smart with --format json includes knowledge_graph key."""
+        # Build a mock result that has knowledge_graph set
+        from eazy.models.crawl_types import KnowledgeGraph
+
+        mock_crawl_result.knowledge_graph = KnowledgeGraph()
+        mock_engine = AsyncMock()
+        mock_engine.crawl.return_value = mock_crawl_result
+        mock_smart_engine_cls.return_value = mock_engine
+
+        result = runner.invoke(
+            app,
+            ["crawl", "http://example.com", "--smart", "--format", "json"],
+        )
+
+        assert result.exit_code == 0
+        import json
+
+        parsed = json.loads(result.output)
+        assert "knowledge_graph" in parsed

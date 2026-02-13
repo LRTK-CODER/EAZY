@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -88,6 +88,13 @@ class CrawlConfig(BaseModel):
         request_delay: Delay in seconds between consecutive requests.
         timeout: Request timeout in seconds.
         max_retries: Maximum retry count for failed requests.
+        enable_pattern_normalization: Whether to enable URL normalization.
+        max_samples_per_pattern: Max sample URLs per pattern group.
+        headless: Whether to run the browser in headless mode.
+        wait_until: Page load event to wait for during navigation.
+        viewport_width: Browser viewport width in pixels.
+        viewport_height: Browser viewport height in pixels.
+        auto_detect_spa: Whether to auto-detect SPA frameworks.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -104,6 +111,13 @@ class CrawlConfig(BaseModel):
     max_retries: int = 3
     enable_pattern_normalization: bool = True
     max_samples_per_pattern: int = 3
+    headless: bool = True
+    wait_until: Literal["networkidle", "domcontentloaded", "load", "commit"] = (
+        "networkidle"
+    )
+    viewport_width: int = 1280
+    viewport_height: int = 720
+    auto_detect_spa: bool = True
 
 
 class FormData(BaseModel):
@@ -148,6 +162,24 @@ class ButtonInfo(BaseModel):
     text: str | None = None
     type: str | None = None
     onclick: str | None = None
+
+
+class PageAnalysisResult(BaseModel):
+    """Result of analyzing a rendered page's DOM.
+
+    Attributes:
+        links: Absolute URLs extracted from anchor tags.
+        forms: Form data extracted from form elements.
+        buttons: Button information extracted from the page.
+        title: Page title from the document.
+        is_spa: Whether the page is detected as a Single Page Application.
+    """
+
+    links: list[str] = Field(default_factory=list)
+    forms: list[FormData] = Field(default_factory=list)
+    buttons: list[ButtonInfo] = Field(default_factory=list)
+    title: str | None = None
+    is_spa: bool = False
 
 
 class PageResult(BaseModel):
@@ -199,3 +231,122 @@ class CrawlResult(BaseModel):
     pages: list[PageResult] = Field(default_factory=list)
     statistics: dict[str, Any] = Field(default_factory=dict)
     pattern_groups: PatternNormalizationResult | None = None
+    knowledge_graph: KnowledgeGraph | None = None
+
+
+class GraphNodeType(str, Enum):
+    """Type classification for knowledge graph nodes.
+
+    Attributes:
+        PAGE: A crawled web page.
+        API: A discovered API endpoint.
+        RESOURCE: A static resource (image, stylesheet, script).
+    """
+
+    PAGE = "page"
+    API = "api"
+    RESOURCE = "resource"
+
+
+class GraphEdgeType(str, Enum):
+    """Type classification for knowledge graph edges.
+
+    Attributes:
+        HYPERLINK: An anchor tag link between pages.
+        FORM_ACTION: A form submission target.
+        API_CALL: An XHR/fetch API call.
+        REDIRECT: An HTTP redirect.
+    """
+
+    HYPERLINK = "hyperlink"
+    FORM_ACTION = "form_action"
+    API_CALL = "api_call"
+    REDIRECT = "redirect"
+
+
+class GraphNode(BaseModel):
+    """Immutable node in the knowledge graph.
+
+    Attributes:
+        url: The URL this node represents.
+        node_type: Classification of the node.
+        metadata: Additional key-value data for the node.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    url: str
+    node_type: GraphNodeType
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class GraphEdge(BaseModel):
+    """Immutable edge in the knowledge graph.
+
+    Attributes:
+        source: URL of the source node.
+        target: URL of the target node.
+        edge_type: Classification of the relationship.
+        metadata: Additional key-value data for the edge.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    source: str
+    target: str
+    edge_type: GraphEdgeType
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class KnowledgeGraph(BaseModel):
+    """Mutable knowledge graph built from crawl results.
+
+    Nodes are keyed by URL for O(1) deduplication. Edges are stored
+    as an ordered list.
+
+    Attributes:
+        nodes: Map of URL to GraphNode.
+        edges: List of GraphEdge relationships.
+    """
+
+    nodes: dict[str, GraphNode] = Field(default_factory=dict)
+    edges: list[GraphEdge] = Field(default_factory=list)
+
+    def add_node(self, node: GraphNode) -> None:
+        """Add a node to the graph, keyed by URL.
+
+        Args:
+            node: The node to add. Overwrites if URL already exists.
+        """
+        self.nodes[node.url] = node
+
+    def add_edge(self, edge: GraphEdge) -> None:
+        """Add an edge to the graph.
+
+        Args:
+            edge: The edge to append.
+        """
+        self.edges.append(edge)
+
+    def get_nodes_by_type(self, node_type: GraphNodeType) -> list[GraphNode]:
+        """Filter nodes by type.
+
+        Args:
+            node_type: The node type to filter by.
+
+        Returns:
+            List of nodes matching the given type.
+        """
+        return [n for n in self.nodes.values() if n.node_type == node_type]
+
+    @property
+    def statistics(self) -> dict[str, int]:
+        """Return summary statistics of the graph.
+
+        Returns:
+            Dict with total_nodes and total_edges counts.
+        """
+        return {
+            "total_nodes": len(self.nodes),
+            "total_edges": len(self.edges),
+        }

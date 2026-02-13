@@ -5,6 +5,7 @@ description = "AI-powered black-box penetration testing tool for web application
 requires-python = ">=3.12"
 dependencies = [
     "httpx",
+    "playwright>=1.40",
     "pydantic>=2.0",
     "typer>=0.9.0",
     "rich>=13.0",

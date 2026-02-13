@@ -8,9 +8,15 @@
       "mcp__plugin_oh-my-claudecode_omc-tools__lsp_diagnostics",
       "Bash(uv run ruff:*)",
       "Bash(uv add:*)",
-      "Bash(uv run:*)"
+      "Bash(uv run:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr edit:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "Bash(uv sync:*)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "context7",
     "playwright",
@@ -39,8 +45,17 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/post-write-format.sh",
+            "timeout": 30
+          }
+        ]
       }
     ]
-  },
-  "enableAllProjectMcpServers": true
+  }
 }
