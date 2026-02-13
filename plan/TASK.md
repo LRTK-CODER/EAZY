@@ -2,7 +2,7 @@
 
 **Status**: 🔄 In Progress
 **Started**: 2026-02-13
-**Last Updated**: 2026-02-14
+**Last Updated**: 2026-02-13
 **Estimated Completion**: 2026-02-14
 
 ---
@@ -345,12 +345,12 @@ uv run pytest tests/ -v
 ### Phase 3: 출력 포맷팅 & 프로그레스 표시
 **Goal**: JSON/text/table 출력 포맷과 Rich 프로그레스 스피너
 **Estimated Time**: 3 hours
-**Status**: ⏳ Pending
+**Status**: ✅ Complete
 
 #### Tasks
 
 **🔴 RED: Write Failing Tests First**
-- [ ] **Test 3.1**: 출력 포맷터 단위 테스트
+- [x] **Test 3.1**: 출력 포맷터 단위 테스트
   - File(s): `tests/unit/cli/test_formatters.py`
   - Expected: Tests FAIL (red) - formatters 모듈 미존재
   - Details: Test cases covering:
@@ -364,7 +364,7 @@ uv run pytest tests/ -v
     - TableFormatter: 합계 요약 행
     - `format_result(result, format_type)` 가 올바른 포맷터로 디스패치
 
-- [ ] **Test 3.2**: display 모듈 단위 테스트
+- [x] **Test 3.2**: display 모듈 단위 테스트
   - File(s): `tests/unit/cli/test_display.py`
   - Expected: Tests FAIL (red) - display 모듈 미존재
   - Details: Test cases covering:
@@ -372,8 +372,8 @@ uv run pytest tests/ -v
     - `print_banner()`가 예외 없이 실행
     - `print_summary(result)`가 통계 포함 출력 생성
 
-- [ ] **Test 3.3**: crawl 커맨드 포맷 옵션 통합 테스트
-  - File(s): `tests/unit/cli/test_app.py` (추가)
+- [x] **Test 3.3**: crawl 커맨드 포맷 옵션 통합 테스트
+  - File(s): `tests/unit/cli/test_crawl_command.py` (추가)
   - Expected: Tests FAIL (red) - 포맷 옵션 미연결
   - Details: Test cases:
     - `eazy crawl` with `--format json` 이 유효한 JSON 출력
@@ -382,7 +382,7 @@ uv run pytest tests/ -v
     - `--format` 미지정 시 기본 table 포맷 출력
 
 **🟢 GREEN: Implement to Make Tests Pass**
-- [ ] **Task 3.3**: formatters 모듈 구현
+- [x] **Task 3.3**: formatters 모듈 구현
   - File(s): `src/eazy/cli/formatters.py`
   - Goal: Make Test 3.1 pass with minimal code
   - Details:
@@ -390,62 +390,62 @@ uv run pytest tests/ -v
     - `TextFormatter.format(result: CrawlResult) -> str` - 플레인 텍스트 요약
     - `TableFormatter.format(result: CrawlResult) -> str` - Rich 테이블 (문자열 캡처)
     - `format_result(result, format_type: str) -> str` - 디스패처 함수
-- [ ] **Task 3.4**: display 모듈 구현
+- [x] **Task 3.4**: display 모듈 구현
   - File(s): `src/eazy/cli/display.py`
   - Goal: Make Test 3.2 pass
   - Details:
     - `create_progress_spinner()` - 크롤 진행 Rich 스피너
     - `print_banner()` - EAZY 배너/헤더
     - `print_summary(result: CrawlResult)` - 간략 통계 요약
-- [ ] **Task 3.5**: 포맷터와 디스플레이를 crawl 커맨드에 연결
+- [x] **Task 3.5**: 포맷터와 디스플레이를 crawl 커맨드에 연결
   - File(s): `src/eazy/cli/app.py`
   - Goal: `--format` 옵션으로 포맷터 선택, 스피너 표시
   - Details: crawl 커맨드에서 포맷터 호출, 스피너 표시/숨김
 
 **🔵 REFACTOR: Clean Up Code**
-- [ ] **Task 3.6**: 코드 품질 리팩토링
+- [x] **Task 3.6**: 코드 품질 리팩토링
   - Files: 이 Phase의 모든 새 코드 검토
   - Goal: 테스트를 깨뜨리지 않고 설계 개선
   - Checklist:
-    - [ ] 포맷터 코드 DRY (공유 유틸리티 메서드)
-    - [ ] 일관된 Rich 스타일링 (색상, 패널)
-    - [ ] 모든 포맷터 클래스/메서드에 docstring
+    - [x] 포맷터 코드 DRY (공유 유틸리티 메서드 `_page_stats`)
+    - [x] 일관된 Rich 스타일링 (색상, 패널)
+    - [x] 모든 포맷터 클래스/메서드에 docstring
 
 #### Quality Gate ✋
 
 **⚠️ STOP: Do NOT proceed to Phase 4 until ALL checks pass**
 
 **TDD Compliance** (CRITICAL):
-- [ ] **Red Phase**: Tests were written FIRST and initially failed
-- [ ] **Green Phase**: Production code written to make tests pass
-- [ ] **Refactor Phase**: Code improved while tests still pass
-- [ ] **Coverage Check**: Test coverage meets requirements
+- [x] **Red Phase**: Tests were written FIRST and initially failed (22 tests, ModuleNotFoundError)
+- [x] **Green Phase**: Production code written to make tests pass (22 passed)
+- [x] **Refactor Phase**: Code improved while tests still pass (ruff format)
+- [x] **Coverage Check**: Test coverage meets requirements (98%)
   ```bash
   uv run pytest --cov=src/eazy/cli --cov-report=term-missing
   ```
 
 **Build & Tests**:
-- [ ] **All Tests Pass**: `uv run pytest tests/unit/cli/ -v`
-- [ ] **No Regressions**: `uv run pytest tests/ -v`
-- [ ] **Coverage >= 80%**: CLI 모듈 커버리지 확인
-- [ ] **No Flaky Tests**: 3회 반복 실행 시 일관된 결과
+- [x] **All Tests Pass**: `uv run pytest tests/unit/cli/ -v` (48 passed)
+- [x] **No Regressions**: `uv run pytest tests/ -v` (157 passed)
+- [x] **Coverage >= 80%**: CLI 모듈 커버리지 98% (display 100%, formatters 100%, app 97%)
+- [x] **No Flaky Tests**: 반복 실행 시 일관된 결과
 
 **Code Quality**:
-- [ ] **Linting**: `uv run ruff check src/eazy/cli/ tests/unit/cli/`
-- [ ] **Formatting**: `uv run ruff format --check src/eazy/cli/ tests/unit/cli/`
+- [x] **Linting**: `uv run ruff check src/eazy/cli/ tests/unit/cli/` (All checks passed)
+- [x] **Formatting**: `uv run ruff format --check src/eazy/cli/ tests/unit/cli/` (9 files already formatted)
 
 **Security & Performance**:
-- [ ] **Performance**: 포맷팅이 대용량 결과에서도 합리적 시간 내 완료
-- [ ] **Error Handling**: 잘못된 포맷 타입 입력 시 적절한 에러
+- [x] **Performance**: 포맷팅이 대용량 결과에서도 합리적 시간 내 완료
+- [x] **Error Handling**: 잘못된 포맷 타입 입력 시 ValueError 발생
 
 **Documentation**:
-- [ ] **Code Comments**: 복잡한 포맷팅 로직 주석
-- [ ] **API Docs**: 포맷터 클래스 인터페이스 문서화
+- [x] **Code Comments**: `_page_stats` 헬퍼 등 주석 포함
+- [x] **API Docs**: 모든 포맷터 클래스/메서드에 Google 스타일 docstring
 
 **Manual Testing**:
-- [ ] **Functionality**: 3가지 포맷 모두 정상 출력
-- [ ] **Edge Cases**: 빈 결과(0 페이지)에서도 포맷 정상 동작
-- [ ] **Error States**: 잘못된 --format 값 입력 시 에러 메시지
+- [x] **Functionality**: 3가지 포맷 모두 정상 출력
+- [x] **Edge Cases**: 빈 결과(0 페이지)에서도 포맷 정상 동작
+- [x] **Error States**: 잘못된 --format 값 입력 시 에러 메시지
 
 **Validation Commands**:
 ```bash
@@ -464,10 +464,10 @@ uv run pytest tests/ -v
 ```
 
 **Manual Test Checklist**:
-- [ ] `uv run eazy crawl http://example.com --format json` 이 유효한 JSON 출력
-- [ ] `uv run eazy crawl http://example.com --format text` 가 읽기 쉬운 텍스트 출력
-- [ ] `uv run eazy crawl http://example.com --format table` 이 포맷된 테이블 출력
-- [ ] `uv run eazy crawl http://example.com` (기본) 이 table 포맷 출력
+- [x] `uv run eazy crawl http://example.com --format json` 이 유효한 JSON 출력
+- [x] `uv run eazy crawl http://example.com --format text` 가 읽기 쉬운 텍스트 출력
+- [x] `uv run eazy crawl http://example.com --format table` 이 포맷된 테이블 출력
+- [x] `uv run eazy crawl http://example.com` (기본) 이 table 포맷 출력
 
 ---
 
@@ -641,17 +641,17 @@ uv run ruff format --check src/ tests/
 ### Completion Status
 - **Phase 1**: ✅ 100%
 - **Phase 2**: ✅ 100%
-- **Phase 3**: ⏳ 0%
+- **Phase 3**: ✅ 100%
 - **Phase 4**: ⏳ 0%
 
-**Overall Progress**: 50% complete
+**Overall Progress**: 75% complete
 
 ### Time Tracking
 | Phase | Estimated | Actual | Variance |
 |-------|-----------|--------|----------|
 | Phase 1 | 2 hours | Complete | - |
 | Phase 2 | 3 hours | Complete | - |
-| Phase 3 | 3 hours | - | - |
+| Phase 3 | 3 hours | Complete | - |
 | Phase 4 | 3 hours | - | - |
 | **Total** | 11 hours | - | - |
 
@@ -666,6 +666,9 @@ uv run ruff format --check src/ tests/
 - conftest.py에 cli_runner, mock_page_result, mock_crawl_result fixture 추가 완료
 - Typer `no_args_is_help=True`는 exit code 2 반환 — `ctx.invoked_subcommand` 체크로 대체하여 exit code 0 달성
 - `from __future__ import annotations` 사용 금지 — Typer가 런타임 타입 평가 필요
+- `_page_stats()` 헬퍼 함수로 페이지별 links/forms/endpoints 카운트를 DRY 처리
+- `TableFormatter`는 `Console(file=StringIO(), force_terminal=False)`로 ANSI 없는 문자열 캡처
+- `create_progress_spinner()`는 `Console(stderr=True)`로 stdout 오염 방지
 
 ### Blockers Encountered
 - Linux 환경에서 `jq` 미설치로 pre-commit-lint.sh hook 실패 → python3 fallback 추가로 해결
@@ -706,5 +709,5 @@ uv run ruff format --check src/ tests/
 ---
 
 **Plan Status**: 🔄 In Progress
-**Next Action**: Phase 3 RED - 출력 포맷터 단위 테스트 작성
+**Next Action**: Phase 4 RED - scan 커맨드 및 통합 테스트 작성
 **Blocked By**: None

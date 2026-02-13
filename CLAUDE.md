@@ -131,6 +131,7 @@ cd src/frontend && pnpm test       # 테스트 실행
 
 ## 8. 핵심 지침
 
+- **TASK.md 동기화 필수**: `plan/TASK.md`에 정의된 Phase 작업을 수행한 경우, `git push` **전에** 반드시 TASK.md를 업데이트한다. 체크박스, Status, Quality Gate, Progress Tracking 등을 실제 완료 상태에 맞게 갱신하고, `docs: update TASK.md ...` 커밋을 별도로 생성한 뒤 push한다. TASK.md와 무관한 작업(예: 독립적인 chore, hotfix)은 예외이다.
 - **TDD 엄격 준수**: RED -> GREEN -> REFACTOR 사이클. 실패하는 테스트를 먼저 작성하고, 그 다음 구현한다.
 - **테스트 커버리지**: 항상 80% 이상 유지
 - **보안 도구 특성**: 안전한 페이로드 가이드라인 준수 - 대상에 파괴적인 페이로드를 절대 전송하지 않는다
