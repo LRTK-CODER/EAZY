@@ -164,6 +164,24 @@ class ButtonInfo(BaseModel):
     onclick: str | None = None
 
 
+class PageAnalysisResult(BaseModel):
+    """Result of analyzing a rendered page's DOM.
+
+    Attributes:
+        links: Absolute URLs extracted from anchor tags.
+        forms: Form data extracted from form elements.
+        buttons: Button information extracted from the page.
+        title: Page title from the document.
+        is_spa: Whether the page is detected as a Single Page Application.
+    """
+
+    links: list[str] = Field(default_factory=list)
+    forms: list[FormData] = Field(default_factory=list)
+    buttons: list[ButtonInfo] = Field(default_factory=list)
+    title: str | None = None
+    is_spa: bool = False
+
+
 class PageResult(BaseModel):
     """Result of crawling a single page.
 
