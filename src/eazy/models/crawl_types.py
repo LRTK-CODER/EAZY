@@ -231,3 +231,121 @@ class CrawlResult(BaseModel):
     pages: list[PageResult] = Field(default_factory=list)
     statistics: dict[str, Any] = Field(default_factory=dict)
     pattern_groups: PatternNormalizationResult | None = None
+
+
+class GraphNodeType(str, Enum):
+    """Type classification for knowledge graph nodes.
+
+    Attributes:
+        PAGE: A crawled web page.
+        API: A discovered API endpoint.
+        RESOURCE: A static resource (image, stylesheet, script).
+    """
+
+    PAGE = "page"
+    API = "api"
+    RESOURCE = "resource"
+
+
+class GraphEdgeType(str, Enum):
+    """Type classification for knowledge graph edges.
+
+    Attributes:
+        HYPERLINK: An anchor tag link between pages.
+        FORM_ACTION: A form submission target.
+        API_CALL: An XHR/fetch API call.
+        REDIRECT: An HTTP redirect.
+    """
+
+    HYPERLINK = "hyperlink"
+    FORM_ACTION = "form_action"
+    API_CALL = "api_call"
+    REDIRECT = "redirect"
+
+
+class GraphNode(BaseModel):
+    """Immutable node in the knowledge graph.
+
+    Attributes:
+        url: The URL this node represents.
+        node_type: Classification of the node.
+        metadata: Additional key-value data for the node.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    url: str
+    node_type: GraphNodeType
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class GraphEdge(BaseModel):
+    """Immutable edge in the knowledge graph.
+
+    Attributes:
+        source: URL of the source node.
+        target: URL of the target node.
+        edge_type: Classification of the relationship.
+        metadata: Additional key-value data for the edge.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    source: str
+    target: str
+    edge_type: GraphEdgeType
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class KnowledgeGraph(BaseModel):
+    """Mutable knowledge graph built from crawl results.
+
+    Nodes are keyed by URL for O(1) deduplication. Edges are stored
+    as an ordered list.
+
+    Attributes:
+        nodes: Map of URL to GraphNode.
+        edges: List of GraphEdge relationships.
+    """
+
+    nodes: dict[str, GraphNode] = Field(default_factory=dict)
+    edges: list[GraphEdge] = Field(default_factory=list)
+
+    def add_node(self, node: GraphNode) -> None:
+        """Add a node to the graph, keyed by URL.
+
+        Args:
+            node: The node to add. Overwrites if URL already exists.
+        """
+        self.nodes[node.url] = node
+
+    def add_edge(self, edge: GraphEdge) -> None:
+        """Add an edge to the graph.
+
+        Args:
+            edge: The edge to append.
+        """
+        self.edges.append(edge)
+
+    def get_nodes_by_type(self, node_type: GraphNodeType) -> list[GraphNode]:
+        """Filter nodes by type.
+
+        Args:
+            node_type: The node type to filter by.
+
+        Returns:
+            List of nodes matching the given type.
+        """
+        return [n for n in self.nodes.values() if n.node_type == node_type]
+
+    @property
+    def statistics(self) -> dict[str, int]:
+        """Return summary statistics of the graph.
+
+        Returns:
+            Dict with total_nodes and total_edges counts.
+        """
+        return {
+            "total_nodes": len(self.nodes),
+            "total_edges": len(self.edges),
+        }
