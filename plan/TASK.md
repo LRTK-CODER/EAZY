@@ -228,12 +228,12 @@ uv run pytest tests/ -v
 ### Phase 2: Crawl 커맨드 핵심 기능
 **Goal**: `eazy crawl <url>`이 모든 CrawlConfig 옵션으로 async 크롤링을 실행하고 결과를 출력
 **Estimated Time**: 3 hours
-**Status**: ⏳ Pending
+**Status**: ✅ Complete
 
 #### Tasks
 
 **🔴 RED: Write Failing Tests First**
-- [ ] **Test 2.1**: crawl 커맨드 옵션 및 실행 단위 테스트
+- [x] **Test 2.1**: crawl 커맨드 옵션 및 실행 단위 테스트
   - File(s): `tests/unit/cli/test_crawl_command.py`
   - Expected: Tests FAIL (red) - crawl 커맨드 미구현
   - Details: Test cases covering:
@@ -253,7 +253,7 @@ uv run pytest tests/ -v
   - Mocking: `@patch("eazy.cli.app.CrawlerEngine")` with AsyncMock
 
 **🟢 GREEN: Implement to Make Tests Pass**
-- [ ] **Task 2.2**: crawl 커맨드 구현
+- [x] **Task 2.2**: crawl 커맨드 구현
   - File(s): `src/eazy/cli/app.py`
   - Goal: Make Test 2.1 pass with minimal code
   - Details:
@@ -275,49 +275,49 @@ uv run pytest tests/ -v
     - `--output` 시 CrawlResultExporter로 파일 저장
 
 **🔵 REFACTOR: Clean Up Code**
-- [ ] **Task 2.3**: 코드 품질 리팩토링
+- [x] **Task 2.3**: 코드 품질 리팩토링
   - Files: 이 Phase의 모든 새 코드 검토
   - Goal: 테스트를 깨뜨리지 않고 설계 개선
   - Checklist:
-    - [ ] URL 유효성 검증 헬퍼 추출
-    - [ ] 일관된 에러 메시지 포맷팅
-    - [ ] 모든 함수에 docstring
-    - [ ] 타입 힌트 완성
+    - [x] URL 유효성 검증 헬퍼 추출
+    - [x] 일관된 에러 메시지 포맷팅
+    - [x] 모든 함수에 docstring
+    - [x] 타입 힌트 완성
 
 #### Quality Gate ✋
 
 **⚠️ STOP: Do NOT proceed to Phase 3 until ALL checks pass**
 
 **TDD Compliance** (CRITICAL):
-- [ ] **Red Phase**: Tests were written FIRST and initially failed
-- [ ] **Green Phase**: Production code written to make tests pass
-- [ ] **Refactor Phase**: Code improved while tests still pass
-- [ ] **Coverage Check**: Test coverage meets requirements
+- [x] **Red Phase**: Tests were written FIRST and initially failed (12 failed)
+- [x] **Green Phase**: Production code written to make tests pass (13 passed)
+- [x] **Refactor Phase**: Code improved while tests still pass (ruff format)
+- [x] **Coverage Check**: Test coverage meets requirements (94%)
   ```bash
   uv run pytest --cov=src/eazy/cli --cov-report=term-missing tests/unit/cli/
   ```
 
 **Build & Tests**:
-- [ ] **All Tests Pass**: `uv run pytest tests/unit/cli/ -v`
-- [ ] **No Regressions**: `uv run pytest tests/ -v`
-- [ ] **No Flaky Tests**: 3회 반복 실행 시 일관된 결과
+- [x] **All Tests Pass**: `uv run pytest tests/unit/cli/ -v` (22 passed)
+- [x] **No Regressions**: `uv run pytest tests/ -v` (131 passed)
+- [x] **No Flaky Tests**: 3회 반복 실행 시 일관된 결과
 
 **Code Quality**:
-- [ ] **Linting**: `uv run ruff check src/eazy/cli/ tests/unit/cli/`
-- [ ] **Formatting**: `uv run ruff format --check src/eazy/cli/ tests/unit/cli/`
+- [x] **Linting**: `uv run ruff check src/eazy/cli/ tests/unit/cli/` (All checks passed)
+- [x] **Formatting**: `uv run ruff format --check src/eazy/cli/ tests/unit/cli/` (5 files already formatted)
 
 **Security & Performance**:
-- [ ] **Error Handling**: 잘못된 URL, 네트워크 에러 등 적절히 처리
-- [ ] **Performance**: async 크롤링이 sync 래퍼에서 정상 동작
+- [x] **Error Handling**: 잘못된 URL, 네트워크 에러 등 적절히 처리
+- [x] **Performance**: async 크롤링이 sync 래퍼에서 정상 동작
 
 **Documentation**:
-- [ ] **Code Comments**: 복잡한 로직에 주석
-- [ ] **API Docs**: 모든 CLI 옵션에 help 텍스트
+- [x] **Code Comments**: 복잡한 로직에 주석
+- [x] **API Docs**: 모든 CLI 옵션에 help 텍스트
 
 **Manual Testing**:
-- [ ] **Functionality**: `uv run eazy crawl http://example.com --depth 1` 실행 및 결과 출력
-- [ ] **Edge Cases**: 잘못된 URL 입력 시 에러 메시지
-- [ ] **Error States**: 네트워크 에러 시 적절한 메시지
+- [x] **Functionality**: `uv run eazy crawl http://example.com --depth 1` 실행 및 결과 출력
+- [x] **Edge Cases**: 잘못된 URL 입력 시 에러 메시지
+- [x] **Error States**: 네트워크 에러 시 적절한 메시지
 
 **Validation Commands**:
 ```bash
@@ -336,9 +336,9 @@ uv run pytest tests/ -v
 ```
 
 **Manual Test Checklist**:
-- [ ] `uv run eazy crawl --help` 가 모든 옵션과 설명 표시
-- [ ] `uv run eazy crawl http://example.com --depth 1` 이 결과 출력
-- [ ] `uv run eazy crawl http://example.com --output test.json` 이 파일 생성
+- [x] `uv run eazy crawl --help` 가 모든 옵션과 설명 표시
+- [x] `uv run eazy crawl http://example.com --depth 1` 이 결과 출력
+- [x] `uv run eazy crawl http://example.com --output test.json` 이 파일 생성
 
 ---
 
@@ -640,17 +640,17 @@ uv run ruff format --check src/ tests/
 
 ### Completion Status
 - **Phase 1**: ✅ 100%
-- **Phase 2**: ⏳ 0%
+- **Phase 2**: ✅ 100%
 - **Phase 3**: ⏳ 0%
 - **Phase 4**: ⏳ 0%
 
-**Overall Progress**: 25% complete
+**Overall Progress**: 50% complete
 
 ### Time Tracking
 | Phase | Estimated | Actual | Variance |
 |-------|-----------|--------|----------|
 | Phase 1 | 2 hours | Complete | - |
-| Phase 2 | 3 hours | - | - |
+| Phase 2 | 3 hours | Complete | - |
 | Phase 3 | 3 hours | - | - |
 | Phase 4 | 3 hours | - | - |
 | **Total** | 11 hours | - | - |
@@ -706,5 +706,5 @@ uv run ruff format --check src/ tests/
 ---
 
 **Plan Status**: 🔄 In Progress
-**Next Action**: Phase 2 RED - crawl 커맨드 옵션 및 실행 테스트 작성
+**Next Action**: Phase 3 RED - 출력 포맷터 단위 테스트 작성
 **Blocked By**: None
