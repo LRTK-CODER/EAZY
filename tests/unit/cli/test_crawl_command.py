@@ -203,6 +203,65 @@ class TestCrawlOutput:
         assert "example.com" in content
 
 
+class TestCrawlFormatOption:
+    """Tests for crawl command --format option."""
+
+    @patch("eazy.cli.app.CrawlerEngine")
+    def test_crawl_format_json_outputs_valid_json(
+        self, mock_engine_cls, mock_crawl_result
+    ):
+        mock_engine = AsyncMock()
+        mock_engine.crawl.return_value = mock_crawl_result
+        mock_engine_cls.return_value = mock_engine
+
+        result = runner.invoke(app, ["crawl", "http://example.com", "--format", "json"])
+
+        assert result.exit_code == 0
+        import json
+
+        parsed = json.loads(result.output)
+        assert isinstance(parsed, dict)
+        assert "pages" in parsed
+
+    @patch("eazy.cli.app.CrawlerEngine")
+    def test_crawl_format_text_outputs_text_summary(
+        self, mock_engine_cls, mock_crawl_result
+    ):
+        mock_engine = AsyncMock()
+        mock_engine.crawl.return_value = mock_crawl_result
+        mock_engine_cls.return_value = mock_engine
+
+        result = runner.invoke(app, ["crawl", "http://example.com", "--format", "text"])
+
+        assert result.exit_code == 0
+        assert "example.com" in result.output
+
+    @patch("eazy.cli.app.CrawlerEngine")
+    def test_crawl_format_table_outputs_table(self, mock_engine_cls, mock_crawl_result):
+        mock_engine = AsyncMock()
+        mock_engine.crawl.return_value = mock_crawl_result
+        mock_engine_cls.return_value = mock_engine
+
+        result = runner.invoke(
+            app, ["crawl", "http://example.com", "--format", "table"]
+        )
+
+        assert result.exit_code == 0
+        assert "example.com" in result.output
+
+    @patch("eazy.cli.app.CrawlerEngine")
+    def test_crawl_default_format_is_table(self, mock_engine_cls, mock_crawl_result):
+        mock_engine = AsyncMock()
+        mock_engine.crawl.return_value = mock_crawl_result
+        mock_engine_cls.return_value = mock_engine
+
+        result = runner.invoke(app, ["crawl", "http://example.com"])
+
+        assert result.exit_code == 0
+        # Default is table format, which contains "Total" summary
+        assert "Total" in result.output or "total" in result.output
+
+
 class TestCrawlErrorHandling:
     """Tests for crawl command error handling."""
 
