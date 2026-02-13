@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 import httpx
 
 from eazy.crawler.browser_manager import BrowserManager
+from eazy.crawler.graph_builder import GraphBuilder
 from eazy.crawler.network_interceptor import NetworkInterceptor
 from eazy.crawler.page_analyzer import PageAnalyzer
 from eazy.crawler.robots_parser import RobotsParser
@@ -102,7 +103,7 @@ class SmartCrawlerEngine:
                     await asyncio.sleep(self._config.request_delay)
 
         completed_at = datetime.now(tz=timezone.utc)
-        return CrawlResult(
+        result = CrawlResult(
             target_url=self._config.target_url,
             started_at=started_at,
             completed_at=completed_at,
@@ -113,6 +114,8 @@ class SmartCrawlerEngine:
                 self._normalizer.get_results() if self._normalizer else None
             ),
         )
+        result.knowledge_graph = GraphBuilder.build(result)
+        return result
 
     async def _crawl_page(
         self,

@@ -231,6 +231,7 @@ class CrawlResult(BaseModel):
     pages: list[PageResult] = Field(default_factory=list)
     statistics: dict[str, Any] = Field(default_factory=dict)
     pattern_groups: PatternNormalizationResult | None = None
+    knowledge_graph: KnowledgeGraph | None = None
 
 
 class GraphNodeType(str, Enum):

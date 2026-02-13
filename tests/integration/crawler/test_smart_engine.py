@@ -726,3 +726,168 @@ class TestSmartCrawlConstraints:
         urls = {p.url for p in pages}
         assert "https://example.com/page" in urls
         assert "https://example.com/doc.pdf" not in urls
+
+
+class TestSmartCrawlKnowledgeGraph:
+    """Tests for knowledge graph integration in smart crawler."""
+
+    @pytest.mark.asyncio
+    @respx.mock
+    @patch("eazy.crawler.smart_engine.NetworkInterceptor")
+    @patch("eazy.crawler.smart_engine.PageAnalyzer")
+    @patch("eazy.crawler.smart_engine.BrowserManager")
+    async def test_smart_crawl_result_includes_knowledge_graph(
+        self, mock_browser_manager, mock_page_analyzer, mock_network_interceptor
+    ):
+        """Test smart crawl result includes a populated knowledge graph."""
+        # Arrange
+        config = CrawlConfig(
+            target_url="https://example.com",
+            respect_robots=False,
+            enable_pattern_normalization=False,
+        )
+        goto_map = {"https://example.com": 200}
+        analysis_map = {
+            "https://example.com": PageAnalysisResult(
+                title="Home",
+                links=["https://example.com/about"],
+                forms=[
+                    FormData(
+                        action="https://example.com/login",
+                        method="POST",
+                        inputs=[{"name": "user", "type": "text"}],
+                    )
+                ],
+            )
+        }
+        endpoint_lists = [
+            [
+                EndpointInfo(
+                    url="https://example.com/api/data",
+                    method="GET",
+                    source="fetch",
+                )
+            ]
+        ]
+
+        _setup_browser(mock_browser_manager, goto_map)
+        _setup_analyzer(mock_page_analyzer, analysis_map)
+        _setup_interceptor(mock_network_interceptor, endpoint_lists)
+
+        engine = SmartCrawlerEngine(config)
+
+        # Act
+        result = await engine.crawl()
+
+        # Assert
+        assert result.knowledge_graph is not None
+        graph = result.knowledge_graph
+        # PAGE node for example.com
+        assert "https://example.com" in graph.nodes
+        assert graph.nodes["https://example.com"].node_type.value == "page"
+        # API node for /api/data
+        assert "https://example.com/api/data" in graph.nodes
+        assert graph.nodes["https://example.com/api/data"].node_type.value == "api"
+        # Edges: hyperlink + form_action + api_call = 3
+        assert len(graph.edges) == 3
+
+    @pytest.mark.asyncio
+    @respx.mock
+    @patch("eazy.crawler.smart_engine.NetworkInterceptor")
+    @patch("eazy.crawler.smart_engine.PageAnalyzer")
+    @patch("eazy.crawler.smart_engine.BrowserManager")
+    async def test_smart_crawl_end_to_end_workflow(
+        self, mock_browser_manager, mock_page_analyzer, mock_network_interceptor
+    ):
+        """Test smart crawl → graph → JSON end-to-end workflow."""
+        import json
+
+        from eazy.crawler.graph_builder import GraphBuilder
+
+        # Arrange
+        config = CrawlConfig(
+            target_url="https://example.com",
+            respect_robots=False,
+            enable_pattern_normalization=False,
+        )
+        goto_map = {
+            "https://example.com": 200,
+            "https://example.com/about": 200,
+        }
+        analysis_map = {
+            "https://example.com": PageAnalysisResult(
+                title="Home",
+                links=["https://example.com/about"],
+            ),
+            "https://example.com/about": PageAnalysisResult(
+                title="About",
+                links=[],
+            ),
+        }
+        endpoint_lists = [[], []]
+
+        _setup_browser(mock_browser_manager, goto_map)
+        _setup_analyzer(mock_page_analyzer, analysis_map)
+        _setup_interceptor(mock_network_interceptor, endpoint_lists)
+
+        engine = SmartCrawlerEngine(config)
+
+        # Act
+        result = await engine.crawl()
+        graph_json = GraphBuilder.to_json(result.knowledge_graph)
+
+        # Assert
+        parsed = json.loads(graph_json)
+        assert "nodes" in parsed
+        assert "edges" in parsed
+        assert len(parsed["nodes"]) == 2
+        assert len(parsed["edges"]) == 1  # one hyperlink edge
+
+    @pytest.mark.asyncio
+    @respx.mock
+    @patch("eazy.crawler.smart_engine.NetworkInterceptor")
+    @patch("eazy.crawler.smart_engine.PageAnalyzer")
+    @patch("eazy.crawler.smart_engine.BrowserManager")
+    async def test_smart_crawl_with_pattern_normalization(
+        self, mock_browser_manager, mock_page_analyzer, mock_network_interceptor
+    ):
+        """Test smart crawl populates both pattern_groups and knowledge_graph."""
+        # Arrange
+        config = CrawlConfig(
+            target_url="https://example.com",
+            enable_pattern_normalization=True,
+            max_samples_per_pattern=2,
+            respect_robots=False,
+        )
+        goto_map = {
+            "https://example.com": 200,
+            "https://example.com/posts/1": 200,
+        }
+        analysis_map = {
+            "https://example.com": PageAnalysisResult(
+                title="Root",
+                links=[
+                    "https://example.com/posts/1",
+                    "https://example.com/posts/2",
+                ],
+            ),
+            "https://example.com/posts/1": PageAnalysisResult(
+                title="Post 1",
+                links=[],
+            ),
+        }
+        endpoint_lists = [[], []]
+
+        _setup_browser(mock_browser_manager, goto_map)
+        _setup_analyzer(mock_page_analyzer, analysis_map)
+        _setup_interceptor(mock_network_interceptor, endpoint_lists)
+
+        engine = SmartCrawlerEngine(config)
+
+        # Act
+        result = await engine.crawl()
+
+        # Assert
+        assert result.pattern_groups is not None
+        assert result.knowledge_graph is not None
+        assert len(result.knowledge_graph.nodes) >= 2
