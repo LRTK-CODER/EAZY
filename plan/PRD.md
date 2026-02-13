@@ -129,19 +129,96 @@ EAZY는 **AI 기반 자동화**와 **블랙박스 접근법**을 결합하여, �
 
 ---
 
-#### REQ-002B: LLM 기반 크롤링 강화
+#### REQ-002B: LLM Provider 추상화 및 인증
 
-**설명:** Gemini API를 활용하여 크롤링 정확도를 향상시키고, 숨겨진 엔드포인트 추론, 지능형 폼 채우기, 기능 흐름도 생성을 수행한다.
+**설명:** 다양한 LLM Provider를 통합하는 추상화 레이어를 구축한다. 구독 기반 인증(OAuth)과 API 키 방식을 모두 지원하며, 벤더에 종속되지 않는 범용 인터페이스로 설계한다. REQ-002C, REQ-002D 및 향후 모든 LLM 관련 기능의 기반 인프라이다.
+
+**User Story:**
+> 보안 담당자로서, 별도 API 과금 없이 기존 Gemini 구독만으로 AI 기능을 사용하고 싶다. 또한 향후 다른 LLM(Codex, Claude Code 등)으로도 쉽게 전환할 수 있기를 원한다.
+
+**Acceptance Criteria:**
+- [ ] LLMProvider 추상 인터페이스를 정의한다 (벤더 무관한 범용 계약: send prompt → receive structured response)
+- [ ] **Gemini OAuth Provider**: Google 로그인(OAuth 2.0) 기반 인증. Gemini CLI의 OAuth 플로우를 미러링하여 `cloudaicompanion.googleapis.com` 엔드포인트를 사용한다. Gemini 구독 한도 내에서 별도 API 과금 없이 동작한다
+- [ ] **Antigravity OAuth Provider**: Google Antigravity IDE의 OAuth 인증. Antigravity rate limit을 사용하여 프리미엄 모델에 접근한다
+- [ ] **Gemini API Provider**: API 키 기반 인증. Google AI Studio 무료 티어(분당 15 요청, 일당 1,500 요청) 또는 유료 요금제를 지원한다
+- [ ] OAuth 인증 시 브라우저 기반 consent 플로우 → 로컬 콜백 서버 → refresh token 저장/자동 갱신을 지원한다
+- [ ] Rate limit 도달 시 멀티 계정 자동 전환을 지원한다 (계정별 상태 추적 + 자동 로테이션)
+
+**LLM Provider 아키텍처:**
+
+```
+LLMProvider (추상 인터페이스)
+│   supports_oauth: bool          — OAuth 인증 가능 여부
+│   supports_multi_account: bool  — 멀티 계정 전환 가능 여부
+│   billing_type: str             — "subscription" | "per_token" | "free"
+│
+│  [Phase 2 — v0.5]
+├── GeminiOAuthProvider       — Google 로그인 (구독, 멀티 계정 ✅)
+├── AntigravityOAuthProvider  — Antigravity (구독, 멀티 계정 ✅)
+├── GeminiAPIProvider         — API 키 (무료 티어 / 유료, 멀티 키 ✅)
+│
+│  [Future — v2.0+]
+├── CodexOAuthProvider        — OpenAI Codex OAuth (구독, 멀티 계정 ✅)
+├── ClaudeAPIProvider         — Anthropic API 키 전용 (멀티 키 ✅)
+└── OllamaProvider            — 로컬 모델 (완전 오프라인, 무료)
+```
+
+**Provider별 Capability 매트릭스:**
+
+| Provider | OAuth | 멀티 계정 | 과금 방식 | 비고 |
+|----------|:-----:|:---------:|-----------|------|
+| GeminiOAuth | ✅ | ✅ | subscription | Gemini CLI OAuth 미러링 |
+| Antigravity | ✅ | ✅ | subscription | Antigravity IDE 엔드포인트 |
+| GeminiAPI | ❌ | ✅ (멀티 키) | per_token / free_tier | AI Studio API 키 |
+| CodexOAuth | ✅ | ✅ | subscription | ChatGPT Plus/Pro OAuth |
+| ClaudeAPI | ❌ | ✅ (멀티 키) | per_token | Anthropic이 서드파티 OAuth 차단 (2026.01) |
+| Ollama | ❌ | ❌ | free | 로컬 GPU 필요 |
+
+> **확장성 설계 원칙**: LLMProvider 인터페이스는 특정 벤더에 종속되지 않는 범용 계약(`send prompt → receive structured response`)으로 정의한다. 각 Provider는 인증 방식(OAuth, API 키, 로컬)과 호출 엔드포인트만 다르며, 크롤링/스캐닝 로직은 Provider에 무관하게 동일하게 동작한다. Provider마다 capability가 다르므로(`supports_oauth`, `supports_multi_account`, `billing_type`), 인터페이스에 capability flag를 포함하여 런타임에 적절한 동작을 선택한다.
+
+> **참고**: OAuth Provider(Gemini, Antigravity, Codex)는 각 서비스의 비공식 내부 엔드포인트를 사용하며, 서비스 제공자가 엔드포인트를 변경하면 영향받을 수 있다. Anthropic은 2026년 1월 서드파티 OAuth 접근을 차단하여 Claude는 API 키 방식만 가능하다. Provider 추상화로 이러한 변경에 빠르게 대응할 수 있도록 설계한다.
+
+---
+
+#### REQ-002C: LLM 기반 크롤링 강화
+
+**설명:** REQ-002B의 LLM Provider를 활용하여 크롤링 정확도를 향상시킨다. 페이지 컨텍스트 분석으로 숨겨진 엔드포인트를 추론하고, 지능형 폼 채우기, 기능 흐름도 자동 생성을 수행한다.
 
 **User Story:**
 > 보안 담당자로서, AI가 페이지 컨텍스트를 이해하여 일반 크롤러가 놓치는 숨겨진 기능과 엔드포인트까지 탐지해 주기를 원한다.
 
 **Acceptance Criteria:**
-- [] Gemini API를 연결하여 페이지 컨텍스트를 이해하고 숨겨진 엔드포인트/기능을 추론한다
-- [] LLM 기반 크롤링 우선순위를 자동으로 결정한다
-- [] REQ-001(정규식 크롤링)과 독립적으로 LLM 기반 파싱을 수행한 후, 정규식 크롤링에서 발견하지 못한 부분을 보완 반영한다
-- [] LLM 기반 지능형 폼 필드 자동 채우기를 지원한다
-- [] 크롤링 결과에서 API 간 호출 관계와 기본 기능 흐름도를 자동 생성한다
+- [ ] LLM Provider를 통해 페이지 컨텍스트를 이해하고 숨겨진 엔드포인트/기능을 추론한다
+- [ ] LLM 기반 크롤링 우선순위를 자동으로 결정한다
+- [ ] REQ-001(정규식 크롤링)과 독립적으로 LLM 기반 파싱을 수행한 후, 정규식 크롤링에서 발견하지 못한 부분을 보완 반영한다
+- [ ] LLM 기반 지능형 폼 필드 자동 채우기를 지원한다
+- [ ] 크롤링 결과에서 API 간 호출 관계와 기본 기능 흐름도를 자동 생성한다
+
+---
+
+#### REQ-002D: LLM 호출 최적화 파이프라인
+
+**설명:** LLM 호출 횟수와 토큰 사용량을 최소화하는 4단계 최적화 파이프라인을 구축한다. OAuth 구독 기반에서는 rate limit 관리, API 키 기반에서는 비용 절감이 주 목적이다.
+
+**User Story:**
+> 보안 담당자로서, 대규모 사이트 진단 시에도 LLM rate limit에 걸리지 않고, 빠르고 효율적으로 AI 분석이 수행되기를 원한다.
+
+**Acceptance Criteria:**
+- [ ] **L1 — HTML 전처리**: style/script 본문, 주석을 제거하고 DOM 구조만 추출하여 입력 토큰을 90% 절감한다
+- [ ] **L2 — 선택적 LLM 호출**: 폼, 동적 콘텐츠, 인증 관련 등 "흥미로운" 페이지만 LLM을 호출하고, 정적 페이지(about, contact 등)는 스킵한다
+- [ ] **L3 — URL 패턴 캐싱**: 기존 URLPatternNormalizer와 연동하여 동일 패턴 URL 중 대표 1개만 LLM 분석 후, 결과를 패턴 그룹 전체에 적용한다
+- [ ] **L4 — 배치 + 프롬프트 최적화**: 여러 페이지를 1회 호출로 묶고, structured JSON output으로 응답 토큰을 최소화한다
+- [ ] `--llm-calls-budget N` 옵션으로 최대 LLM 호출 횟수를 제한할 수 있다
+
+**4단계 최적화 효과 (100페이지 사이트 기준):**
+
+| 단계 | 전략 | 절감률 | 잔여 LLM 호출 |
+|------|------|--------|---------------|
+| 원본 | — | — | 100회 |
+| L1 HTML 전처리 | 입력 토큰 90% 감소 | 입력 크기 절감 | 100회 |
+| L2 선택적 호출 | 정적 페이지 스킵 | 호출 60% 감소 | 40회 |
+| L3 패턴 캐싱 | 동일 패턴 1회만 | 호출 50% 감소 | 20회 |
+| L4 배치 처리 | 5페이지/1회 묶음 | 호출 80% 감소 | **4회** |
 
 ---
 
@@ -602,7 +679,9 @@ EAZY는 **AI 기반 자동화**와 **블랙박스 접근법**을 결합하여, �
 | 항목 | REQ | 내용 |
 |------|-----|------|
 | 스마트 크롤링 코어 | REQ-002A | Playwright 기반 헤드리스 브라우저 크롤링 |
-| LLM 크롤링 강화 | REQ-002B | Gemini API 연동, 숨겨진 엔드포인트 추론, 흐름도 생성 |
+| LLM Provider 추상화 및 인증 | REQ-002B | LLMProvider 인터페이스 + OAuth/API 키 다중 인증 + 멀티 계정 전환 |
+| LLM 크롤링 강화 | REQ-002C | 숨겨진 엔드포인트 추론, 폼 채우기, 흐름도 생성 |
+| LLM 호출 최적화 | REQ-002D | HTML 전처리, 선택적 호출, 패턴 캐싱, 배치 처리 |
 
 #### Phase 2b: AI 공격 시나리오 (3주)
 
