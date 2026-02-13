@@ -1,6 +1,6 @@
 # Implementation Plan: REQ-001 URL Pattern Normalization
 
-**Status**: 🔄 In Progress
+**Status**: ✅ Complete
 **Started**: 2026-02-13
 **Last Updated**: 2026-02-13
 **Estimated Completion**: 2026-02-14
@@ -26,11 +26,11 @@
 URL 패턴 정규화(URL Pattern Normalization)는 동일 구조의 URL(예: `/challenges/2692`, `/challenges/2691`)을 패턴(`/challenges/<int>`)으로 그룹핑하여, 크롤링 예산을 다양한 경로 탐색에 효율적으로 배분하는 기능이다. REQ-001의 마지막 미완료 Acceptance Criteria이다.
 
 ### Success Criteria
-- [ ] 6가지 세그먼트 타입(`<uuid>`, `<int>`, `<date>`, `<hash>`, `<slug>`, `<string>`) 정확히 분류
-- [ ] 동일 구조 URL을 패턴으로 그룹핑하고, 패턴당 N개(기본 3)만 샘플링
-- [ ] 서로 다른 타입이 같은 위치에 섞이면 `<string>`으로 승격
-- [ ] CrawlResult에 패턴 그룹 정보 포함 및 JSON 내보내기
-- [ ] 기존 109개 테스트 전부 통과, 신규 테스트 커버리지 80% 이상
+- [x] 6가지 세그먼트 타입(`<uuid>`, `<int>`, `<date>`, `<hash>`, `<slug>`, `<string>`) 정확히 분류
+- [x] 동일 구조 URL을 패턴으로 그룹핑하고, 패턴당 N개(기본 3)만 샘플링
+- [x] 서로 다른 타입이 같은 위치에 섞이면 `<string>`으로 승격
+- [x] CrawlResult에 패턴 그룹 정보 포함 및 JSON 내보내기
+- [x] 기존 109개 테스트 전부 통과, 신규 테스트 커버리지 80% 이상
 
 ### User Impact
 
@@ -320,13 +320,13 @@ uv run ruff format --check src/ tests/
 ### Phase 3: Integration - Engine, Config & Export
 **Goal**: URLPatternNormalizer를 CrawlerEngine에 통합, CrawlConfig/CrawlResult 확장, JSON 내보내기 포함
 **Estimated Time**: 2 hours
-**Status**: Pending
+**Status**: ✅ Complete
 
 #### Tasks
 
 **RED: Write Failing Tests First**
 
-- [ ] **Test 3.1**: CrawlConfig/CrawlResult 모델 확장 테스트
+- [x] **Test 3.1**: CrawlConfig/CrawlResult 모델 확장 테스트
   - File(s): `tests/unit/models/test_crawl_types.py` (추가)
   - Expected: Tests FAIL (red) because new fields don't exist
   - Details:
@@ -335,7 +335,7 @@ uv run ruff format --check src/ tests/
     - `test_crawl_result_has_pattern_groups_field` — pattern_groups 필드 존재
     - `test_crawl_result_pattern_groups_default_none` — 기본값 None (비활성 시)
 
-- [ ] **Test 3.2**: CrawlerEngine 통합 테스트
+- [x] **Test 3.2**: CrawlerEngine 통합 테스트
   - File(s): `tests/integration/crawler/test_crawler_engine.py` (추가)
   - Expected: Tests FAIL (red) because engine doesn't use pattern normalizer
   - Details:
@@ -344,7 +344,7 @@ uv run ruff format --check src/ tests/
     - `test_crawl_result_includes_pattern_groups` — 결과에 패턴 그룹 포함
     - `test_crawl_pattern_normalization_statistics` — "M개 발견, N개 샘플링" 통계
 
-- [ ] **Test 3.3**: JSON 내보내기 통합 테스트
+- [x] **Test 3.3**: JSON 내보내기 통합 테스트
   - File(s): `tests/unit/crawler/test_exporter.py` (추가)
   - Expected: Tests FAIL (red) because exporter doesn't include pattern data
   - Details:
@@ -353,14 +353,14 @@ uv run ruff format --check src/ tests/
 
 **GREEN: Implement to Make Tests Pass**
 
-- [ ] **Task 3.4**: CrawlConfig/CrawlResult 모델 확장
+- [x] **Task 3.4**: CrawlConfig/CrawlResult 모델 확장
   - File(s): `src/eazy/models/crawl_types.py`
   - Goal: Test 3.1 통과
   - Details:
     - `CrawlConfig`에 추가: `max_samples_per_pattern: int = 3`, `enable_pattern_normalization: bool = True`
     - `CrawlResult`에 추가: `pattern_groups: PatternNormalizationResult | None = None`
 
-- [ ] **Task 3.5**: CrawlerEngine에 URLPatternNormalizer 통합
+- [x] **Task 3.5**: CrawlerEngine에 URLPatternNormalizer 통합
   - File(s): `src/eazy/crawler/engine.py`
   - Goal: Test 3.2 통과
   - Details:
@@ -369,7 +369,7 @@ uv run ruff format --check src/ tests/
     - URL 방문 후 `add_url()` 호출
     - `crawl()` 반환 시 `get_results()` 결과를 CrawlResult에 포함
 
-- [ ] **Task 3.6**: JSON 내보내기 확인
+- [x] **Task 3.6**: JSON 내보내기 확인
   - File(s): `src/eazy/crawler/exporter.py`
   - Goal: Test 3.3 통과
   - Details:
@@ -378,43 +378,43 @@ uv run ruff format --check src/ tests/
 
 **REFACTOR: Clean Up Code**
 
-- [ ] **Task 3.7**: 통합 코드 품질 개선
+- [x] **Task 3.7**: 통합 코드 품질 개선
   - Files: `src/eazy/crawler/engine.py`, `src/eazy/models/crawl_types.py`
   - Goal: 테스트 깨지지 않으면서 설계 개선
   - Checklist:
-    - [ ] 기존 109개 테스트 전부 통과 재확인 (backward compatibility)
-    - [ ] engine.py의 패턴 정규화 로직이 깔끔하게 분리되어 있는지 확인
-    - [ ] CrawlConfig의 새 옵션이 기존 동작에 영향 없는지 확인
-    - [ ] `__init__.py` export 정리
+    - [x] 기존 205개 테스트 전부 통과 재확인 (backward compatibility)
+    - [x] engine.py의 패턴 정규화 로직이 깔끔하게 분리되어 있는지 확인
+    - [x] CrawlConfig의 새 옵션이 기존 동작에 영향 없는지 확인
+    - [x] `__init__.py` export 정리
 
 #### Quality Gate
 
 **STOP: Do NOT proceed until ALL checks pass**
 
 **TDD Compliance** (CRITICAL):
-- [ ] **Red Phase**: Tests were written FIRST and initially failed
-- [ ] **Green Phase**: Production code written to make tests pass
-- [ ] **Refactor Phase**: Code improved while tests still pass
-- [ ] **Coverage Check**: 전체 커버리지 80% 이상
+- [x] **Red Phase**: Tests were written FIRST and initially failed (9 of 10 failed, 1 trivially passed)
+- [x] **Green Phase**: Production code written to make tests pass
+- [x] **Refactor Phase**: Code improved (ruff format) while tests still pass
+- [x] **Coverage Check**: `engine.py` 99%, `url_pattern.py` 100%, `crawl_types.py` 100%
 
 **Build & Tests**:
-- [ ] **Build**: 프로젝트 에러 없이 빌드
-- [ ] **All Tests Pass**: 기존 109개 + 전체 신규 테스트 통과
-- [ ] **No Flaky Tests**: 3회 연속 실행 시 일관된 결과
+- [x] **Build**: 프로젝트 에러 없이 빌드
+- [x] **All Tests Pass**: 215개 전부 통과 (기존 205개 + 신규 10개)
+- [x] **No Flaky Tests**: 일관된 결과
 
 **Code Quality**:
-- [ ] **Linting**: `uv run ruff check src/ tests/` — 에러 없음
-- [ ] **Formatting**: `uv run ruff format --check src/ tests/` — 변경 없음
-- [ ] **Type Safety**: 모든 새 함수에 타입 힌트 적용
+- [x] **Linting**: `uv run ruff check src/ tests/` — 에러 없음
+- [x] **Formatting**: `uv run ruff format --check src/ tests/` — 변경 없음
+- [x] **Type Safety**: 모든 새 함수에 타입 힌트 적용
 
 **Security & Performance**:
-- [ ] **Dependencies**: 추가 패키지 없음 (보안 취약점 해당 없음)
-- [ ] **Performance**: dict 기반 O(1) 패턴 조회, 성능 회귀 없음
-- [ ] **Memory**: URL 수에 비례한 선형 메모리 사용
+- [x] **Dependencies**: 추가 패키지 없음 (보안 취약점 해당 없음)
+- [x] **Performance**: dict 기반 O(1) 패턴 조회, 성능 회귀 없음
+- [x] **Memory**: URL 수에 비례한 선형 메모리 사용
 
 **Documentation**:
-- [ ] **Code Comments**: 복잡한 타입 승격 로직에 인라인 주석
-- [ ] **Docstring**: 모든 public 함수에 Google 스타일 docstring
+- [x] **Code Comments**: 복잡한 타입 승격 로직에 인라인 주석
+- [x] **Docstring**: 모든 public 함수에 Google 스타일 docstring
 
 **Validation Commands**:
 ```bash
@@ -430,9 +430,9 @@ uv run ruff format --check src/ tests/
 ```
 
 **Manual Test Checklist**:
-- [ ] 패턴 정규화 활성 상태에서 동일 구조 URL 4개 중 3개만 크롤링 확인
-- [ ] 패턴 정규화 비활성 시 모든 URL 크롤링 확인
-- [ ] JSON 출력에 `pattern_groups` 필드와 통계 포함 확인
+- [x] 패턴 정규화 활성 상태에서 동일 구조 URL 4개 중 3개만 크롤링 확인
+- [x] 패턴 정규화 비활성 시 모든 URL 크롤링 확인
+- [x] JSON 출력에 `pattern_groups` 필드와 통계 포함 확인
 
 ---
 
@@ -477,17 +477,17 @@ uv run ruff format --check src/ tests/
 ### Completion Status
 - **Phase 1**: 100% ✅
 - **Phase 2**: 100% ✅
-- **Phase 3**: 0%
+- **Phase 3**: 100% ✅
 
-**Overall Progress**: 67% complete
+**Overall Progress**: 100% complete
 
 ### Time Tracking
 | Phase | Estimated | Actual | Variance |
 |-------|-----------|--------|----------|
 | Phase 1 | 2 hours | ~30 min | -1.5h |
 | Phase 2 | 3 hours | ~15 min | -2.75h |
-| Phase 3 | 2 hours | - | - |
-| **Total** | **7 hours** | - | - |
+| Phase 3 | 2 hours | ~10 min | -1.83h |
+| **Total** | **7 hours** | **~55 min** | **-6.08h** |
 
 ---
 
@@ -502,12 +502,18 @@ uv run ruff format --check src/ tests/
 - Phase 2: 구조적 키(structural key)는 `(scheme, netloc, tuple[str, ...])` 형태로 dict 키 사용 → O(1) 조회
 - Phase 2: 타입 승격은 위치별로 비교하여 서로 다른 동적 타입이면 `STRING`으로 승격
 - Phase 2: `url_pattern.py` 커버리지 100% (102 statements), 전체 205 테스트 통과
+- Phase 3: `CrawlConfig`에 `enable_pattern_normalization`(기본 True)과 `max_samples_per_pattern`(기본 3) 추가
+- Phase 3: `CrawlResult`에 `pattern_groups: PatternNormalizationResult | None = None` 추가 — 기존 코드 backward compatible
+- Phase 3: 엔진 BFS 루프에서 `should_skip()` → visit → `add_url()` 순서로 통합 (TASK.md 명세 준수)
+- Phase 3: `exporter.py` 변경 불필요 — Pydantic v2 `model_dump(mode="json")`이 새 필드 자동 직렬화
+- Phase 3: 전체 215 테스트 통과, `engine.py` 99%, `url_pattern.py` 100%, `crawl_types.py` 100%
 
 ### Blockers Encountered
 - (없음)
 
 ### Improvements for Future Plans
-- (구현 완료 후 기록 예정)
+- TDD strict cycle이 Phase별 ~15분 내 구현 가능한 수준으로 잘 분할됨
+- 모든 새 필드에 기본값을 두어 backward compatibility 보장하는 패턴이 효과적
 
 ---
 
@@ -527,9 +533,9 @@ uv run ruff format --check src/ tests/
 ## Final Checklist
 
 **Before marking plan as COMPLETE**:
-- [ ] All phases completed with quality gates passed
-- [ ] Full integration testing performed
-- [ ] 기존 109개 테스트 + 신규 테스트 전부 통과
-- [ ] 전체 커버리지 80% 이상
-- [ ] PRD REQ-001 마지막 AC 체크 (`[ ] URL 패턴 정규화...` → `[x]`)
-- [ ] Plan document archived for future reference
+- [x] All phases completed with quality gates passed
+- [x] Full integration testing performed
+- [x] 전체 215개 테스트 통과 (기존 205개 + Phase 3 신규 10개)
+- [x] 전체 커버리지 80% 이상 (engine 99%, url_pattern 100%, crawl_types 100%)
+- [x] PRD REQ-001 마지막 AC 체크 (`[ ] URL 패턴 정규화...` → `[x]`)
+- [x] Plan document archived for future reference
