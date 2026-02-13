@@ -3,7 +3,15 @@
 # pre-commit hook이 파일을 수정하는 것을 방지하여 "외부 변경" 감지 문제 해결
 
 INPUT=$(cat)
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+
+# jq 우선, 없으면 python3 fallback
+if command -v jq &>/dev/null; then
+  COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+else
+  COMMAND=$(echo "$INPUT" | python3 -c \
+    "import sys,json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('command',''))" \
+    2>/dev/null || true)
+fi
 
 # git commit 명령이 아니면 무시
 if ! echo "$COMMAND" | grep -q 'git commit'; then
