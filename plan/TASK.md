@@ -1,4 +1,4 @@
-# Implementation Plan: REQ-009 CLI 인터페이스
+# Implementation Plan: REQ-001 URL Pattern Normalization
 
 **Status**: 🔄 In Progress
 **Started**: 2026-02-13
@@ -7,707 +7,522 @@
 
 ---
 
-**⚠️ CRITICAL INSTRUCTIONS**: After completing each phase:
-1. ✅ Check off completed task checkboxes
-2. 🧪 Run all quality gate validation commands
-3. ⚠️ Verify ALL quality gate items pass
-4. 📅 Update "Last Updated" date above
-5. 📝 Document learnings in Notes section
-6. ➡️ Only then proceed to next phase
+**CRITICAL INSTRUCTIONS**: After completing each phase:
+1. Check off completed task checkboxes
+2. Run all quality gate validation commands
+3. Verify ALL quality gate items pass
+4. Update "Last Updated" date above
+5. Document learnings in Notes section
+6. Only then proceed to next phase
 
-⛔ **DO NOT skip quality gates or proceed with failing checks**
+**DO NOT skip quality gates or proceed with failing checks**
 
 ---
 
-## 📋 Overview
+## Overview
 
 ### Feature Description
-CLI 인터페이스(REQ-009)로 터미널에서 크롤링 및 스캔을 실행할 수 있게 한다.
-Typer + Rich 기반으로 기존 async CrawlerEngine을 래핑하며, `eazy crawl <url>`, `eazy scan <url>`,
-출력 포맷팅(JSON/text/table), 프로그레스 표시, 파일 내보내기를 지원한다.
+
+URL 패턴 정규화(URL Pattern Normalization)는 동일 구조의 URL(예: `/challenges/2692`, `/challenges/2691`)을 패턴(`/challenges/<int>`)으로 그룹핑하여, 크롤링 예산을 다양한 경로 탐색에 효율적으로 배분하는 기능이다. REQ-001의 마지막 미완료 Acceptance Criteria이다.
 
 ### Success Criteria
-- [ ] `eazy crawl <url>` 이 크롤링을 실행하고 결과를 출력한다
-- [ ] `eazy scan <url>` 커맨드 구조가 존재한다 (크롤러 + 스캐너 placeholder)
-- [ ] `--depth`, `--include-subdomains`, `--output`, `--format` 옵션이 정상 동작한다
-- [ ] 크롤링 실행 중 프로그레스가 표시된다
-- [ ] JSON/text/table 출력 포맷이 올바르게 렌더링된다
-- [ ] `eazy resume <scan-id>` 커맨드가 안내 메시지와 함께 존재한다
-- [ ] `--help`가 모든 커맨드와 옵션의 문서를 표시한다
-- [ ] CLI 모듈 테스트 커버리지 >= 80%
+- [ ] 6가지 세그먼트 타입(`<uuid>`, `<int>`, `<date>`, `<hash>`, `<slug>`, `<string>`) 정확히 분류
+- [ ] 동일 구조 URL을 패턴으로 그룹핑하고, 패턴당 N개(기본 3)만 샘플링
+- [ ] 서로 다른 타입이 같은 위치에 섞이면 `<string>`으로 승격
+- [ ] CrawlResult에 패턴 그룹 정보 포함 및 JSON 내보내기
+- [ ] 기존 109개 테스트 전부 통과, 신규 테스트 커버리지 80% 이상
 
 ### User Impact
-보안 전문가가 터미널에서 직관적인 커맨드로 EAZY를 실행할 수 있어, 스크립트, CI/CD 파이프라인, 수동 워크플로우에 통합 가능하다.
+
+크롤링 시 동일 구조의 페이지(상품 상세, 게시글 등)를 자동 감지하여 중복 크롤링을 방지한다. 크롤링 예산이 다양한 경로 탐색에 효율적으로 배분되어 전체 사이트 구조를 더 빠르고 완전하게 파악할 수 있다.
 
 ---
 
-## 🏗️ Architecture Decisions
+## Architecture Decisions
 
 | Decision | Rationale | Trade-offs |
 |----------|-----------|------------|
-| Typer CLI 프레임워크 | 타입 힌트 기반, 자동 --help 생성, Rich 통합 내장, Click 위에 구축 | Click 단독 대비 약간 덜 성숙 |
-| Rich 디스플레이 | 프로그레스 바, 테이블, 패널 - REQ-009 표시 요구사항 전부 충족 | 추가 의존성 |
-| asyncio.run() 래퍼 | Typer는 sync 전용; async 호출 래핑은 표준 패턴 | 테스트에서 약간의 복잡성 |
-| Formatter 프로토콜 클래스 | 출력 포맷의 깔끔한 분리, 새 포맷 추가 용이 | 작은 추상화 오버헤드 |
+| 새 파일 `url_pattern.py` 생성 (기존 `url_resolver.py` 확장 대신) | `url_resolver.py`는 URL 정규화/스코프 체크 담당, 패턴 분류/그룹핑은 별도 관심사 | 파일 하나 추가되지만 SRP(단일 책임 원칙) 준수 |
+| 증분(incremental) 분류 방식 | 크롤링은 URL을 하나씩 발견하므로 스트리밍 처리가 자연스러움 | 타입 승격 시 그룹 병합 로직 필요 |
+| 구조적 키(structural key)로 1차 그룹핑 | 리터럴 세그먼트 고정 + 동적 세그먼트 `*`로 마킹하여 구조 매칭 → PRD의 승격 규칙 정확 구현 | 2단계 그룹핑으로 약간 복잡하지만 엣지 케이스 정확 처리 |
+| 리터럴 vs 동적 세그먼트 구분 | 5가지 패턴(uuid/int/date/hash/slug)에 매칭되면 동적, 아니면 리터럴(경로명 그대로 유지) | `admin123` 같은 애매한 경우는 리터럴로 분류 (안전한 기본값) |
 
 ---
 
-## 📦 Dependencies
+## Dependencies
 
 ### Required Before Starting
-- [x] CrawlerEngine 모듈 존재 및 테스트 완료 (REQ-001)
-- [x] Pydantic 모델 정의 완료 (CrawlConfig, CrawlResult, PageResult)
+- [x] REQ-001 기존 크롤링 엔진 구현 완료 (6/7 AC 완료)
+- [x] `url_resolver.py`의 `normalize_url()` 함수 동작 확인
 
 ### External Dependencies
-- typer >= 0.9.0 (CLI 프레임워크, Click 포함)
-- rich >= 13.0 (터미널 포맷팅, 프로그레스 바, 테이블)
+- 추가 패키지 없음 (stdlib `re` + 기존 `pydantic` 사용)
 
 ---
 
-## 🧪 Test Strategy
+## Test Strategy
 
 ### Testing Approach
 **TDD Principle**: Write tests FIRST, then implement to make them pass
 
-CLI 테스트는 `typer.testing.CliRunner`로 커맨드를 호출하고 exit code, stdout 출력, 부수효과를 검증한다.
-Async 크롤러 호출은 `unittest.mock.AsyncMock`으로 모킹한다.
-
 ### Test Pyramid for This Feature
 | Test Type | Coverage Target | Purpose |
 |-----------|-----------------|---------|
-| **Unit Tests** | ≥80% | CLI 커맨드, 포맷터, 디스플레이 헬퍼 |
-| **Integration Tests** | Critical paths | CLI -> CrawlerEngine -> mocked HTTP |
+| **Unit Tests** | >=80% | 세그먼트 분류, 패턴 정규화, 그룹핑, 샘플링 로직 |
+| **Integration Tests** | Critical paths | CrawlerEngine과 URLPatternNormalizer 연동, 중복 스킵 |
+| **E2E Tests** | Key user flows | JSON 내보내기에 패턴 그룹 포함 확인 |
 
 ### Test File Organization
 ```
 tests/
-├── conftest.py                              # 공유 fixture (mock_crawl_result, cli_runner)
 ├── unit/
-│   └── cli/
-│       ├── __init__.py
-│       ├── test_app.py                      # 앱 구조, --help, --version
-│       ├── test_crawl_command.py            # crawl 커맨드 옵션 및 실행
-│       ├── test_scan_command.py             # scan 커맨드 구조
-│       ├── test_formatters.py              # 출력 포맷터 테스트
-│       └── test_display.py                 # 디스플레이 헬퍼 테스트
-└── integration/
-    └── cli/
-        ├── __init__.py
-        └── test_cli_crawl_integration.py   # 전체 크롤 플로우 (mocked HTTP)
+│   ├── models/
+│   │   └── test_crawl_types.py          # 기존 + SegmentType, PatternGroup 모델 테스트 추가
+│   └── crawler/
+│       └── test_url_pattern.py          # [NEW] 세그먼트 분류 + 패턴 정규화 + 그룹핑 테스트
+├── integration/
+│   └── crawler/
+│       └── test_crawler_engine.py       # 기존 + 패턴 정규화 통합 테스트 추가
 ```
 
 ### Coverage Requirements by Phase
-- **Phase 1 (Foundation)**: CLI 앱 구조 단위 테스트 (≥80%)
-- **Phase 2 (Crawl Command)**: crawl 커맨드 옵션 + 실행 테스트 (≥80%)
-- **Phase 3 (Formatters)**: 포맷터 + 디스플레이 테스트 (≥80%)
-- **Phase 4 (Scan/Integration)**: scan 커맨드 + 통합 테스트 (≥80%)
+- **Phase 1 (Foundation)**: 모델 + 세그먼트 분류 단위 테스트 (>=80%)
+- **Phase 2 (Core Logic)**: 정규화 + 그룹핑 + 샘플링 단위 테스트 (>=80%)
+- **Phase 3 (Integration)**: 엔진 통합 + 내보내기 테스트 (>=70%)
 
 ### Test Naming Convention
 ```python
 # 파일명: test_{모듈명}.py
 # 클래스명: Test{컴포넌트명}
 # 함수명: test_{행위}_{조건}_{기대결과}
+# 예시: test_classify_segment_pure_digits_returns_int
 # 패턴: Arrange -> Act -> Assert
 ```
 
 ---
 
-## 🚀 Implementation Phases
+## Implementation Phases
 
-### Phase 1: CLI 앱 기본 구조
-**Goal**: Typer 앱에 --help, --version, crawl/scan 서브커맨드 등록 및 엔트리 포인트 설정
+### Phase 1: Foundation - Data Models & Segment Classification
+**Goal**: SegmentType enum, URL 패턴 관련 Pydantic 모델, classify_segment() 함수 구현
 **Estimated Time**: 2 hours
-**Status**: ✅ Complete
+**Status**: Pending
 
 #### Tasks
 
-**🔴 RED: Write Failing Tests First**
-- [x] **Test 1.1**: 기존 CLI 앱 구조 테스트 확인 및 실패 검증
-  - File(s): `tests/unit/cli/test_app.py` (이미 존재 - 9개 테스트, 3개 클래스)
-  - Expected: Tests FAIL (red) - `eazy.cli.app` 모듈이 아직 없어 ImportError
-  - Details: 기존 테스트가 다음을 커버하는지 확인하고, 부족한 케이스 보강:
-    - `eazy --help` exit code 0, "Usage" 텍스트 포함
-    - `eazy --version` exit code 0, "0.1.0" 표시
-    - `eazy` 인수 없이 실행 시 help 텍스트 표시
-    - `crawl` 서브커맨드가 --help 출력에 등록됨
-    - `scan` 서브커맨드가 --help 출력에 등록됨
-- [x] **Test 1.5**: 공유 테스트 fixture 생성
-  - File(s): `tests/conftest.py`
-  - Expected: fixture 정의만 존재 (테스트 실행의 전제 조건)
-  - Details:
-    - `cli_runner` fixture (CliRunner 인스턴스)
-    - `mock_page_result` fixture (현실적 데이터의 PageResult)
-    - `mock_crawl_result` fixture (pages, statistics 포함 CrawlResult)
+**RED: Write Failing Tests First**
 
-**🟢 GREEN: Implement to Make Tests Pass**
-- [x] **Task 1.2**: pyproject.toml에 의존성 추가
-  - File(s): `pyproject.toml`
-  - Goal: Make Test 1.1 pass with minimal code
+- [ ] **Test 1.1**: SegmentType enum 및 패턴 관련 모델 단위 테스트
+  - File(s): `tests/unit/models/test_crawl_types.py` (기존 파일에 추가)
+  - Expected: Tests FAIL (red) because SegmentType, URLPattern, PatternGroup don't exist
   - Details:
-    - `typer>=0.9.0`, `rich>=13.0`을 `[project.dependencies]`에 추가
-    - `[project.scripts] eazy = "eazy.cli:main"` 엔트리 포인트 추가
-    - `uv sync` 실행하여 설치
-- [x] **Task 1.3**: CLI 패키지 및 메인 엔트리 포인트 생성
-  - File(s): `src/eazy/cli/__init__.py`
-  - Goal: `main()` 함수가 `app()`를 호출
-  - Details: 패키지 초기화, `main()` 함수 정의
-- [x] **Task 1.4**: Typer 앱 생성 및 서브커맨드 등록
-  - File(s): `src/eazy/cli/app.py`
-  - Goal: Make Test 1.1 pass
+    - `test_segment_type_has_all_six_values` — uuid, int, date, hash, slug, string 존재 확인
+    - `test_segment_type_values_are_lowercase_strings` — 값이 소문자 문자열인지 확인
+    - `test_url_pattern_creation_with_valid_data` — 정상 생성
+    - `test_url_pattern_frozen_immutable` — frozen 모델 변경 시 에러
+    - `test_pattern_group_creation_with_defaults` — max_samples 기본값 3
+    - `test_pattern_group_tracks_total_count` — total_count 필드
+    - `test_pattern_normalization_result_creation` — groups, 통계 필드 포함
+
+- [ ] **Test 1.2**: classify_segment() 함수 단위 테스트
+  - File(s): `tests/unit/crawler/test_url_pattern.py` (신규 파일)
+  - Expected: Tests FAIL (red) because url_pattern module doesn't exist
+  - Details — 세그먼트 타입별 테스트:
+    - `test_classify_segment_uuid_v4_lowercase` — `550e8400-e29b-41d4-a716-446655440000` → uuid
+    - `test_classify_segment_uuid_v4_uppercase` — `550E8400-E29B-41D4-A716-446655440000` → uuid
+    - `test_classify_segment_pure_digits_returns_int` — `123` → int
+    - `test_classify_segment_single_digit_returns_int` — `1` → int
+    - `test_classify_segment_zero_returns_int` — `0` → int
+    - `test_classify_segment_date_yyyy_mm_dd` — `2025-01-15` → date
+    - `test_classify_segment_hash_md5_32_hex` — 32자 hex → hash
+    - `test_classify_segment_hash_sha1_40_hex` — 40자 hex → hash
+    - `test_classify_segment_hash_sha256_64_hex` — 64자 hex → hash
+    - `test_classify_segment_slug_lowercase_hyphens` — `my-first-post` → slug
+    - `test_classify_segment_slug_with_numbers` — `post-123-title` → slug
+    - `test_classify_segment_plain_text_returns_none` — `users` → None (리터럴)
+    - `test_classify_segment_mixed_case_returns_none` — `MyPage` → None (리터럴)
+    - `test_classify_segment_empty_returns_none` — `""` → None
+    - `test_classify_segment_priority_uuid_before_hash` — UUID 형식은 hash가 아닌 uuid
+    - `test_classify_segment_priority_int_before_hash` — 순수 숫자는 hash가 아닌 int
+    - `test_classify_segment_32_digit_number_returns_int` — 32자 순수 숫자 → int (int 우선)
+
+**GREEN: Implement to Make Tests Pass**
+
+- [ ] **Task 1.3**: Pydantic 모델 추가
+  - File(s): `src/eazy/models/crawl_types.py`
+  - Goal: Test 1.1 통과
   - Details:
-    - Typer 앱 인스턴스 생성 (help 텍스트 포함)
-    - `--version` 콜백 추가
-    - `crawl`, `scan` 빈 스텁 커맨드 등록
-**🔵 REFACTOR: Clean Up Code**
-- [x] **Task 1.6**: 코드 품질 리팩토링
-  - Files: 이 Phase의 모든 새 코드 검토
-  - Goal: 테스트를 깨뜨리지 않고 설계 개선
+    - `SegmentType(str, Enum)` — uuid, int, date, hash, slug, string
+    - `URLPattern(BaseModel, frozen=True)` — scheme, netloc, pattern_path, segment_types
+    - `PatternGroup(BaseModel)` — pattern, sample_urls, total_count, max_samples=3
+    - `PatternNormalizationResult(BaseModel)` — groups, total_urls_processed, total_patterns_found, total_urls_skipped
+
+- [ ] **Task 1.4**: classify_segment() 함수 구현
+  - File(s): `src/eazy/crawler/url_pattern.py` (신규 파일)
+  - Goal: Test 1.2 통과
+  - Details:
+    - PRD 명시 순서로 검사: uuid → int → date → hash → slug → string
+    - 모듈 레벨 compiled regex 패턴 사용
+    - 동적 타입에 매칭되면 `SegmentType` 반환, 리터럴이면 `None` 반환
+
+**REFACTOR: Clean Up Code**
+
+- [ ] **Task 1.5**: 코드 품질 개선
+  - Files: `src/eazy/crawler/url_pattern.py`, `src/eazy/models/crawl_types.py`
+  - Goal: 테스트 깨지지 않으면서 설계 개선
   - Checklist:
-    - [x] Google 스타일 docstring 추가
-    - [x] 모든 함수 시그니처에 타입 힌트
-    - [x] Ruff lint/format 통과 확인
+    - [ ] Regex 패턴을 모듈 상수로 추출 및 이름 지정
+    - [ ] Google 스타일 docstring 추가
+    - [ ] `__all__` export 리스트 정리
+    - [ ] 불필요한 중복 제거
 
-#### Quality Gate ✋
+#### Quality Gate
 
-**⚠️ STOP: Do NOT proceed to Phase 2 until ALL checks pass**
-
-**TDD Compliance** (CRITICAL):
-- [x] **Red Phase**: Tests were written FIRST and initially failed
-- [x] **Green Phase**: Production code written to make tests pass
-- [x] **Refactor Phase**: Code improved while tests still pass
-- [x] **Coverage Check**: Test coverage meets requirements (86%)
-  ```bash
-  uv run pytest --cov=src/eazy/cli --cov-report=term-missing tests/unit/cli/test_app.py
-  ```
-
-**Build & Tests**:
-- [x] **All Tests Pass**: `uv run pytest tests/unit/cli/test_app.py -v` (9 passed)
-- [x] **No Regressions**: `uv run pytest tests/ -v` (118 passed)
-- [x] **No Flaky Tests**: 3회 반복 실행 시 일관된 결과
-
-**Code Quality**:
-- [x] **Linting**: `uv run ruff check src/eazy/cli/ tests/unit/cli/` (All checks passed)
-- [x] **Formatting**: `uv run ruff format --check src/eazy/cli/ tests/unit/cli/` (4 files already formatted)
-
-**Security & Performance**:
-- [x] **Dependencies**: 새 의존성(typer, rich)에 알려진 보안 취약점 없음
-- [x] **Error Handling**: 적절한 에러 처리 구현
-
-**Documentation**:
-- [x] **Code Comments**: 복잡한 로직에 주석
-- [x] **API Docs**: 공개 인터페이스 문서화 (docstring)
-
-**Manual Testing**:
-- [x] **Functionality**: `uv run eazy --help` 가 crawl, scan 커맨드 포함 Usage 표시
-- [x] **Edge Cases**: `uv run eazy --version` 이 "0.1.0" 표시
-- [x] **Error States**: `uv run eazy crawl --help` 가 crawl 서브커맨드 help 표시
-
-**Validation Commands**:
-```bash
-# Test Commands
-uv run pytest tests/unit/cli/test_app.py -v
-
-# Coverage Check
-uv run pytest --cov=src/eazy/cli --cov-report=term-missing tests/unit/cli/test_app.py
-
-# Code Quality
-uv run ruff check src/eazy/cli/ tests/unit/cli/
-uv run ruff format --check src/eazy/cli/ tests/unit/cli/
-
-# No Regressions
-uv run pytest tests/ -v
-```
-
-**Manual Test Checklist**:
-- [x] `uv run eazy --help` 이 Usage와 crawl/scan 커맨드를 표시
-- [x] `uv run eazy --version` 이 "0.1.0"을 표시
-- [x] `uv run eazy crawl --help` 가 crawl 서브커맨드 help를 표시
-
----
-
-### Phase 2: Crawl 커맨드 핵심 기능
-**Goal**: `eazy crawl <url>`이 모든 CrawlConfig 옵션으로 async 크롤링을 실행하고 결과를 출력
-**Estimated Time**: 3 hours
-**Status**: ✅ Complete
-
-#### Tasks
-
-**🔴 RED: Write Failing Tests First**
-- [x] **Test 2.1**: crawl 커맨드 옵션 및 실행 단위 테스트
-  - File(s): `tests/unit/cli/test_crawl_command.py`
-  - Expected: Tests FAIL (red) - crawl 커맨드 미구현
-  - Details: Test cases covering:
-    - `eazy crawl http://example.com` 이 CrawlerEngine을 올바른 config로 호출
-    - `--depth 5` 가 CrawlConfig.max_depth=5 설정
-    - `--max-pages 100` 가 CrawlConfig.max_pages=100 설정
-    - `--timeout 60` 가 CrawlConfig.timeout=60 설정
-    - `--delay 0.5` 가 CrawlConfig.request_delay=0.5 설정
-    - `--exclude "*.pdf"` 가 CrawlConfig.exclude_patterns에 추가
-    - `--exclude` 반복 사용 시 여러 패턴 추가
-    - `--user-agent "MyBot/1.0"` 가 CrawlConfig.user_agent 설정
-    - `--no-respect-robots` 가 CrawlConfig.respect_robots=False 설정
-    - `--include-subdomains` 가 CrawlConfig.include_subdomains=True 설정
-    - `--output result.json` 이 결과를 파일에 저장
-    - 빈 URL 입력 시 에러 메시지 표시
-    - 크롤 결과가 stdout에 JSON으로 출력
-  - Mocking: `@patch("eazy.cli.app.CrawlerEngine")` with AsyncMock
-
-**🟢 GREEN: Implement to Make Tests Pass**
-- [x] **Task 2.2**: crawl 커맨드 구현
-  - File(s): `src/eazy/cli/app.py`
-  - Goal: Make Test 2.1 pass with minimal code
-  - Details:
-    - positional `url` 인수 추가
-    - CLI 옵션 -> CrawlConfig 필드 매핑:
-      - `--depth` -> max_depth (default 3)
-      - `--max-pages` -> max_pages
-      - `--timeout` -> timeout (default 30)
-      - `--delay` -> request_delay (default 0.0)
-      - `--exclude` -> exclude_patterns (list, 반복 가능)
-      - `--user-agent` -> user_agent
-      - `--respect-robots/--no-respect-robots` -> respect_robots (default True)
-      - `--include-subdomains` -> include_subdomains (default False)
-      - `--retries` -> max_retries (default 3)
-      - `--output` -> 출력 파일 경로
-      - ~~`--format`~~: Phase 2에서는 미등록. 항상 JSON 출력. `--format` 옵션은 Phase 3에서 추가
-    - `asyncio.run()`으로 `CrawlerEngine(config).crawl()` 호출
-    - stdout에 JSON 결과 출력 (Phase 2에서는 JSON 전용, 포맷터는 Phase 3)
-    - `--output` 시 CrawlResultExporter로 파일 저장
-
-**🔵 REFACTOR: Clean Up Code**
-- [x] **Task 2.3**: 코드 품질 리팩토링
-  - Files: 이 Phase의 모든 새 코드 검토
-  - Goal: 테스트를 깨뜨리지 않고 설계 개선
-  - Checklist:
-    - [x] URL 유효성 검증 헬퍼 추출
-    - [x] 일관된 에러 메시지 포맷팅
-    - [x] 모든 함수에 docstring
-    - [x] 타입 힌트 완성
-
-#### Quality Gate ✋
-
-**⚠️ STOP: Do NOT proceed to Phase 3 until ALL checks pass**
-
-**TDD Compliance** (CRITICAL):
-- [x] **Red Phase**: Tests were written FIRST and initially failed (12 failed)
-- [x] **Green Phase**: Production code written to make tests pass (13 passed)
-- [x] **Refactor Phase**: Code improved while tests still pass (ruff format)
-- [x] **Coverage Check**: Test coverage meets requirements (94%)
-  ```bash
-  uv run pytest --cov=src/eazy/cli --cov-report=term-missing tests/unit/cli/
-  ```
-
-**Build & Tests**:
-- [x] **All Tests Pass**: `uv run pytest tests/unit/cli/ -v` (22 passed)
-- [x] **No Regressions**: `uv run pytest tests/ -v` (131 passed)
-- [x] **No Flaky Tests**: 3회 반복 실행 시 일관된 결과
-
-**Code Quality**:
-- [x] **Linting**: `uv run ruff check src/eazy/cli/ tests/unit/cli/` (All checks passed)
-- [x] **Formatting**: `uv run ruff format --check src/eazy/cli/ tests/unit/cli/` (5 files already formatted)
-
-**Security & Performance**:
-- [x] **Error Handling**: 잘못된 URL, 네트워크 에러 등 적절히 처리
-- [x] **Performance**: async 크롤링이 sync 래퍼에서 정상 동작
-
-**Documentation**:
-- [x] **Code Comments**: 복잡한 로직에 주석
-- [x] **API Docs**: 모든 CLI 옵션에 help 텍스트
-
-**Manual Testing**:
-- [x] **Functionality**: `uv run eazy crawl http://example.com --depth 1` 실행 및 결과 출력
-- [x] **Edge Cases**: 잘못된 URL 입력 시 에러 메시지
-- [x] **Error States**: 네트워크 에러 시 적절한 메시지
-
-**Validation Commands**:
-```bash
-# Test Commands
-uv run pytest tests/unit/cli/ -v
-
-# Coverage Check
-uv run pytest --cov=src/eazy/cli --cov-report=term-missing tests/unit/cli/
-
-# Code Quality
-uv run ruff check src/eazy/cli/ tests/unit/cli/
-uv run ruff format --check src/eazy/cli/ tests/unit/cli/
-
-# No Regressions
-uv run pytest tests/ -v
-```
-
-**Manual Test Checklist**:
-- [x] `uv run eazy crawl --help` 가 모든 옵션과 설명 표시
-- [x] `uv run eazy crawl http://example.com --depth 1` 이 결과 출력
-- [x] `uv run eazy crawl http://example.com --output test.json` 이 파일 생성
-
----
-
-### Phase 3: 출력 포맷팅 & 프로그레스 표시
-**Goal**: JSON/text/table 출력 포맷과 Rich 프로그레스 스피너
-**Estimated Time**: 3 hours
-**Status**: ✅ Complete
-
-#### Tasks
-
-**🔴 RED: Write Failing Tests First**
-- [x] **Test 3.1**: 출력 포맷터 단위 테스트
-  - File(s): `tests/unit/cli/test_formatters.py`
-  - Expected: Tests FAIL (red) - formatters 모듈 미존재
-  - Details: Test cases covering:
-    - JsonFormatter: CrawlResult에서 유효한 JSON 문자열 출력
-    - JsonFormatter: pages, statistics, config 포함 확인
-    - TextFormatter: 통계 포함 사람이 읽기 쉬운 요약 출력
-    - TextFormatter: URL, status code 포함 페이지 목록
-    - TextFormatter: 페이지별 form 수, endpoint 수 표시
-    - TableFormatter: Rich 렌더링 가능한 테이블 구조
-    - TableFormatter: URL, Status, Depth, Links, Forms, Endpoints 컬럼
-    - TableFormatter: 합계 요약 행
-    - `format_result(result, format_type)` 가 올바른 포맷터로 디스패치
-
-- [x] **Test 3.2**: display 모듈 단위 테스트
-  - File(s): `tests/unit/cli/test_display.py`
-  - Expected: Tests FAIL (red) - display 모듈 미존재
-  - Details: Test cases covering:
-    - `create_progress_spinner()`가 유효한 Rich 객체 반환
-    - `print_banner()`가 예외 없이 실행
-    - `print_summary(result)`가 통계 포함 출력 생성
-
-- [x] **Test 3.3**: crawl 커맨드 포맷 옵션 통합 테스트
-  - File(s): `tests/unit/cli/test_crawl_command.py` (추가)
-  - Expected: Tests FAIL (red) - 포맷 옵션 미연결
-  - Details: Test cases:
-    - `eazy crawl` with `--format json` 이 유효한 JSON 출력
-    - `eazy crawl` with `--format text` 가 텍스트 요약 출력
-    - `eazy crawl` with `--format table` 이 테이블 출력
-    - `--format` 미지정 시 기본 table 포맷 출력
-
-**🟢 GREEN: Implement to Make Tests Pass**
-- [x] **Task 3.3**: formatters 모듈 구현
-  - File(s): `src/eazy/cli/formatters.py`
-  - Goal: Make Test 3.1 pass with minimal code
-  - Details:
-    - `JsonFormatter.format(result: CrawlResult) -> str` - CrawlResultExporter 재사용
-    - `TextFormatter.format(result: CrawlResult) -> str` - 플레인 텍스트 요약
-    - `TableFormatter.format(result: CrawlResult) -> str` - Rich 테이블 (문자열 캡처)
-    - `format_result(result, format_type: str) -> str` - 디스패처 함수
-- [x] **Task 3.4**: display 모듈 구현
-  - File(s): `src/eazy/cli/display.py`
-  - Goal: Make Test 3.2 pass
-  - Details:
-    - `create_progress_spinner()` - 크롤 진행 Rich 스피너
-    - `print_banner()` - EAZY 배너/헤더
-    - `print_summary(result: CrawlResult)` - 간략 통계 요약
-- [x] **Task 3.5**: 포맷터와 디스플레이를 crawl 커맨드에 연결
-  - File(s): `src/eazy/cli/app.py`
-  - Goal: `--format` 옵션으로 포맷터 선택, 스피너 표시
-  - Details: crawl 커맨드에서 포맷터 호출, 스피너 표시/숨김
-
-**🔵 REFACTOR: Clean Up Code**
-- [x] **Task 3.6**: 코드 품질 리팩토링
-  - Files: 이 Phase의 모든 새 코드 검토
-  - Goal: 테스트를 깨뜨리지 않고 설계 개선
-  - Checklist:
-    - [x] 포맷터 코드 DRY (공유 유틸리티 메서드 `_page_stats`)
-    - [x] 일관된 Rich 스타일링 (색상, 패널)
-    - [x] 모든 포맷터 클래스/메서드에 docstring
-
-#### Quality Gate ✋
-
-**⚠️ STOP: Do NOT proceed to Phase 4 until ALL checks pass**
-
-**TDD Compliance** (CRITICAL):
-- [x] **Red Phase**: Tests were written FIRST and initially failed (22 tests, ModuleNotFoundError)
-- [x] **Green Phase**: Production code written to make tests pass (22 passed)
-- [x] **Refactor Phase**: Code improved while tests still pass (ruff format)
-- [x] **Coverage Check**: Test coverage meets requirements (98%)
-  ```bash
-  uv run pytest --cov=src/eazy/cli --cov-report=term-missing
-  ```
-
-**Build & Tests**:
-- [x] **All Tests Pass**: `uv run pytest tests/unit/cli/ -v` (48 passed)
-- [x] **No Regressions**: `uv run pytest tests/ -v` (157 passed)
-- [x] **Coverage >= 80%**: CLI 모듈 커버리지 98% (display 100%, formatters 100%, app 97%)
-- [x] **No Flaky Tests**: 반복 실행 시 일관된 결과
-
-**Code Quality**:
-- [x] **Linting**: `uv run ruff check src/eazy/cli/ tests/unit/cli/` (All checks passed)
-- [x] **Formatting**: `uv run ruff format --check src/eazy/cli/ tests/unit/cli/` (9 files already formatted)
-
-**Security & Performance**:
-- [x] **Performance**: 포맷팅이 대용량 결과에서도 합리적 시간 내 완료
-- [x] **Error Handling**: 잘못된 포맷 타입 입력 시 ValueError 발생
-
-**Documentation**:
-- [x] **Code Comments**: `_page_stats` 헬퍼 등 주석 포함
-- [x] **API Docs**: 모든 포맷터 클래스/메서드에 Google 스타일 docstring
-
-**Manual Testing**:
-- [x] **Functionality**: 3가지 포맷 모두 정상 출력
-- [x] **Edge Cases**: 빈 결과(0 페이지)에서도 포맷 정상 동작
-- [x] **Error States**: 잘못된 --format 값 입력 시 에러 메시지
-
-**Validation Commands**:
-```bash
-# Test Commands
-uv run pytest tests/unit/cli/ -v
-
-# Coverage Check
-uv run pytest --cov=src/eazy/cli --cov-report=term-missing
-
-# Code Quality
-uv run ruff check src/eazy/cli/ tests/unit/cli/
-uv run ruff format --check src/eazy/cli/ tests/unit/cli/
-
-# No Regressions
-uv run pytest tests/ -v
-```
-
-**Manual Test Checklist**:
-- [x] `uv run eazy crawl http://example.com --format json` 이 유효한 JSON 출력
-- [x] `uv run eazy crawl http://example.com --format text` 가 읽기 쉬운 텍스트 출력
-- [x] `uv run eazy crawl http://example.com --format table` 이 포맷된 테이블 출력
-- [x] `uv run eazy crawl http://example.com` (기본) 이 table 포맷 출력
-
----
-
-### Phase 4: Scan 커맨드, Resume 스텁 & 통합 테스트
-**Goal**: `eazy scan <url>` 커맨드 (크롤러 + 스캐너 placeholder), `eazy resume` 스텁, E2E 통합 테스트
-**Estimated Time**: 3 hours
-**Status**: ⏳ Pending
-
-#### Tasks
-
-**🔴 RED: Write Failing Tests First**
-- [ ] **Test 4.1**: scan 커맨드 단위 테스트
-  - File(s): `tests/unit/cli/test_scan_command.py`
-  - Expected: Tests FAIL (red) - scan 커맨드 미완성
-  - Details: Test cases covering:
-    - `eazy scan http://example.com` 이 성공적으로 실행 (exit code 0)
-    - `eazy scan` URL 없이 실행 시 에러
-    - `--depth`, `--format`, `--output` 옵션이 scan에서 동작
-    - scan 커맨드가 CrawlerEngine 호출 (크롤 단계)
-    - scan 출력에 크롤 결과 포함
-
-- [ ] **Test 4.2**: resume 커맨드 단위 테스트
-  - File(s): `tests/unit/cli/test_app.py` (추가)
-  - Expected: Tests FAIL (red) - resume 커맨드 미존재
-  - Details: Test cases:
-    - `eazy resume --help` 가 help 텍스트 표시
-    - `eazy resume some-scan-id` 가 기능 상태 안내 메시지 표시
-
-- [ ] **Test 4.3**: CLI 크롤 플로우 통합 테스트
-  - File(s): `tests/integration/cli/test_cli_crawl_integration.py`
-  - Expected: Tests FAIL (red) - 통합 테스트 인프라 미구축
-  - Details: Test cases:
-    - respx 모킹된 HTTP 응답으로 전체 `eazy crawl` 실행
-    - 출력에 모킹에서 발견된 페이지 포함 확인
-    - `--output`이 올바른 JSON 파일 생성 확인
-    - `--format text`가 읽기 쉬운 출력 생성 확인
-    - 출력의 통계가 기대값과 일치 확인
-  - Note: `respx.mock` 컨텍스트가 `CliRunner.invoke()` 전체를 감싸야 함 (async 이벤트 루프가 respx 라우트를 인식하도록)
-
-**🟢 GREEN: Implement to Make Tests Pass**
-- [ ] **Task 4.4**: scan 커맨드 구현
-  - File(s): `src/eazy/cli/app.py`
-  - Goal: Make Test 4.1 pass
-  - Details:
-    - 크롤러 먼저 실행, 스캐너 단계는 placeholder
-    - crawl 커맨드와 공통 옵션 공유
-    - 포맷된 결과 출력 (포맷터 재사용)
-- [ ] **Task 4.5**: resume 커맨드 스텁 구현
-  - File(s): `src/eazy/cli/app.py`
-  - Goal: Make Test 4.2 pass
-  - Details:
-    - `scan_id` 인수 수용
-    - 안내 메시지 출력: "Resume 기능은 향후 버전에서 제공될 예정입니다"
-- [ ] **Task 4.6**: 통합 테스트 인프라 구축
-  - File(s): `tests/integration/cli/__init__.py`, `tests/integration/cli/test_cli_crawl_integration.py`
-  - Goal: Make Test 4.3 pass
-  - Details: respx로 HTTP 모킹, CliRunner로 CLI 호출, 출력 검증
-
-**🔵 REFACTOR: Clean Up Code**
-- [ ] **Task 4.7**: 최종 리팩토링
-  - Files: 전체 CLI 모듈 코드 검토
-  - Goal: 테스트를 깨뜨리지 않고 설계 개선
-  - Checklist:
-    - [ ] crawl/scan 간 공통 옵션 추출 (DRY)
-    - [ ] 모든 커맨드에 일관된 에러 처리
-    - [ ] 모든 모듈에 `__all__` export
-    - [ ] 모든 docstring 완성
-
-#### Quality Gate ✋
-
-**⚠️ STOP: Final quality gate - ALL checks must pass**
+**STOP: Do NOT proceed to Phase 2 until ALL checks pass**
 
 **TDD Compliance** (CRITICAL):
 - [ ] **Red Phase**: Tests were written FIRST and initially failed
 - [ ] **Green Phase**: Production code written to make tests pass
 - [ ] **Refactor Phase**: Code improved while tests still pass
 - [ ] **Coverage Check**: Test coverage meets requirements
-  ```bash
-  uv run pytest --cov=src/eazy/cli --cov-report=term-missing
-  ```
 
 **Build & Tests**:
-- [ ] **All Tests Pass**: `uv run pytest tests/ -v`
-- [ ] **No Regressions**: 기존 crawler 테스트 전부 통과
-- [ ] **CLI Coverage >= 80%**: `uv run pytest --cov=src/eazy/cli --cov-report=term-missing`
-- [ ] **Overall Coverage**: `uv run pytest --cov=src/eazy --cov-report=term-missing`
-- [ ] **No Flaky Tests**: 3회 반복 실행 시 일관된 결과
+- [ ] **All Tests Pass**: 기존 109개 + 신규 테스트 전부 통과
+- [ ] **No Flaky Tests**: 3회 연속 실행 시 일관된 결과
 
 **Code Quality**:
-- [ ] **Linting**: `uv run ruff check src/ tests/`
-- [ ] **Formatting**: `uv run ruff format --check src/ tests/`
-
-**Security & Performance**:
-- [ ] **Dependencies**: 모든 의존성에 알려진 보안 취약점 없음
-- [ ] **Performance**: 성능 저하 없음
-- [ ] **Error Handling**: 모든 커맨드에서 적절한 에러 처리
-
-**Documentation**:
-- [ ] **Code Comments**: 복잡한 로직 문서화
-- [ ] **API Docs**: 모든 공개 인터페이스 문서화
-
-**Manual Testing**:
-- [ ] **Functionality**: 모든 커맨드 정상 동작
-- [ ] **Edge Cases**: 경계 조건 테스트 완료
-- [ ] **Error States**: 에러 처리 검증 완료
+- [ ] **Linting**: `uv run ruff check src/ tests/` — 에러 없음
+- [ ] **Formatting**: `uv run ruff format --check src/ tests/` — 변경 없음
+- [ ] **Type Safety**: 모든 함수에 타입 힌트 적용
 
 **Validation Commands**:
 ```bash
-# Test Commands
+# 테스트 실행
 uv run pytest tests/ -v
 
-# Coverage Check
-uv run pytest --cov=src/eazy/cli --cov-report=term-missing
-uv run pytest --cov=src/eazy --cov-report=term-missing
+# 커버리지 확인
+uv run pytest tests/ --cov=src/eazy --cov-report=term-missing
 
-# Code Quality
+# 린팅
+uv run ruff check src/ tests/
+
+# 포맷팅 확인
+uv run ruff format --check src/ tests/
+```
+
+**Manual Test Checklist**:
+- [ ] `classify_segment("550e8400-e29b-41d4-a716-446655440000")` → `SegmentType.UUID`
+- [ ] `classify_segment("12345")` → `SegmentType.INT`
+- [ ] `classify_segment("users")` → `None`
+
+---
+
+### Phase 2: Core Logic - Pattern Normalization & Grouping
+**Goal**: URLPatternNormalizer 클래스 구현 (normalize, add_url, should_skip, get_results)
+**Estimated Time**: 3 hours
+**Status**: Pending
+
+#### Tasks
+
+**RED: Write Failing Tests First**
+
+- [ ] **Test 2.1**: URL 패턴 정규화 단위 테스트
+  - File(s): `tests/unit/crawler/test_url_pattern.py` (추가)
+  - Expected: Tests FAIL (red) because URLPatternNormalizer doesn't exist
+  - Details — 정규화 테스트:
+    - `test_normalize_url_single_int_segment` — `/posts/123` → `/posts/<int>`
+    - `test_normalize_url_uuid_segment` — `/items/550e8400-...` → `/items/<uuid>`
+    - `test_normalize_url_multiple_dynamic_segments` — `/users/123/posts/456` → `/users/<int>/posts/<int>`
+    - `test_normalize_url_no_dynamic_segments` — `/about` → `/about`
+    - `test_normalize_url_mixed_literal_and_dynamic` — `/api/v2/users/123` → `/api/v2/users/<int>`
+    - `test_normalize_url_root_path` — `/` → `/`
+    - `test_normalize_url_preserves_scheme_and_host` — scheme, netloc 유지
+    - `test_normalize_url_date_segment` — `/archive/2025-01-15` → `/archive/<date>`
+    - `test_normalize_url_hash_segment` — `/commit/a1b2c3...` (40자 hex) → `/commit/<hash>`
+    - `test_normalize_url_slug_segment` — `/blog/my-first-post` → `/blog/<slug>`
+
+- [ ] **Test 2.2**: 그룹핑 및 샘플링 로직 단위 테스트
+  - File(s): `tests/unit/crawler/test_url_pattern.py` (추가)
+  - Expected: Tests FAIL (red)
+  - Details — 그룹핑 테스트:
+    - `test_add_url_first_url_returns_true` — 첫 URL은 항상 샘플링
+    - `test_add_url_same_pattern_within_limit_returns_true` — 샘플 한도 내 → True
+    - `test_add_url_same_pattern_exceeds_limit_returns_false` — 한도 초과 → False
+    - `test_should_skip_unknown_pattern_returns_false` — 새 패턴 → 스킵 안 함
+    - `test_should_skip_full_pattern_returns_true` — 한도 도달 패턴 → 스킵
+    - `test_should_skip_partial_pattern_returns_false` — 한도 미달 → 스킵 안 함
+    - `test_type_promotion_mixed_int_and_slug_to_string` — `/items/123` + `/items/my-item` → `/items/<string>`
+    - `test_type_promotion_same_types_preserved` — `/items/123` + `/items/456` → `/items/<int>` 유지
+    - `test_type_promotion_updates_existing_group` — 승격 시 기존 그룹의 패턴도 업데이트
+    - `test_get_results_correct_statistics` — total_urls_processed, total_patterns_found, total_urls_skipped 정확
+    - `test_get_results_multiple_groups` — 서로 다른 패턴은 별도 그룹
+    - `test_custom_max_samples_value` — max_samples=5 설정 시 5개까지 샘플링
+    - `test_add_url_literal_only_paths_each_separate_group` — `/about`, `/contact` 각각 별도 그룹 (동적 세그먼트 없음)
+    - `test_add_url_query_params_ignored_in_pattern` — 쿼리 파라미터는 패턴에 영향 없음
+
+**GREEN: Implement to Make Tests Pass**
+
+- [ ] **Task 2.3**: URLPatternNormalizer 클래스 구현
+  - File(s): `src/eazy/crawler/url_pattern.py`
+  - Goal: Test 2.1 + Test 2.2 통과
+  - Details:
+    - `_compute_structural_key(path_segments)` — 리터럴 고정, 동적은 `*`로 마킹
+    - `normalize_url_to_pattern(url)` — URL을 URLPattern으로 변환
+    - `add_url(url) -> bool` — URL 등록, 샘플링 여부 반환
+    - `should_skip(url) -> bool` — 패턴 그룹 한도 도달 여부
+    - `get_results() -> PatternNormalizationResult` — 최종 결과 반환
+    - 내부 `_PatternTracker` 자료구조로 증분 타입 승격 관리
+
+**REFACTOR: Clean Up Code**
+
+- [ ] **Task 2.4**: 코드 품질 개선
+  - Files: `src/eazy/crawler/url_pattern.py`
+  - Goal: 테스트 깨지지 않으면서 설계 개선
+  - Checklist:
+    - [ ] 헬퍼 메서드 추출 (복잡한 로직 분리)
+    - [ ] 명확한 네이밍 확인
+    - [ ] 인라인 문서 추가
+    - [ ] dict lookup 최적화 확인
+
+#### Quality Gate
+
+**STOP: Do NOT proceed to Phase 3 until ALL checks pass**
+
+**TDD Compliance** (CRITICAL):
+- [ ] **Red Phase**: Tests were written FIRST and initially failed
+- [ ] **Green Phase**: Production code written to make tests pass
+- [ ] **Refactor Phase**: Code improved while tests still pass
+- [ ] **Coverage Check**: `url_pattern.py` 커버리지 80% 이상
+
+**Build & Tests**:
+- [ ] **All Tests Pass**: 기존 + Phase 1 + Phase 2 테스트 전부 통과
+- [ ] **No Flaky Tests**: 3회 연속 실행 시 일관된 결과
+
+**Code Quality**:
+- [ ] **Linting**: `uv run ruff check src/ tests/` — 에러 없음
+- [ ] **Formatting**: `uv run ruff format --check src/ tests/` — 변경 없음
+
+**Validation Commands**:
+```bash
+uv run pytest tests/ -v
+uv run pytest tests/ --cov=src/eazy/crawler/url_pattern --cov-report=term-missing
 uv run ruff check src/ tests/
 uv run ruff format --check src/ tests/
 ```
 
 **Manual Test Checklist**:
-- [ ] `uv run eazy --help` 가 모든 커맨드 표시
-- [ ] `uv run eazy crawl http://example.com --depth 2 --format table`
-- [ ] `uv run eazy scan http://example.com --format json`
-- [ ] `uv run eazy resume test-id` 가 안내 메시지 표시
+- [ ] `/users/123` + `/users/456` + `/users/789` + `/users/999` → 3개만 샘플링, 1개 스킵
+- [ ] `/items/123` + `/items/my-item` → 타입 승격으로 `/items/<string>`
+- [ ] 서로 다른 구조의 URL은 별도 그룹으로 분리됨
 
 ---
 
-## ⚠️ Risk Assessment
+### Phase 3: Integration - Engine, Config & Export
+**Goal**: URLPatternNormalizer를 CrawlerEngine에 통합, CrawlConfig/CrawlResult 확장, JSON 내보내기 포함
+**Estimated Time**: 2 hours
+**Status**: Pending
+
+#### Tasks
+
+**RED: Write Failing Tests First**
+
+- [ ] **Test 3.1**: CrawlConfig/CrawlResult 모델 확장 테스트
+  - File(s): `tests/unit/models/test_crawl_types.py` (추가)
+  - Expected: Tests FAIL (red) because new fields don't exist
+  - Details:
+    - `test_crawl_config_max_samples_per_pattern_default_3` — 기본값 3
+    - `test_crawl_config_enable_pattern_normalization_default_true` — 기본 활성화
+    - `test_crawl_result_has_pattern_groups_field` — pattern_groups 필드 존재
+    - `test_crawl_result_pattern_groups_default_none` — 기본값 None (비활성 시)
+
+- [ ] **Test 3.2**: CrawlerEngine 통합 테스트
+  - File(s): `tests/integration/crawler/test_crawler_engine.py` (추가)
+  - Expected: Tests FAIL (red) because engine doesn't use pattern normalizer
+  - Details:
+    - `test_crawl_with_pattern_normalization_skips_duplicate_patterns` — 동일 패턴 URL은 N개 이후 스킵
+    - `test_crawl_without_pattern_normalization_crawls_all` — 비활성 시 전체 크롤링
+    - `test_crawl_result_includes_pattern_groups` — 결과에 패턴 그룹 포함
+    - `test_crawl_pattern_normalization_statistics` — "M개 발견, N개 샘플링" 통계
+
+- [ ] **Test 3.3**: JSON 내보내기 통합 테스트
+  - File(s): `tests/unit/crawler/test_exporter.py` (추가)
+  - Expected: Tests FAIL (red) because exporter doesn't include pattern data
+  - Details:
+    - `test_export_json_includes_pattern_groups` — JSON 출력에 pattern_groups 포함
+    - `test_export_json_pattern_group_has_statistics` — 그룹별 total_count, sample_urls 포함
+
+**GREEN: Implement to Make Tests Pass**
+
+- [ ] **Task 3.4**: CrawlConfig/CrawlResult 모델 확장
+  - File(s): `src/eazy/models/crawl_types.py`
+  - Goal: Test 3.1 통과
+  - Details:
+    - `CrawlConfig`에 추가: `max_samples_per_pattern: int = 3`, `enable_pattern_normalization: bool = True`
+    - `CrawlResult`에 추가: `pattern_groups: PatternNormalizationResult | None = None`
+
+- [ ] **Task 3.5**: CrawlerEngine에 URLPatternNormalizer 통합
+  - File(s): `src/eazy/crawler/engine.py`
+  - Goal: Test 3.2 통과
+  - Details:
+    - `__init__`에 `URLPatternNormalizer` 인스턴스 생성 (enable 옵션 확인)
+    - BFS 루프에서 URL 처리 전 `should_skip()` 호출
+    - URL 방문 후 `add_url()` 호출
+    - `crawl()` 반환 시 `get_results()` 결과를 CrawlResult에 포함
+
+- [ ] **Task 3.6**: JSON 내보내기 확인
+  - File(s): `src/eazy/crawler/exporter.py`
+  - Goal: Test 3.3 통과
+  - Details:
+    - Pydantic v2 `model_dump(mode="json")`이 새 필드도 자동 직렬화하므로, exporter 코드 변경 불필요할 가능성 높음
+    - 필요 시 `PatternNormalizationResult`의 직렬화 확인
+
+**REFACTOR: Clean Up Code**
+
+- [ ] **Task 3.7**: 통합 코드 품질 개선
+  - Files: `src/eazy/crawler/engine.py`, `src/eazy/models/crawl_types.py`
+  - Goal: 테스트 깨지지 않으면서 설계 개선
+  - Checklist:
+    - [ ] 기존 109개 테스트 전부 통과 재확인 (backward compatibility)
+    - [ ] engine.py의 패턴 정규화 로직이 깔끔하게 분리되어 있는지 확인
+    - [ ] CrawlConfig의 새 옵션이 기존 동작에 영향 없는지 확인
+    - [ ] `__init__.py` export 정리
+
+#### Quality Gate
+
+**STOP: Do NOT proceed until ALL checks pass**
+
+**TDD Compliance** (CRITICAL):
+- [ ] **Red Phase**: Tests were written FIRST and initially failed
+- [ ] **Green Phase**: Production code written to make tests pass
+- [ ] **Refactor Phase**: Code improved while tests still pass
+- [ ] **Coverage Check**: 전체 커버리지 80% 이상
+
+**Build & Tests**:
+- [ ] **Build**: 프로젝트 에러 없이 빌드
+- [ ] **All Tests Pass**: 기존 109개 + 전체 신규 테스트 통과
+- [ ] **No Flaky Tests**: 3회 연속 실행 시 일관된 결과
+
+**Code Quality**:
+- [ ] **Linting**: `uv run ruff check src/ tests/` — 에러 없음
+- [ ] **Formatting**: `uv run ruff format --check src/ tests/` — 변경 없음
+- [ ] **Type Safety**: 모든 새 함수에 타입 힌트 적용
+
+**Security & Performance**:
+- [ ] **Dependencies**: 추가 패키지 없음 (보안 취약점 해당 없음)
+- [ ] **Performance**: dict 기반 O(1) 패턴 조회, 성능 회귀 없음
+- [ ] **Memory**: URL 수에 비례한 선형 메모리 사용
+
+**Documentation**:
+- [ ] **Code Comments**: 복잡한 타입 승격 로직에 인라인 주석
+- [ ] **Docstring**: 모든 public 함수에 Google 스타일 docstring
+
+**Validation Commands**:
+```bash
+# 전체 테스트 실행
+uv run pytest tests/ -v
+
+# 전체 커버리지 확인
+uv run pytest tests/ --cov=src/eazy --cov-report=term-missing
+
+# 린팅 + 포맷팅
+uv run ruff check src/ tests/
+uv run ruff format --check src/ tests/
+```
+
+**Manual Test Checklist**:
+- [ ] 패턴 정규화 활성 상태에서 동일 구조 URL 4개 중 3개만 크롤링 확인
+- [ ] 패턴 정규화 비활성 시 모든 URL 크롤링 확인
+- [ ] JSON 출력에 `pattern_groups` 필드와 통계 포함 확인
+
+---
+
+## Risk Assessment
 
 | Risk | Probability | Impact | Mitigation Strategy |
 |------|-------------|--------|---------------------|
-| Typer async 호환성 | Low | Medium | asyncio.run() 래퍼 사용 - 확립된 패턴 |
-| Scanner 모듈 부재 (REQ-010) | High | Low | scan 커맨드가 크롤러 호출; 스캐너 단계는 placeholder |
-| 콜백 없는 프로그레스 바 | Medium | Low | Rich 스피너(불확정 진행률) 사용; Phase 2에서 콜백 추가 |
-| Resume에 상태 영속성 필요 | Medium | Medium | Phase 1에서 스텁 커맨드; 전체 구현은 추후 |
-| PRD `--scope`/`--auth` 옵션 미구현 | N/A | Low | Phase 2+(AI/스캐너 통합) 연기. `--include-subdomains`가 `--scope` 부분 대체 |
+| 타입 승격 시 기존 그룹 키 변경 필요 | Medium | Low | 구조적 키(structural key) 기반 그룹핑으로 키 불변 보장. 타입만 내부적으로 업데이트 |
+| 기존 109개 테스트 깨짐 | Low | High | 모든 새 필드에 기본값 설정. 각 Phase 완료 시 전체 테스트 스위트 실행 |
+| 세그먼트 분류 엣지 케이스 | Medium | Low | Phase 1에서 17개 이상의 분류 단위 테스트로 커버 |
+| 대규모 URL 세트에서 성능 저하 | Low | Medium | dict 기반 O(1) 조회. 필요 시 structural key 해싱 최적화 |
+| engine.py BFS 루프 복잡도 증가 | Medium | Medium | `should_skip()` 단일 호출로 로직 캡슐화. 엔진 코드 변경 최소화 |
 
 ---
 
-## 🔄 Rollback Strategy
+## Rollback Strategy
 
 ### If Phase 1 Fails
 **Steps to revert**:
-- `src/eazy/cli/` 디렉토리 삭제
-- `pyproject.toml` 의존성 변경 되돌리기
-- `tests/unit/cli/` 디렉토리 삭제
+- `src/eazy/crawler/url_pattern.py` 삭제
+- `src/eazy/models/crawl_types.py`에서 추가한 모델 제거
+- `tests/unit/crawler/test_url_pattern.py` 삭제
+- `tests/unit/models/test_crawl_types.py`에서 추가한 테스트 제거
 
 ### If Phase 2 Fails
 **Steps to revert**:
 - Phase 1 완료 상태로 복원
-- `src/eazy/cli/app.py`의 crawl 커맨드 변경사항만 되돌리기
-- `tests/unit/cli/test_crawl_command.py` 삭제
+- `src/eazy/crawler/url_pattern.py`에서 URLPatternNormalizer 제거
+- 관련 테스트 제거
 
 ### If Phase 3 Fails
 **Steps to revert**:
 - Phase 2 완료 상태로 복원
-- `src/eazy/cli/formatters.py`, `src/eazy/cli/display.py` 삭제
-- `tests/unit/cli/test_formatters.py` 삭제
-
-### If Phase 4 Fails
-**Steps to revert**:
-- Phase 3 완료 상태로 복원
-- scan/resume 관련 변경사항만 되돌리기
-- `tests/integration/cli/` 디렉토리 삭제
+- `src/eazy/crawler/engine.py` 원본 복원
+- `src/eazy/models/crawl_types.py`에서 CrawlConfig/CrawlResult 변경 복원
+- 통합 테스트 제거
 
 ---
 
-## 📊 Progress Tracking
+## Progress Tracking
 
 ### Completion Status
-- **Phase 1**: ✅ 100%
-- **Phase 2**: ✅ 100%
-- **Phase 3**: ✅ 100%
-- **Phase 4**: ⏳ 0%
+- **Phase 1**: 0%
+- **Phase 2**: 0%
+- **Phase 3**: 0%
 
-**Overall Progress**: 75% complete
+**Overall Progress**: 0% complete
 
 ### Time Tracking
 | Phase | Estimated | Actual | Variance |
 |-------|-----------|--------|----------|
-| Phase 1 | 2 hours | Complete | - |
-| Phase 2 | 3 hours | Complete | - |
-| Phase 3 | 3 hours | Complete | - |
-| Phase 4 | 3 hours | - | - |
-| **Total** | 11 hours | - | - |
+| Phase 1 | 2 hours | - | - |
+| Phase 2 | 3 hours | - | - |
+| Phase 3 | 2 hours | - | - |
+| **Total** | **7 hours** | - | - |
 
 ---
 
-## 📝 Notes & Learnings
+## Notes & Learnings
 
 ### Implementation Notes
-- CrawlerEngine은 완전 async - CLI는 sync Typer에서 async 엔진으로 브릿지 필요
-- CrawlConfig는 frozen (immutable) - 모든 CLI 옵션으로 한번에 생성
-- CrawlResultExporter.to_json()이 이미 pretty-printed JSON 제공
-- conftest.py에 cli_runner, mock_page_result, mock_crawl_result fixture 추가 완료
-- Typer `no_args_is_help=True`는 exit code 2 반환 — `ctx.invoked_subcommand` 체크로 대체하여 exit code 0 달성
-- `from __future__ import annotations` 사용 금지 — Typer가 런타임 타입 평가 필요
-- `_page_stats()` 헬퍼 함수로 페이지별 links/forms/endpoints 카운트를 DRY 처리
-- `TableFormatter`는 `Console(file=StringIO(), force_terminal=False)`로 ANSI 없는 문자열 캡처
-- `create_progress_spinner()`는 `Console(stderr=True)`로 stdout 오염 방지
+- (구현 중 발견사항 기록 예정)
 
 ### Blockers Encountered
-- Linux 환경에서 `jq` 미설치로 pre-commit-lint.sh hook 실패 → python3 fallback 추가로 해결
+- (없음)
 
 ### Improvements for Future Plans
-- (구현 완료 후 기록)
+- (구현 완료 후 기록 예정)
 
 ---
 
-## 📚 References
+## References
 
 ### Documentation
-- Typer 공식 문서: https://typer.tiangolo.com/
-- Rich 공식 문서: https://rich.readthedocs.io/
-- Click Testing: https://click.palletsprojects.com/en/8.1.x/testing/
+- PRD REQ-001 URL 패턴 정규화 스펙: `plan/PRD.md` (lines 92-112)
+- 기존 크롤링 엔진 소스: `src/eazy/crawler/`
+- Pydantic v2 문서: https://docs.pydantic.dev/latest/
 
-### Key Source Files
-- `src/eazy/crawler/engine.py` - CrawlerEngine.crawl() async 메서드
-- `src/eazy/crawler/exporter.py` - CrawlResultExporter (JSON 출력)
-- `src/eazy/models/crawl_types.py` - CrawlConfig, CrawlResult, PageResult
-- `src/eazy/models/__init__.py` - 공개 모델 export
-
-### PRD Reference
-- REQ-009: CLI 인터페이스 (plan/PRD.md)
+### Related Issues
+- Branch: `feature/req-001-url-pattern-normalization`
+- Commit 824b3b0: "docs: add URL pattern normalization spec to REQ-001"
 
 ---
 
-## ✅ Final Checklist
+## Final Checklist
 
 **Before marking plan as COMPLETE**:
-- [ ] All 4 phases completed with quality gates passed
+- [ ] All phases completed with quality gates passed
 - [ ] Full integration testing performed
-- [ ] CLI module coverage >= 80%
-- [ ] All existing tests still pass (no regressions)
-- [ ] `eazy` command works from terminal via entry point
-- [ ] Plan document updated with completion status
-
----
-
-**Plan Status**: 🔄 In Progress
-**Next Action**: Phase 4 RED - scan 커맨드 및 통합 테스트 작성
-**Blocked By**: None
+- [ ] 기존 109개 테스트 + 신규 테스트 전부 통과
+- [ ] 전체 커버리지 80% 이상
+- [ ] PRD REQ-001 마지막 AC 체크 (`[ ] URL 패턴 정규화...` → `[x]`)
+- [ ] Plan document archived for future reference
