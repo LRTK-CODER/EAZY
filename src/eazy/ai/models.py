@@ -159,3 +159,21 @@ class ProviderConfig(BaseModel):
     oauth_client_id: str | None = None
     oauth_client_secret: str | None = None
     endpoint_url: str | None = None
+
+
+class OAuthTokens(BaseModel):
+    """Immutable OAuth token set from authorization flow.
+
+    Attributes:
+        access_token: Bearer token for API requests.
+        refresh_token: Token used to obtain new access tokens.
+        expires_at: When the access token expires (UTC).
+        scope: Space-separated list of granted scopes.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    access_token: str
+    refresh_token: str | None = None
+    expires_at: datetime | None = None
+    scope: str = ""
