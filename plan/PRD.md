@@ -402,7 +402,7 @@ LLMProvider (추상 인터페이스)
 - [x] 진단 진행률을 실시간 프로그레스 바로 표시한다
 - [x] 결과를 JSON/텍스트/테이블 형식으로 출력할 수 있다
 - [x] `--output` 옵션으로 결과 파일 경로를 지정할 수 있다
-- [ ] `eazy resume <scan-id>` 명령으로 중단된 스캔을 재개할 수 있다
+- [ ] `eazy resume <scan-id>` 명령으로 중단된 스캔을 재개할 수 있다 (REQ-004 스캔 기능 구현 시 함께 구현 예정)
 - [x] `--help` 명령으로 모든 옵션에 대한 도움말을 제공한다
 - [ ] `eazy auth login --provider <type>` 명령으로 LLM Provider 인증을 수행할 수 있다 (브라우저 기반 OAuth consent flow)
 - [ ] `eazy auth status` 명령으로 현재 인증 상태와 저장된 계정 목록을 확인할 수 있다
