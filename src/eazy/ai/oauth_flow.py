@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
 import secrets
+import webbrowser
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
 import httpx
 
 from eazy.ai.models import OAuthTokens
+from eazy.ai.oauth_callback import OAuthCallbackServer
 
 
 class OAuthError(Exception):
@@ -168,3 +171,46 @@ class OAuthFlowEngine:
         if expires_at is None:
             return True
         return datetime.now(timezone.utc) >= expires_at
+
+    async def run_interactive_flow(
+        self,
+        redirect_host: str = "localhost",
+        redirect_port: int = 0,
+        timeout: float = 120.0,
+    ) -> OAuthTokens:
+        """Run the full interactive OAuth browser flow.
+
+        Starts a local callback server, opens the browser for user
+        consent, waits for the authorization callback, verifies the
+        state parameter, and exchanges the code for tokens.
+
+        Args:
+            redirect_host: Hostname for the callback server.
+            redirect_port: Port for callback (0 = auto-assign).
+            timeout: Max seconds to wait for user consent.
+
+        Returns:
+            OAuthTokens from successful authentication.
+
+        Raises:
+            OAuthError: On state mismatch, timeout, or exchange
+                failure.
+        """
+        async with OAuthCallbackServer(
+            host=redirect_host, port=redirect_port
+        ) as server:
+            redirect_uri = f"http://{redirect_host}:{server.port}/callback"
+            state = self.generate_state()
+            auth_url = self.generate_auth_url(redirect_uri, state)
+
+            webbrowser.open(auth_url)
+
+            try:
+                code, received_state = await server.wait_for_callback(timeout=timeout)
+            except asyncio.TimeoutError:
+                raise OAuthError("OAuth flow timed out waiting for callback.")
+
+            if received_state != state:
+                raise OAuthError("State mismatch: possible CSRF attack.")
+
+            return await self.exchange_code(code, redirect_uri)

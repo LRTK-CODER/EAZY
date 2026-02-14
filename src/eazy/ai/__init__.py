@@ -17,6 +17,7 @@ from eazy.ai.models import (
     ProviderType,
     RateLimitInfo,
 )
+from eazy.ai.oauth_callback import OAuthCallbackServer
 from eazy.ai.oauth_flow import OAuthError, OAuthFlowEngine
 from eazy.ai.provider import LLMProvider
 from eazy.ai.provider_factory import ProviderFactory
@@ -32,6 +33,7 @@ __all__ = [
     "AccountStatus",
     "AntigravityOAuthProvider",
     "AuthenticationError",
+    "OAuthCallbackServer",
     "BaseOAuthProvider",
     "BillingType",
     "GeminiAPIProvider",
