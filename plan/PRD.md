@@ -137,12 +137,12 @@ EAZY는 **AI 기반 자동화**와 **블랙박스 접근법**을 결합하여, �
 > 보안 담당자로서, 별도 API 과금 없이 기존 Gemini 구독만으로 AI 기능을 사용하고 싶다. 또한 향후 다른 LLM(Codex, Claude Code 등)으로도 쉽게 전환할 수 있기를 원한다.
 
 **Acceptance Criteria:**
-- [ ] LLMProvider 추상 인터페이스를 정의한다 (벤더 무관한 범용 계약: send prompt → receive structured response)
-- [ ] **Gemini OAuth Provider**: Google 로그인(OAuth 2.0) 기반 인증. Gemini CLI의 OAuth 플로우를 미러링하여 `cloudaicompanion.googleapis.com` 엔드포인트를 사용한다. Gemini 구독 한도 내에서 별도 API 과금 없이 동작한다
-- [ ] **Antigravity OAuth Provider**: Google Antigravity IDE의 OAuth 인증. Antigravity rate limit을 사용하여 프리미엄 모델에 접근한다
-- [ ] **Gemini API Provider**: API 키 기반 인증. Google AI Studio 무료 티어(분당 15 요청, 일당 1,500 요청) 또는 유료 요금제를 지원한다
-- [ ] OAuth 인증 시 브라우저 기반 consent 플로우 → 로컬 콜백 서버 → refresh token 저장/자동 갱신을 지원한다
-- [ ] Rate limit 도달 시 멀티 계정 자동 전환을 지원한다 (계정별 상태 추적 + 자동 로테이션)
+- [x] LLMProvider 추상 인터페이스를 정의한다 (벤더 무관한 범용 계약: send prompt → receive structured response)
+- [x] **Gemini OAuth Provider**: Google 로그인(OAuth 2.0) 기반 인증. Gemini CLI의 OAuth 플로우를 미러링하여 `cloudaicompanion.googleapis.com` 엔드포인트를 사용한다. Gemini 구독 한도 내에서 별도 API 과금 없이 동작한다
+- [x] **Antigravity OAuth Provider**: Google Antigravity IDE의 OAuth 인증. Antigravity rate limit을 사용하여 프리미엄 모델에 접근한다
+- [x] **Gemini API Provider**: API 키 기반 인증. Google AI Studio 무료 티어(분당 15 요청, 일당 1,500 요청) 또는 유료 요금제를 지원한다
+- [x] OAuth 인증 시 브라우저 기반 consent 플로우 → 로컬 콜백 서버 → refresh token 저장/자동 갱신을 지원한다
+- [x] Rate limit 도달 시 멀티 계정 자동 전환을 지원한다 (계정별 상태 추적 + 자동 로테이션)
 
 **LLM Provider 아키텍처:**
 
