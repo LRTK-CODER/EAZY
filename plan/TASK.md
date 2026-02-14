@@ -4,7 +4,7 @@
 **Started**: 2026-02-13
 **Last Updated**: 2026-02-14
 **Estimated Completion**: 2026-02-27
-**Current Phase**: Phase 5 Complete ✅
+**Current Phase**: Phase 6 Complete ✅
 
 ---
 
@@ -94,6 +94,7 @@ tests/
 │       ├── test_provider.py              # LLMProvider ABC 테스트
 │       ├── test_token_storage.py         # 토큰 저장/암호화 테스트
 │       ├── test_oauth_flow.py            # OAuth 플로우 엔진 테스트
+│       ├── test_oauth_callback.py       # OAuth 콜백 서버 테스트
 │       ├── test_account_manager.py       # 멀티 계정 관리 테스트
 │       └── providers/
 │           ├── __init__.py
@@ -112,6 +113,7 @@ tests/
 - **Phase 3 (Gemini API)**: GeminiAPIProvider (>=80%)
 - **Phase 4 (OAuth Providers)**: GeminiOAuth + Antigravity (>=80%)
 - **Phase 5 (Integration)**: AccountManager + ProviderFactory + CLI (>=70%)
+- **Phase 6 (Interactive OAuth)**: OAuthCallbackServer + run_interactive_flow (>=80%)
 
 ### Test Naming Convention
 ```python
@@ -668,6 +670,114 @@ uv run ruff format --check src/ tests/
 
 ---
 
+### Phase 6: Interactive OAuth Flow
+**Goal**: 브라우저 기반 OAuth consent → 로컬 콜백 서버 → 토큰 교환 전체 플로우 구현
+**Estimated Time**: 2 hours
+**Status**: ✅ Complete
+**Actual Time**: ~0.3 hours
+
+#### Tasks
+
+**RED: Write Failing Tests First**
+
+- [x] **Test 6.1**: OAuthCallbackServer 단위 테스트 (5 tests)
+  - File(s): `tests/unit/ai/test_oauth_callback.py` (신규 파일)
+  - Expected: Tests FAIL (red) because OAuthCallbackServer doesn't exist
+  - Details:
+    - `test_callback_server_starts_and_binds_port` — start() 후 port > 0
+    - `test_callback_server_receives_code_and_state` — httpx GET → (code, state) 반환
+    - `test_callback_server_returns_success_html` — 200 + HTML 응답
+    - `test_callback_server_timeout_on_no_callback` — timeout → asyncio.TimeoutError
+    - `test_callback_server_handles_missing_code` — code 없는 요청 → 400 응답
+
+- [x] **Test 6.2**: Interactive OAuth Flow 테스트 (4 tests)
+  - File(s): `tests/unit/ai/test_oauth_flow.py` (기존 파일에 추가)
+  - Expected: Tests FAIL (red) because run_interactive_flow doesn't exist
+  - Details:
+    - `test_interactive_flow_opens_browser` — webbrowser.open 호출 확인
+    - `test_interactive_flow_returns_tokens` — 전체 플로우 성공 → OAuthTokens
+    - `test_interactive_flow_raises_on_state_mismatch` — 틀린 state → OAuthError
+    - `test_interactive_flow_raises_on_timeout` — 콜백 없음 → OAuthError
+
+**GREEN: Implement to Make Tests Pass**
+
+- [x] **Task 6.3**: OAuthCallbackServer 구현
+  - File(s): `src/eazy/ai/oauth_callback.py` (신규)
+  - Goal: Test 6.1 통과
+  - Details:
+    - Pure asyncio `start_server` 기반 (외부 의존성 없음)
+    - `__aenter__`/`__aexit__` context manager 지원
+    - port=0 → OS 자동 할당, server.port로 확인
+    - GET /callback?code=xxx&state=yyy 파싱
+    - 성공 시 HTML "Authentication successful" 응답
+    - code 누락 시 400 HTML 응답
+    - wait_for_callback(timeout) → asyncio.Event 기반 대기
+
+- [x] **Task 6.4**: OAuthFlowEngine.run_interactive_flow() 구현
+  - File(s): `src/eazy/ai/oauth_flow.py` (기존 파일에 추가)
+  - Goal: Test 6.2 통과
+  - Details:
+    - OAuthCallbackServer 시작 (async with)
+    - generate_state() + generate_auth_url() 호출
+    - webbrowser.open(auth_url) 호출
+    - wait_for_callback(timeout) 대기
+    - state 검증 (CSRF 방지)
+    - exchange_code(code, redirect_uri) → OAuthTokens 반환
+    - Timeout 시 OAuthError raise
+
+- [x] **Task 6.5**: ai/__init__.py export 추가
+  - File(s): `src/eazy/ai/__init__.py`
+  - Goal: OAuthCallbackServer export
+  - Details: `__all__`에 "OAuthCallbackServer" 추가 (23 items)
+
+**REFACTOR: Clean Up Code**
+
+- [x] **Task 6.6**: 코드 품질 개선
+  - Files: 전체 수정 파일
+  - Checklist:
+    - [x] import 정렬 (ruff check --fix)
+    - [x] 전체 린팅/포맷팅 최종 확인
+    - [x] Google 스타일 docstring 확인
+
+#### Quality Gate
+
+**STOP: Do NOT mark complete until ALL checks pass**
+
+**TDD Compliance** (CRITICAL):
+- [x] **Red Phase**: Tests were written FIRST and initially failed
+- [x] **Green Phase**: Production code written to make tests pass
+- [x] **Refactor Phase**: Code improved while tests still pass
+- [x] **Coverage Check**: OAuthCallbackServer 100%, oauth_flow.py 100% (>= 80%)
+
+**Build & Tests**:
+- [x] **All Tests Pass**: 371 existing + 9 new = 380 tests, all passing
+- [x] **No Flaky Tests**: 일관된 결과
+
+**Code Quality**:
+- [x] **Linting**: `uv run ruff check src/ tests/` — 에러 없음
+- [x] **Formatting**: `uv run ruff format --check src/ tests/` — 변경 없음
+
+**Validation Commands**:
+```bash
+uv run pytest tests/ -v
+uv run pytest tests/ --cov=eazy.ai --cov-report=term-missing
+uv run ruff check src/ tests/
+uv run ruff format --check src/ tests/
+```
+
+**Manual Test Checklist**:
+- [x] OAuthCallbackServer가 랜덤 포트에서 시작됨
+- [x] callback 수신 후 code/state 정상 추출
+- [x] run_interactive_flow()가 전체 플로우 오케스트레이션 완료
+- [x] state mismatch 시 OAuthError 발생
+
+**Results**:
+- Total tests: 380 (371 existing + 9 new Phase 6 tests)
+- Coverage: oauth_callback.py 100%, oauth_flow.py 100%, eazy.ai overall 95%
+- All quality gates PASSED ✅
+
+---
+
 ## Risk Assessment
 
 | Risk | Probability | Impact | Mitigation Strategy |
@@ -724,8 +834,9 @@ uv run ruff format --check src/ tests/
 - **Phase 3**: ✅ 100% — 10 tests, 96% coverage
 - **Phase 4**: ✅ 100% — 18 tests, 96% coverage
 - **Phase 5**: ✅ 100% — 14 tests, 95% coverage
+- **Phase 6**: ✅ 100% — 9 tests, 100% coverage (oauth_callback 100%, oauth_flow 100%)
 
-**Overall Progress**: 100% complete (5/5 phases)
+**Overall Progress**: 100% complete (6/6 phases)
 
 ### Time Tracking
 | Phase | Estimated | Actual | Variance |
@@ -735,7 +846,8 @@ uv run ruff format --check src/ tests/
 | Phase 3 | 2 hours | ~0.3 hours | -1.7 hours |
 | Phase 4 | 4 hours | ~0.3 hours | -3.7 hours |
 | Phase 5 | 3 hours | ~0.3 hours | -2.7 hours |
-| **Total** | **15 hours** | ~1.7 hours | -13.3 hours |
+| Phase 6 | 2 hours | ~0.3 hours | -1.7 hours |
+| **Total** | **17 hours** | ~2.0 hours | -15.0 hours |
 
 ---
 
@@ -784,8 +896,20 @@ uv run ruff format --check src/ tests/
   - No regression: 357 existing tests still pass (total: 371 tests)
   - **REQ-002B COMPLETE**: 5/5 phases done, 85 new tests, 95% eazy.ai coverage
 
+- **Phase 6 Complete (2026-02-14)**: Interactive OAuth flow with local callback server
+  - Created `src/eazy/ai/oauth_callback.py` (pure asyncio TCP server, no external deps)
+  - Added `run_interactive_flow()` to `OAuthFlowEngine` in `oauth_flow.py`
+  - Updated `src/eazy/ai/__init__.py` with OAuthCallbackServer export (23 items in `__all__`)
+  - OAuthCallbackServer: `asyncio.start_server` + `asyncio.Event` for code receipt signaling
+  - Port auto-assignment (port=0) for conflict-free local server binding
+  - State parameter verification for CSRF protection
+  - `webbrowser.open()` for browser-based consent flow
+  - respx passthrough for localhost needed in interactive flow test (`respx.route(host="localhost").pass_through()`)
+  - 9 new tests (5 callback server + 4 interactive flow), 100% coverage on both modules
+  - No regression: 371 existing tests still pass (total: 380 tests)
+
 ### Blockers Encountered
-- None in Phase 1 through Phase 5. TDD approach prevented issues.
+- None in Phase 1 through Phase 6. TDD approach prevented issues.
 
 ### Improvements for Future Plans
 - Consider splitting models.py if it grows beyond 200 lines in later phases
@@ -814,7 +938,7 @@ uv run ruff format --check src/ tests/
 **Before marking plan as COMPLETE**:
 - [x] All phases completed with quality gates passed
 - [x] Full integration testing performed
-- [x] 371 tests total (286 existing + 85 new REQ-002B) 전부 통과
+- [x] 380 tests total (286 existing + 94 new REQ-002B) 전부 통과
 - [x] eazy.ai 패키지 전체 커버리지 95% (>= 80%)
 - [x] PRD REQ-002B 6개 AC 모두 체크 완료
 - [x] Plan document archived for future reference
