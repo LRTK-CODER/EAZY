@@ -21,7 +21,11 @@ import pytest
 import respx
 from cryptography.fernet import Fernet
 
-from eazy.ai.exceptions import AuthenticationError
+from eazy.ai.exceptions import (
+    AuthenticationError,
+    ProviderError,
+    RateLimitError,
+)
 from eazy.ai.models import (
     BillingType,
     LLMRequest,
@@ -364,3 +368,96 @@ class TestGeminiOAuthProvider:
 
         # Act & Assert
         assert "cloudaicompanion" in provider.ENDPOINT_URL
+
+    @respx.mock
+    async def test_send_raises_authentication_error_on_401(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """HTTP 401 from Gemini API raises AuthenticationError."""
+        # Arrange
+        storage = TokenStorage(
+            base_dir=tmp_path,
+            encryption_key=Fernet.generate_key(),
+        )
+        mock_engine = AsyncMock()
+        mock_engine.exchange_code.return_value = _make_valid_tokens()
+        provider = GeminiOAuthProvider(
+            token_storage=storage,
+            oauth_engine=mock_engine,
+        )
+        await provider.authenticate(
+            code="code",
+            redirect_uri="http://localhost",
+            account_id="user@example.com",
+        )
+        respx.post(url__startswith=f"{CLOUDAICOMPANION_BASE}/models/").mock(
+            return_value=httpx.Response(401, json={"error": "unauthorized"})
+        )
+        request = LLMRequest(prompt="Say hello")
+
+        # Act & Assert
+        with pytest.raises(AuthenticationError):
+            await provider.send(request)
+
+    @respx.mock
+    async def test_send_raises_rate_limit_error_on_429(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """HTTP 429 from Gemini API raises RateLimitError."""
+        # Arrange
+        storage = TokenStorage(
+            base_dir=tmp_path,
+            encryption_key=Fernet.generate_key(),
+        )
+        mock_engine = AsyncMock()
+        mock_engine.exchange_code.return_value = _make_valid_tokens()
+        provider = GeminiOAuthProvider(
+            token_storage=storage,
+            oauth_engine=mock_engine,
+        )
+        await provider.authenticate(
+            code="code",
+            redirect_uri="http://localhost",
+            account_id="user@example.com",
+        )
+        respx.post(url__startswith=f"{CLOUDAICOMPANION_BASE}/models/").mock(
+            return_value=httpx.Response(429, json={"error": "rate limited"})
+        )
+        request = LLMRequest(prompt="Say hello")
+
+        # Act & Assert
+        with pytest.raises(RateLimitError):
+            await provider.send(request)
+
+    @respx.mock
+    async def test_send_raises_provider_error_on_500(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """HTTP 500 from Gemini API raises ProviderError."""
+        # Arrange
+        storage = TokenStorage(
+            base_dir=tmp_path,
+            encryption_key=Fernet.generate_key(),
+        )
+        mock_engine = AsyncMock()
+        mock_engine.exchange_code.return_value = _make_valid_tokens()
+        provider = GeminiOAuthProvider(
+            token_storage=storage,
+            oauth_engine=mock_engine,
+        )
+        await provider.authenticate(
+            code="code",
+            redirect_uri="http://localhost",
+            account_id="user@example.com",
+        )
+        respx.post(url__startswith=f"{CLOUDAICOMPANION_BASE}/models/").mock(
+            return_value=httpx.Response(500, json={"error": "internal"})
+        )
+        request = LLMRequest(prompt="Say hello")
+
+        # Act & Assert
+        with pytest.raises(ProviderError):
+            await provider.send(request)

@@ -15,7 +15,11 @@ import httpx
 import pytest
 import respx
 
-from eazy.ai.exceptions import AuthenticationError
+from eazy.ai.exceptions import (
+    AuthenticationError,
+    ProviderError,
+    RateLimitError,
+)
 from eazy.ai.models import (
     BillingType,
     LLMRequest,
@@ -189,3 +193,89 @@ class TestGeminiAPIProvider:
         rate_limit = provider.get_rate_limit("key2")
         assert rate_limit is not None
         assert rate_limit.remaining_minute == 14
+
+    @respx.mock
+    async def test_send_raises_authentication_error_on_401(self):
+        """HTTP 401 from Gemini API raises AuthenticationError."""
+        # Arrange
+        provider = GeminiAPIProvider(api_keys=["test-key"])
+        request = LLMRequest(prompt="Say hello")
+        respx.post(url__startswith=f"{GEMINI_API_BASE}/models/").mock(
+            return_value=httpx.Response(401, json={"error": "unauthorized"})
+        )
+
+        # Act & Assert
+        with pytest.raises(AuthenticationError):
+            await provider.send(request)
+
+    @respx.mock
+    async def test_send_raises_rate_limit_error_on_429(self):
+        """HTTP 429 from Gemini API raises RateLimitError."""
+        # Arrange
+        provider = GeminiAPIProvider(api_keys=["test-key"])
+        request = LLMRequest(prompt="Say hello")
+        respx.post(url__startswith=f"{GEMINI_API_BASE}/models/").mock(
+            return_value=httpx.Response(429, json={"error": "rate limited"})
+        )
+
+        # Act & Assert
+        with pytest.raises(RateLimitError):
+            await provider.send(request)
+
+    @respx.mock
+    async def test_send_raises_provider_error_on_500(self):
+        """HTTP 500 from Gemini API raises ProviderError."""
+        # Arrange
+        provider = GeminiAPIProvider(api_keys=["test-key"])
+        request = LLMRequest(prompt="Say hello")
+        respx.post(url__startswith=f"{GEMINI_API_BASE}/models/").mock(
+            return_value=httpx.Response(500, json={"error": "internal"})
+        )
+
+        # Act & Assert
+        with pytest.raises(ProviderError):
+            await provider.send(request)
+
+    @respx.mock
+    async def test_send_exhausts_key_and_sets_reset_at_on_429(self):
+        """HTTP 429 with Retry-After header exhausts key and sets reset_at."""
+        # Arrange
+        provider = GeminiAPIProvider(api_keys=["test-key"])
+        request = LLMRequest(prompt="Say hello")
+        respx.post(url__startswith=f"{GEMINI_API_BASE}/models/").mock(
+            return_value=httpx.Response(
+                429,
+                headers={"retry-after": "60"},
+                json={"error": "rate limited"},
+            )
+        )
+
+        # Act
+        with pytest.raises(RateLimitError):
+            await provider.send(request)
+
+        # Assert — key should be exhausted
+        rl = provider.get_rate_limit("test-key")
+        assert rl is not None
+        assert rl.remaining_minute == 0
+        assert rl.remaining_day == 0
+        assert rl.reset_at is not None
+
+    @respx.mock
+    async def test_send_parses_retry_after_header(self):
+        """RateLimitError includes retry_after from response header."""
+        # Arrange
+        provider = GeminiAPIProvider(api_keys=["test-key"])
+        request = LLMRequest(prompt="Say hello")
+        respx.post(url__startswith=f"{GEMINI_API_BASE}/models/").mock(
+            return_value=httpx.Response(
+                429,
+                headers={"retry-after": "60"},
+                json={"error": "rate limited"},
+            )
+        )
+
+        # Act & Assert
+        with pytest.raises(RateLimitError) as exc_info:
+            await provider.send(request)
+        assert exc_info.value.retry_after == 60
