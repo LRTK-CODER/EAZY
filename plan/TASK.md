@@ -1,10 +1,10 @@
 # Implementation Plan: REQ-002B LLM Provider Abstraction & Authentication
 
-**Status**: 🔄 In Progress (Phase 3 Complete)
+**Status**: 🔄 In Progress (Phase 4 Complete)
 **Started**: 2026-02-13
 **Last Updated**: 2026-02-14
 **Estimated Completion**: 2026-02-27
-**Current Phase**: Phase 3 Complete ✅
+**Current Phase**: Phase 4 Complete ✅
 
 ---
 
@@ -437,13 +437,14 @@ uv run ruff format --check src/ tests/
 ### Phase 4: OAuth Providers — Gemini & Antigravity
 **Goal**: OAuthFlowEngine을 활용한 GeminiOAuthProvider, AntigravityOAuthProvider 구현
 **Estimated Time**: 4 hours
-**Status**: ⏳ Pending
+**Status**: ✅ Complete
+**Actual Time**: ~0.3 hours
 
 #### Tasks
 
 **RED: Write Failing Tests First**
 
-- [ ] **Test 4.1**: GeminiOAuthProvider 단위 테스트 (7 tests)
+- [x] **Test 4.1**: GeminiOAuthProvider 단위 테스트 (7 tests)
   - File(s): `tests/unit/ai/providers/test_gemini_oauth.py` (신규 파일)
   - Expected: Tests FAIL (red) because GeminiOAuthProvider doesn't exist
   - Details:
@@ -455,7 +456,7 @@ uv run ruff format --check src/ tests/
     - `test_gemini_oauth_provider_send_with_valid_token` — 유효 토큰으로 API 호출 (respx mock)
     - `test_gemini_oauth_provider_auto_refreshes_expired_token` — 만료 토큰 자동 갱신
 
-- [ ] **Test 4.2**: AntigravityOAuthProvider 단위 테스트 (7 tests)
+- [x] **Test 4.2**: AntigravityOAuthProvider 단위 테스트 (7 tests)
   - File(s): `tests/unit/ai/providers/test_antigravity.py` (신규 파일)
   - Expected: Tests FAIL (red) because AntigravityOAuthProvider doesn't exist
   - Details:
@@ -467,7 +468,7 @@ uv run ruff format --check src/ tests/
     - `test_antigravity_provider_send_with_valid_token` — 유효 토큰으로 API 호출 (respx mock)
     - `test_antigravity_provider_uses_antigravity_endpoint` — Antigravity 전용 엔드포인트 사용 확인
 
-- [ ] **Test 4.3**: OAuth Provider 공통 동작 테스트 (4 tests)
+- [x] **Test 4.3**: OAuth Provider 공통 동작 테스트 (4 tests)
   - File(s): `tests/unit/ai/providers/test_gemini_oauth.py` (추가)
   - Expected: Tests FAIL (red)
   - Details:
@@ -478,53 +479,48 @@ uv run ruff format --check src/ tests/
 
 **GREEN: Implement to Make Tests Pass**
 
-- [ ] **Task 4.4**: GeminiOAuthProvider 구현
+- [x] **Task 4.4**: GeminiOAuthProvider 구현
   - File(s): `src/eazy/ai/providers/gemini_oauth.py` (신규)
   - Goal: Test 4.1 + Test 4.3 통과
   - Details:
-    - `class GeminiOAuthProvider(LLMProvider)`
-    - `__init__(token_storage: TokenStorage, oauth_config: OAuthConfig | None = None)`
-    - `async authenticate(account_id: str) -> bool` — OAuth 플로우 실행 + 토큰 저장
-    - `async send(request: LLMRequest) -> LLMResponse` — cloudaicompanion 엔드포인트 호출
-    - `_ensure_valid_token()` — 만료 시 자동 갱신
-    - OAuthConfig: client_id, client_secret, auth_url, token_url, scopes (Gemini 전용 기본값)
+    - `class GeminiOAuthProvider(BaseOAuthProvider)` — BaseOAuthProvider 상속
+    - cloudaicompanion.googleapis.com/v1beta 엔드포인트
     - Properties: `supports_oauth=True`, `supports_multi_account=True`, `billing_type=BillingType.SUBSCRIPTION`
 
-- [ ] **Task 4.5**: AntigravityOAuthProvider 구현
+- [x] **Task 4.5**: AntigravityOAuthProvider 구현
   - File(s): `src/eazy/ai/providers/antigravity.py` (신규)
   - Goal: Test 4.2 통과
   - Details:
-    - `class AntigravityOAuthProvider(LLMProvider)`
-    - GeminiOAuthProvider와 구조 유사, 엔드포인트/client_id/scopes만 다름
-    - Antigravity IDE 전용 rate limit 설정
+    - `class AntigravityOAuthProvider(BaseOAuthProvider)` — BaseOAuthProvider 상속
+    - autopush-cloudaicompanion.sandbox.googleapis.com/v1beta 엔드포인트
 
 **REFACTOR: Clean Up Code**
 
-- [ ] **Task 4.6**: 코드 품질 개선
-  - Files: `src/eazy/ai/providers/gemini_oauth.py`, `src/eazy/ai/providers/antigravity.py`
+- [x] **Task 4.6**: 코드 품질 개선
+  - Files: `src/eazy/ai/providers/base_oauth.py`, `gemini_oauth.py`, `antigravity.py`
   - Goal: 테스트 깨지지 않으면서 설계 개선
   - Checklist:
-    - [ ] Google 스타일 docstring 추가
-    - [ ] OAuth Provider 공통 로직을 BaseOAuthProvider로 추출 (DRY)
-    - [ ] 에러 처리 통합 (토큰 만료, 네트워크 실패, 인증 거부)
+    - [x] Google 스타일 docstring 추가
+    - [x] OAuth Provider 공통 로직을 BaseOAuthProvider로 추출 (DRY)
+    - [x] 에러 처리 통합 (토큰 만료, 네트워크 실패, 인증 거부)
 
 #### Quality Gate
 
 **STOP: Do NOT proceed to Phase 5 until ALL checks pass**
 
 **TDD Compliance** (CRITICAL):
-- [ ] **Red Phase**: Tests were written FIRST and initially failed
-- [ ] **Green Phase**: Production code written to make tests pass
-- [ ] **Refactor Phase**: Code improved while tests still pass
-- [ ] **Coverage Check**: GeminiOAuth, Antigravity 커버리지 >= 80%
+- [x] **Red Phase**: Tests were written FIRST and initially failed
+- [x] **Green Phase**: Production code written to make tests pass
+- [x] **Refactor Phase**: Code improved while tests still pass
+- [x] **Coverage Check**: GeminiOAuth, Antigravity 커버리지 96% (>= 80%) ✅
 
 **Build & Tests**:
-- [ ] **All Tests Pass**: 기존 + Phase 1-4 전부 통과
-- [ ] **No Flaky Tests**: 일관된 결과
+- [x] **All Tests Pass**: 349 tests pass (331 existing + 18 new)
+- [x] **No Flaky Tests**: 일관된 결과
 
 **Code Quality**:
-- [ ] **Linting**: `uv run ruff check src/ tests/` — 에러 없음
-- [ ] **Formatting**: `uv run ruff format --check src/ tests/` — 변경 없음
+- [x] **Linting**: `uv run ruff check src/ tests/` — 에러 없음
+- [x] **Formatting**: `uv run ruff format --check src/ tests/` — 변경 없음
 
 **Validation Commands**:
 ```bash
@@ -535,9 +531,9 @@ uv run ruff format --check src/ tests/
 ```
 
 **Manual Test Checklist**:
-- [ ] GeminiOAuthProvider가 OAuthFlowEngine과 TokenStorage를 올바르게 연동
-- [ ] AntigravityProvider가 Antigravity 전용 엔드포인트를 사용
-- [ ] 토큰 만료 시 자동 갱신 동작
+- [x] GeminiOAuthProvider가 OAuthFlowEngine과 TokenStorage를 올바르게 연동
+- [x] AntigravityProvider가 Antigravity 전용 엔드포인트를 사용
+- [x] 토큰 만료 시 자동 갱신 동작
 
 ---
 
@@ -720,10 +716,10 @@ uv run ruff format --check src/ tests/
 - **Phase 1**: ✅ 100% — 20 tests, 100% coverage
 - **Phase 2**: ✅ 100% — 15 tests, 86% combined coverage (oauth_flow 100%, token_storage 76%)
 - **Phase 3**: ✅ 100% — 10 tests, 96% coverage
-- **Phase 4**: ⏳ 0%
+- **Phase 4**: ✅ 100% — 18 tests, 96% coverage
 - **Phase 5**: ⏳ 0%
 
-**Overall Progress**: 60% complete (3/5 phases)
+**Overall Progress**: 80% complete (4/5 phases)
 
 ### Time Tracking
 | Phase | Estimated | Actual | Variance |
@@ -731,7 +727,7 @@ uv run ruff format --check src/ tests/
 | Phase 1 | 3 hours | ~0.5 hours | -2.5 hours |
 | Phase 2 | 3 hours | ~0.3 hours | -2.7 hours |
 | Phase 3 | 2 hours | ~0.3 hours | -1.7 hours |
-| Phase 4 | 4 hours | - | - |
+| Phase 4 | 4 hours | ~0.3 hours | -3.7 hours |
 | Phase 5 | 3 hours | - | - |
 | **Total** | **15 hours** | - | - |
 
@@ -761,8 +757,19 @@ uv run ruff format --check src/ tests/
   - Fixed _derive_key to produce base64url-encoded key for Fernet compatibility
   - No regression: 306 existing tests still pass (total: 321 tests)
 
+- **Phase 4 Complete (2026-02-14)**: OAuth providers implemented with BaseOAuthProvider DRY extraction
+  - Created `src/eazy/ai/providers/base_oauth.py` (BaseOAuthProvider shared logic)
+  - Created `src/eazy/ai/providers/gemini_oauth.py` (GeminiOAuthProvider — cloudaicompanion endpoint)
+  - Created `src/eazy/ai/providers/antigravity.py` (AntigravityOAuthProvider — sandbox endpoint)
+  - BaseOAuthProvider extracted from the start (GREEN phase) since ~80% logic shared between providers
+  - Inheritance: LLMProvider ABC → BaseOAuthProvider → GeminiOAuthProvider / AntigravityOAuthProvider
+  - OAuthFlowEngine injected via DI for testability (AsyncMock in tests)
+  - TokenStorage with real tmp_path fixture (no mock needed, fast enough)
+  - 18 new tests (11 gemini_oauth + 7 antigravity), 96% provider coverage
+  - No regression: 331 existing tests still pass (total: 349 tests)
+
 ### Blockers Encountered
-- None in Phase 1 or Phase 2. TDD approach prevented issues.
+- None in Phase 1 through Phase 4. TDD approach prevented issues.
 
 ### Improvements for Future Plans
 - Consider splitting models.py if it grows beyond 200 lines in later phases
