@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import httpx
 
-from eazy.ai.exceptions import AuthenticationError
+from eazy.ai.exceptions import (
+    AuthenticationError,
+    ProviderError,
+    RateLimitError,
+)
 from eazy.ai.models import (
     BillingType,
     LLMRequest,
@@ -123,7 +127,10 @@ class BaseOAuthProvider(LLMProvider):
             LLMResponse with generated content and metadata.
 
         Raises:
-            AuthenticationError: If not authenticated.
+            AuthenticationError: If not authenticated or the server
+                returns HTTP 401.
+            RateLimitError: If the server returns HTTP 429.
+            ProviderError: If the server returns HTTP 5xx.
         """
         if not self.is_authenticated:
             raise AuthenticationError("Not authenticated. Call authenticate() first.")
@@ -142,6 +149,16 @@ class BaseOAuthProvider(LLMProvider):
                 json=body,
                 headers=headers,
             )
+            if resp.status_code == 401:
+                raise AuthenticationError("OAuth token invalid or expired.")
+            if resp.status_code == 429:
+                retry_after = int(resp.headers.get("retry-after", 0)) or None
+                raise RateLimitError(
+                    "Rate limit exceeded.",
+                    retry_after=retry_after,
+                )
+            if resp.status_code >= 500:
+                raise ProviderError(f"Server error: {resp.status_code}")
             resp.raise_for_status()
 
         data = resp.json()

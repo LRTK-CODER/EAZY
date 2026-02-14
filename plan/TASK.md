@@ -398,8 +398,8 @@ uv run ruff format --check src/ tests/
   - Checklist:
     - [x] Google 스타일 docstring 추가
     - [x] API 응답 파싱 로직 정리 (Gemini API JSON 구조)
-    - [ ] 에러 처리 (HTTP 429, 401, 500) — Phase 4에서 확장
-    - [ ] rate limit 리셋 시간 계산 로직 — Phase 4에서 확장
+    - [x] 에러 처리 (HTTP 429, 401, 500) — Phase 4에서 확장
+    - [x] rate limit 리셋 시간 계산 로직 — Phase 4에서 확장
 
 #### Quality Gate
 

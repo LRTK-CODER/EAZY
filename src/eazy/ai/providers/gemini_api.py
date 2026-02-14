@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 import httpx
 
-from eazy.ai.exceptions import AuthenticationError, RateLimitError
+from eazy.ai.exceptions import (
+    AuthenticationError,
+    ProviderError,
+    RateLimitError,
+)
 from eazy.ai.models import (
     BillingType,
     LLMRequest,
@@ -94,8 +100,10 @@ class GeminiAPIProvider(LLMProvider):
             LLMResponse with generated content and metadata.
 
         Raises:
-            AuthenticationError: If no API keys are configured.
-            RateLimitError: If all keys have exceeded rate limits.
+            AuthenticationError: If no API keys are configured or
+                the server returns HTTP 401.
+            RateLimitError: If the server returns HTTP 429.
+            ProviderError: If the server returns HTTP 5xx.
         """
         if not self.is_authenticated:
             raise AuthenticationError(
@@ -112,6 +120,23 @@ class GeminiAPIProvider(LLMProvider):
                 json=body,
                 params={"key": api_key},
             )
+            if resp.status_code == 401:
+                raise AuthenticationError("Invalid or expired API key.")
+            if resp.status_code == 429:
+                retry_after = int(resp.headers.get("retry-after", 0)) or None
+                self.exhaust_key(api_key)
+                if retry_after:
+                    rl = self._rate_limits.get(api_key)
+                    if rl:
+                        rl.reset_at = datetime.now(timezone.utc) + timedelta(
+                            seconds=retry_after
+                        )
+                raise RateLimitError(
+                    "Rate limit exceeded.",
+                    retry_after=retry_after,
+                )
+            if resp.status_code >= 500:
+                raise ProviderError(f"Server error: {resp.status_code}")
             resp.raise_for_status()
 
         data = resp.json()
