@@ -1,16 +1,23 @@
-"""Unit tests for LLMProvider abstract base class."""
+"""Unit tests for LLMProvider abstract base class and ProviderFactory."""
 
 from __future__ import annotations
 
 import pytest
+from cryptography.fernet import Fernet
 
 from eazy.ai.models import (
     BillingType,
     LLMRequest,
     LLMResponse,
+    ProviderConfig,
     ProviderType,
 )
 from eazy.ai.provider import LLMProvider
+from eazy.ai.provider_factory import ProviderFactory
+from eazy.ai.providers.antigravity import AntigravityOAuthProvider
+from eazy.ai.providers.gemini_api import GeminiAPIProvider
+from eazy.ai.providers.gemini_oauth import GeminiOAuthProvider
+from eazy.ai.token_storage import TokenStorage
 
 
 class TestLLMProvider:
@@ -179,3 +186,56 @@ class TestLLMProvider:
         assert provider.supports_multi_account is True
         assert provider.billing_type == BillingType.PER_TOKEN
         assert provider.is_authenticated is False
+
+
+class TestProviderFactory:
+    def test_provider_factory_creates_gemini_api_provider(self):
+        """GEMINI_API config creates GeminiAPIProvider."""
+        config = ProviderConfig(
+            provider_type=ProviderType.GEMINI_API,
+            api_key="test-key",
+        )
+        provider = ProviderFactory.create(config)
+
+        assert isinstance(provider, GeminiAPIProvider)
+        assert provider.provider_type == ProviderType.GEMINI_API
+        assert provider.is_authenticated is True
+
+    def test_provider_factory_creates_gemini_oauth_provider(self, tmp_path):
+        """GEMINI_OAUTH config creates GeminiOAuthProvider."""
+        token_storage = TokenStorage(
+            base_dir=tmp_path,
+            encryption_key=Fernet.generate_key(),
+        )
+        config = ProviderConfig(
+            provider_type=ProviderType.GEMINI_OAUTH,
+        )
+        provider = ProviderFactory.create(config, token_storage=token_storage)
+
+        assert isinstance(provider, GeminiOAuthProvider)
+        assert provider.provider_type == ProviderType.GEMINI_OAUTH
+
+    def test_provider_factory_creates_antigravity_provider(self, tmp_path):
+        """ANTIGRAVITY config creates AntigravityOAuthProvider."""
+        token_storage = TokenStorage(
+            base_dir=tmp_path,
+            encryption_key=Fernet.generate_key(),
+        )
+        config = ProviderConfig(
+            provider_type=ProviderType.ANTIGRAVITY,
+        )
+        provider = ProviderFactory.create(config, token_storage=token_storage)
+
+        assert isinstance(provider, AntigravityOAuthProvider)
+        assert provider.provider_type == ProviderType.ANTIGRAVITY
+
+    def test_provider_factory_raises_for_unknown_type(self):
+        """Unknown provider type raises ValueError."""
+        config = ProviderConfig(
+            provider_type=ProviderType.GEMINI_API,
+        )
+        # Monkey-patch provider_type to simulate unknown
+        object.__setattr__(config, "provider_type", "unknown_type")
+
+        with pytest.raises(ValueError, match="Unknown provider type"):
+            ProviderFactory.create(config)
