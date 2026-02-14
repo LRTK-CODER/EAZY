@@ -6,6 +6,7 @@ from typing import Optional
 
 import typer
 
+from eazy.cli.auth import auth_app
 from eazy.cli.display import create_progress_spinner
 from eazy.cli.formatters import format_result
 from eazy.crawler.engine import CrawlerEngine
@@ -32,6 +33,9 @@ app = typer.Typer(
     help="AI-powered black-box penetration testing tool.",
     invoke_without_command=True,
 )
+
+
+app.add_typer(auth_app, name="auth")
 
 
 @app.callback(invoke_without_command=True)
