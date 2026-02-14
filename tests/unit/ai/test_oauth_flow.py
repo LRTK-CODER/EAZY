@@ -1,4 +1,4 @@
-"""Unit tests for OAuthFlowEngine (RED phase - implementation pending).
+"""Unit tests for OAuthFlowEngine.
 
 Test Coverage:
 - Authorization URL generation with parameters
@@ -8,11 +8,17 @@ Test Coverage:
 - Token expiry detection
 - Error handling for exchange failures
 - Error handling for refresh failures
+- Interactive browser flow: opens browser
+- Interactive browser flow: returns tokens
+- Interactive browser flow: state mismatch error
+- Interactive browser flow: timeout error
 """
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -217,3 +223,155 @@ class TestOAuthFlowEngine:
         # Act & Assert
         with pytest.raises(OAuthError):
             await engine.refresh_token(refresh_token="bad-refresh-token")
+
+    async def test_interactive_flow_opens_browser(self):
+        """run_interactive_flow() calls webbrowser.open with auth URL."""
+        # Arrange
+        engine = OAuthFlowEngine(
+            client_id="test-client-id",
+            client_secret="test-secret",
+            auth_url="https://accounts.google.com/o/oauth2/v2/auth",
+            token_url="https://oauth2.googleapis.com/token",
+            scopes=["openid", "email"],
+        )
+
+        captured_url = None
+
+        def mock_open(url: str) -> bool:
+            nonlocal captured_url
+            captured_url = url
+            return True
+
+        with patch(
+            "eazy.ai.oauth_flow.webbrowser.open",
+            side_effect=mock_open,
+        ):
+            flow_task = asyncio.create_task(engine.run_interactive_flow(timeout=3.0))
+            await asyncio.sleep(0.3)
+
+            # Extract redirect_uri and state from captured URL
+            assert captured_url is not None
+            params = parse_qs(urlparse(captured_url).query)
+            assert params["client_id"] == ["test-client-id"]
+            assert "openid email" in params["scope"][0]
+            state = params["state"][0]
+            redirect_uri = params["redirect_uri"][0]
+
+            # Simulate callback to unblock the flow
+            async with httpx.AsyncClient() as client:
+                await client.get(f"{redirect_uri}?code=auth_code&state={state}")
+
+            # Cancel to avoid exchange_code failure (no mock)
+            flow_task.cancel()
+            with pytest.raises((asyncio.CancelledError, OAuthError)):
+                await flow_task
+
+    @respx.mock
+    async def test_interactive_flow_returns_tokens(self):
+        """Full interactive flow returns OAuthTokens on success."""
+        # Arrange
+        engine = OAuthFlowEngine(
+            client_id="test-client-id",
+            client_secret="test-secret",
+            auth_url="https://accounts.google.com/o/oauth2/v2/auth",
+            token_url="https://oauth2.googleapis.com/token",
+            scopes=["openid"],
+        )
+
+        # Allow localhost passthrough for callback server
+        respx.route(host="localhost").pass_through()
+        respx.post("https://oauth2.googleapis.com/token").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "access_token": "interactive-at",
+                    "refresh_token": "interactive-rt",
+                    "expires_in": 3600,
+                    "scope": "openid",
+                },
+            )
+        )
+
+        captured_url = None
+
+        def mock_open(url: str) -> bool:
+            nonlocal captured_url
+            captured_url = url
+            return True
+
+        with patch(
+            "eazy.ai.oauth_flow.webbrowser.open",
+            side_effect=mock_open,
+        ):
+            flow_task = asyncio.create_task(engine.run_interactive_flow(timeout=5.0))
+            await asyncio.sleep(0.3)
+
+            # Extract state and redirect_uri from browser URL
+            params = parse_qs(urlparse(captured_url).query)
+            state = params["state"][0]
+            redirect_uri = params["redirect_uri"][0]
+
+            # Simulate OAuth callback
+            async with httpx.AsyncClient() as client:
+                await client.get(f"{redirect_uri}?code=auth_code_123&state={state}")
+
+            tokens = await flow_task
+
+        # Assert
+        assert isinstance(tokens, OAuthTokens)
+        assert tokens.access_token == "interactive-at"
+        assert tokens.refresh_token == "interactive-rt"
+
+    async def test_interactive_flow_raises_on_state_mismatch(self):
+        """Wrong state in callback raises OAuthError."""
+        # Arrange
+        engine = OAuthFlowEngine(
+            client_id="test-client-id",
+            client_secret="test-secret",
+            auth_url="https://accounts.google.com/o/oauth2/v2/auth",
+            token_url="https://oauth2.googleapis.com/token",
+            scopes=["openid"],
+        )
+
+        captured_url = None
+
+        def mock_open(url: str) -> bool:
+            nonlocal captured_url
+            captured_url = url
+            return True
+
+        with patch(
+            "eazy.ai.oauth_flow.webbrowser.open",
+            side_effect=mock_open,
+        ):
+            flow_task = asyncio.create_task(engine.run_interactive_flow(timeout=3.0))
+            await asyncio.sleep(0.3)
+
+            # Send callback with WRONG state
+            params = parse_qs(urlparse(captured_url).query)
+            redirect_uri = params["redirect_uri"][0]
+
+            async with httpx.AsyncClient() as client:
+                await client.get(f"{redirect_uri}?code=auth_code&state=wrong_state")
+
+            with pytest.raises(OAuthError, match="State mismatch"):
+                await flow_task
+
+    async def test_interactive_flow_raises_on_timeout(self):
+        """No callback within timeout raises OAuthError."""
+        # Arrange
+        engine = OAuthFlowEngine(
+            client_id="test-client-id",
+            client_secret="test-secret",
+            auth_url="https://accounts.google.com/o/oauth2/v2/auth",
+            token_url="https://oauth2.googleapis.com/token",
+            scopes=["openid"],
+        )
+
+        with patch(
+            "eazy.ai.oauth_flow.webbrowser.open",
+            return_value=True,
+        ):
+            # Act & Assert
+            with pytest.raises(OAuthError, match="timed out"):
+                await engine.run_interactive_flow(timeout=0.5)
