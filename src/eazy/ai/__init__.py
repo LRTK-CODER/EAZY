@@ -18,13 +18,19 @@ from eazy.ai.models import (
 )
 from eazy.ai.oauth_flow import OAuthError, OAuthFlowEngine
 from eazy.ai.provider import LLMProvider
+from eazy.ai.providers.antigravity import AntigravityOAuthProvider
+from eazy.ai.providers.base_oauth import BaseOAuthProvider
+from eazy.ai.providers.gemini_oauth import GeminiOAuthProvider
 from eazy.ai.token_storage import TokenStorage
 
 __all__ = [
     "AccountInfo",
     "AccountStatus",
+    "AntigravityOAuthProvider",
     "AuthenticationError",
+    "BaseOAuthProvider",
     "BillingType",
+    "GeminiOAuthProvider",
     "LLMProvider",
     "LLMRequest",
     "LLMResponse",
