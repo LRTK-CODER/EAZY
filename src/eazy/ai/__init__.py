@@ -1,5 +1,10 @@
 """AI module for LLM provider integration."""
 
+from eazy.ai.exceptions import (
+    AuthenticationError,
+    ProviderError,
+    RateLimitError,
+)
 from eazy.ai.models import (
     AccountInfo,
     AccountStatus,
@@ -18,6 +23,7 @@ from eazy.ai.token_storage import TokenStorage
 __all__ = [
     "AccountInfo",
     "AccountStatus",
+    "AuthenticationError",
     "BillingType",
     "LLMProvider",
     "LLMRequest",
@@ -26,7 +32,9 @@ __all__ = [
     "OAuthFlowEngine",
     "OAuthTokens",
     "ProviderConfig",
+    "ProviderError",
     "ProviderType",
+    "RateLimitError",
     "RateLimitInfo",
     "TokenStorage",
 ]
