@@ -2,7 +2,7 @@
 
 **Status**: 🔄 In Progress
 **Started**: 2026-02-17
-**Last Updated**: 2026-02-17
+**Last Updated**: 2026-02-17 (Phase 2 complete)
 
 ---
 
@@ -171,101 +171,53 @@ uv run ruff format --check src/eazy/ai/ tests/unit/ai/
 
 ### Phase 2: 프로바이더 구현 — Gemini API + OAuth 플로우 + Gemini OAuth
 **Goal**: 실제 LLM과 통신 가능한 프로바이더 2개 완성. API 키와 OAuth 양 방식 지원.
-**Status**: ⏳ Pending
+**Status**: ✅ Complete
 
 #### Tasks
 
 **🔴 RED: Write Failing Tests First**
 
-- [ ] **Test 2.1**: Gemini API Provider 단위 테스트
+- [x] **Test 2.1**: Gemini API Provider 단위 테스트 (8 tests)
   - File: `tests/unit/ai/plugins/test_gemini_api.py`
-  - Expected: Tests FAIL
-  - Details:
-    - GeminiApiPlugin.authenticate: API 키 검증 (빈 키 에러)
-    - GeminiApiPlugin.is_expired: 항상 False
-    - GeminiApiProvider.send: 성공 응답 (respx mock)
-    - GeminiApiProvider.send: API 에러 (4xx, 5xx)
-    - GeminiApiProvider.send: rate limit 429 처리
-    - GeminiApiProvider.is_available: 키 존재 여부
-
-- [ ] **Test 2.2**: OAuth 플로우 단위 테스트
+- [x] **Test 2.2**: OAuth 플로우 단위 테스트 (7 tests)
   - File: `tests/unit/ai/test_oauth_flow.py`
-  - Expected: Tests FAIL
-  - Details:
-    - OAuthFlow.build_auth_url: 올바른 URL 생성 (client_id, scopes, redirect_uri 포함)
-    - OAuthFlow.exchange_code: code → token 교환 성공 (respx mock)
-    - OAuthFlow.exchange_code: 잘못된 code 에러
-    - OAuthFlow.refresh_token: refresh → new access token (respx mock)
-    - OAuthFlow.refresh_token: 만료된 refresh token 에러
-    - OAuthCallbackServer: 코드 수신 성공 (asyncio mock)
-    - OAuthCallbackServer: timeout 처리
-
-- [ ] **Test 2.3**: Gemini OAuth Provider 단위 테스트
+- [x] **Test 2.3**: Gemini OAuth Provider 단위 테스트 (6 tests)
   - File: `tests/unit/ai/plugins/test_gemini_oauth.py`
-  - Expected: Tests FAIL
-  - Details:
-    - GeminiOAuthPlugin: 올바른 OAuth 설정 (client_id, scopes, endpoints)
-    - GeminiOAuthPlugin.is_expired: 만료 시간 비교
-    - GeminiOAuthPlugin.refresh: 토큰 갱신 (OAuthFlow mock)
-    - GeminiOAuthProvider.send: 유효한 토큰으로 요청 (respx mock)
-    - GeminiOAuthProvider.send: 만료된 토큰 → 자동 갱신 → 재시도
 
 **🟢 GREEN: Implement to Make Tests Pass**
 
-- [ ] **Task 2.4**: Gemini API Provider 구현
+- [x] **Task 2.4**: Gemini API Provider 구현
   - File: `src/eazy/ai/plugins/gemini_api.py`
-  - Goal: Test 2.1 통과
-  - Details:
-    - `GeminiApiPlugin(AuthPlugin)`: authenticate (키 검증), is_expired (False), refresh (no-op)
-    - `GeminiApiProvider(LLMProvider)`: httpx로 generativelanguage.googleapis.com 호출
-    - 엔드포인트: `POST /v1beta/models/{model}:generateContent`
-    - 인증: `?key={api_key}` 쿼리 파라미터
-
-- [ ] **Task 2.5**: OAuth 플로우 인프라 구현
+  - `GeminiApiPlugin(AuthPlugin)` + `GeminiApiProvider(LLMProvider)`
+- [x] **Task 2.5**: OAuth 플로우 인프라 구현
   - File: `src/eazy/ai/oauth_flow.py`
-  - Goal: Test 2.2 통과
-  - Details:
-    - `OAuthCallbackServer`: asyncio.start_server 기반, GET /?code=xxx 수신
-    - `OAuthFlow`: build_auth_url(), exchange_code(), refresh_token()
-    - 브라우저 오픈: webbrowser.open()
-    - 토큰 교환: httpx.AsyncClient POST to token_url
-
-- [ ] **Task 2.6**: Gemini OAuth Provider 구현
+  - `OAuthCallbackServer` (asyncio) + `OAuthFlow` (httpx)
+- [x] **Task 2.6**: Gemini OAuth Provider 구현
   - File: `src/eazy/ai/plugins/gemini_oauth.py`
-  - Goal: Test 2.3 통과
-  - Details:
-    - `GeminiOAuthPlugin(AuthPlugin)`: Gemini CLI OAuth 미러링
-    - client_id/secret: cloudaicompanion 앱 설정
-    - endpoint: cloudaicompanion.googleapis.com
-    - `GeminiOAuthProvider(LLMProvider)`: Bearer token으로 API 호출
+  - `GeminiOAuthPlugin(AuthPlugin)` + `GeminiOAuthProvider(LLMProvider)`
 
 **🔵 REFACTOR: Clean Up Code**
 
-- [ ] **Task 2.7**: Phase 2 리팩터링
-  - Files: Phase 2에서 생성한 모든 파일
-  - Checklist:
-    - [ ] OAuthFlow와 Provider 간 중복 제거
-    - [ ] 에러 처리 일관성
-    - [ ] respx mock 패턴 정리
-    - [ ] ruff 포맷팅/린팅 통과
+- [x] **Task 2.7**: Phase 2 리팩터링
+  - [x] 공통 Gemini 응답 파싱/에러 처리 → `gemini_common.py` 추출
+  - [x] `__init__.py` exports 업데이트 (plugins + ai)
+  - [x] ruff 포맷팅/린팅 통과
 
 #### Quality Gate ✋
 
-**⚠️ STOP: Do NOT proceed to Phase 3 until ALL checks pass**
-
 **TDD Compliance**:
-- [ ] Tests were written FIRST and initially failed
-- [ ] Production code written to make tests pass
-- [ ] Code improved while tests still pass
-- [ ] Coverage ≥ 80%
+- [x] Tests were written FIRST and initially failed
+- [x] Production code written to make tests pass
+- [x] Code improved while tests still pass
+- [x] Coverage ≥ 80% → **94%**
 
 **Build & Tests**:
-- [ ] All tests pass (Phase 1 + Phase 2)
-- [ ] No flaky tests
+- [x] All tests pass (50/50, Phase 1 + Phase 2)
+- [x] No flaky tests
 
 **Code Quality**:
-- [ ] Linting pass
-- [ ] Formatting pass
+- [x] Linting pass
+- [x] Formatting pass
 
 **Validation Commands**:
 ```bash
@@ -407,10 +359,10 @@ uv run ruff format --check src/eazy/ai/ tests/
 
 ### Completion Status
 - **Phase 1**: ✅ 100% — 29 tests, 100% coverage
-- **Phase 2**: ⏳ 0%
+- **Phase 2**: ✅ 100% — 21 new tests, 94% coverage
 - **Phase 3**: ⏳ 0%
 
-**Overall Progress**: 33% complete
+**Overall Progress**: 67% complete
 
 ---
 
