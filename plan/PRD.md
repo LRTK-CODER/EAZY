@@ -129,20 +129,61 @@ EAZY는 **AI 기반 자동화**와 **블랙박스 접근법**을 결합하여, �
 
 ---
 
-#### REQ-002B: LLM Provider 추상화 및 인증
+#### REQ-002B: LLM Provider 추상화 및 플러그인 기반 인증
 
-**설명:** 다양한 LLM Provider를 통합하는 추상화 레이어를 구축한다. 구독 기반 인증(OAuth)과 API 키 방식을 모두 지원하며, 벤더에 종속되지 않는 범용 인터페이스로 설계한다. REQ-002C, REQ-002D 및 향후 모든 LLM 관련 기능의 기반 인프라이다.
+**설명:** 다양한 LLM Provider를 통합하는 추상화 레이어를 구축한다. 플러그인 기반 인증 아키텍처를 채택하여 각 프로바이더의 인증 로직(OAuth, API 키)을 독립 모듈로 분리한다. 구독 기반 인증(OAuth)과 API 키 방식을 모두 지원하며, 벤더에 종속되지 않는 범용 인터페이스로 설계한다. REQ-002C, REQ-002D 및 향후 모든 LLM 관련 기능의 기반 인프라이다.
 
 **User Story:**
 > 보안 담당자로서, 별도 API 과금 없이 기존 Gemini 구독만으로 AI 기능을 사용하고 싶다. 또한 향후 다른 LLM(Codex, Claude Code 등)으로도 쉽게 전환할 수 있기를 원한다.
 
 **Acceptance Criteria:**
 - [ ] LLMProvider 추상 인터페이스를 정의한다 (벤더 무관한 범용 계약: send prompt → receive structured response)
-- [ ] **Gemini OAuth Provider**: Google 로그인(OAuth 2.0) 기반 인증. Gemini CLI의 OAuth 플로우를 미러링하여 `cloudaicompanion.googleapis.com` 엔드포인트를 사용한다. Gemini 구독 한도 내에서 별도 API 과금 없이 동작한다
-- [ ] **Antigravity OAuth Provider**: Google Antigravity IDE의 OAuth 인증. Antigravity rate limit을 사용하여 프리미엄 모델에 접근한다
-- [ ] **Gemini API Provider**: API 키 기반 인증. Google AI Studio 무료 티어(분당 15 요청, 일당 1,500 요청) 또는 유료 요금제를 지원한다
+- [ ] **플러그인 기반 인증 아키텍처**: 각 프로바이더의 인증 로직을 독립 플러그인 모듈로 분리한다. 새 프로바이더 추가 시 플러그인만 구현하면 되는 확장 가능한 구조를 설계한다 (OpenCode의 플러그인 아키텍처 참조)
+- [ ] **인증 저장소 (`auth.json`)**: `~/.eazy/auth.json`을 단일 인증 소스로 사용한다. OAuth 타입(`type: "oauth"`)과 API 키 타입(`type: "api"`)을 구분하며, OAuth의 경우 access/refresh token과 만료 시간을 관리한다
+- [ ] **Gemini OAuth Provider**: Google 로그인(OAuth 2.0) 기반 인증 플러그인. Gemini CLI의 OAuth 플로우를 미러링하여 `cloudaicompanion.googleapis.com` 엔드포인트를 사용한다. Gemini 구독 한도 내에서 별도 API 과금 없이 동작한다
+- [ ] **Antigravity OAuth Provider**: Google Antigravity IDE의 OAuth 인증 플러그인. Antigravity rate limit을 사용하여 프리미엄 모델에 접근한다. 멀티 계정 로드밸런싱 및 엔드포인트 폴백(daily → autopush → prod)을 지원한다
+- [ ] **Gemini API Provider**: API 키 기반 인증 플러그인. Google AI Studio 무료 티어(분당 15 요청, 일당 1,500 요청) 또는 유료 요금제를 지원한다
 - [ ] OAuth 인증 시 브라우저 기반 consent 플로우 → 로컬 콜백 서버 → refresh token 저장/자동 갱신을 지원한다
 - [ ] Rate limit 도달 시 멀티 계정 자동 전환을 지원한다 (계정별 상태 추적 + 자동 로테이션)
+
+**플러그인 기반 인증 아키텍처:**
+
+```
+인증 저장소: ~/.eazy/auth.json (단일 소스)
+
+auth.json 구조:
+  {
+    "gemini-oauth": {
+      "type": "oauth",
+      "access": "<access_token>",
+      "refresh": "<refresh_token>",
+      "expires": 1761735358000
+    },
+    "antigravity": {
+      "type": "oauth",
+      "accounts": [
+        { "access": "...", "refresh": "...", "expires": ... },
+        { "access": "...", "refresh": "...", "expires": ... }
+      ]
+    },
+    "gemini-api": {
+      "type": "api",
+      "key": "AIza..."
+    }
+  }
+
+인증 플러그인 구조:
+  src/eazy/ai/
+  ├── provider.py              — LLMProvider 추상 인터페이스 + 프로바이더 로더
+  ├── credentials.py           — 인증 우선순위 resolve + auth.json 관리
+  ├── config.py                — AI 관련 설정 모델
+  └── plugins/                 — 프로바이더별 인증 플러그인
+      ├── __init__.py           — 플러그인 레지스트리 + 자동 탐색
+      ├── base.py               — AuthPlugin 추상 베이스 클래스
+      ├── gemini_oauth.py       — Gemini CLI OAuth 플러그인
+      ├── antigravity_oauth.py  — Antigravity OAuth 플러그인
+      └── gemini_api.py         — Gemini API 키 플러그인
+```
 
 **LLM Provider 아키텍처:**
 
@@ -151,6 +192,7 @@ LLMProvider (추상 인터페이스)
 │   supports_oauth: bool          — OAuth 인증 가능 여부
 │   supports_multi_account: bool  — 멀티 계정 전환 가능 여부
 │   billing_type: str             — "subscription" | "per_token" | "free"
+│   auth_plugin: AuthPlugin       — 인증 플러그인 인스턴스
 │
 │  [Phase 2 — v0.5]
 ├── GeminiOAuthProvider       — Google 로그인 (구독, 멀티 계정 ✅)
@@ -158,8 +200,9 @@ LLMProvider (추상 인터페이스)
 ├── GeminiAPIProvider         — API 키 (무료 티어 / 유료, 멀티 키 ✅)
 │
 │  [Future — v2.0+]
+├── ClaudeOAuthProvider       — Claude Code OAuth (구독, 멀티 계정 ✅)
 ├── CodexOAuthProvider        — OpenAI Codex OAuth (구독, 멀티 계정 ✅)
-├── ClaudeAPIProvider         — Anthropic API 키 전용 (멀티 키 ✅)
+├── ClaudeAPIProvider         — Anthropic API 키 (멀티 키 ✅)
 └── OllamaProvider            — 로컬 모델 (완전 오프라인, 무료)
 ```
 
@@ -168,15 +211,16 @@ LLMProvider (추상 인터페이스)
 | Provider | OAuth | 멀티 계정 | 과금 방식 | 비고 |
 |----------|:-----:|:---------:|-----------|------|
 | GeminiOAuth | ✅ | ✅ | subscription | Gemini CLI OAuth 미러링 |
-| Antigravity | ✅ | ✅ | subscription | Antigravity IDE 엔드포인트 |
+| Antigravity | ✅ | ✅ | subscription | Antigravity IDE 엔드포인트, 멀티 엔드포인트 폴백 |
 | GeminiAPI | ❌ | ✅ (멀티 키) | per_token / free_tier | AI Studio API 키 |
+| ClaudeOAuth | ✅ | ✅ | subscription | Claude Code OAuth 미러링 (향후 구현) |
 | CodexOAuth | ✅ | ✅ | subscription | ChatGPT Plus/Pro OAuth |
-| ClaudeAPI | ❌ | ✅ (멀티 키) | per_token | Anthropic이 서드파티 OAuth 차단 (2026.01) |
+| ClaudeAPI | ❌ | ✅ (멀티 키) | per_token | Anthropic API 키 |
 | Ollama | ❌ | ❌ | free | 로컬 GPU 필요 |
 
-> **확장성 설계 원칙**: LLMProvider 인터페이스는 특정 벤더에 종속되지 않는 범용 계약(`send prompt → receive structured response`)으로 정의한다. 각 Provider는 인증 방식(OAuth, API 키, 로컬)과 호출 엔드포인트만 다르며, 크롤링/스캐닝 로직은 Provider에 무관하게 동일하게 동작한다. Provider마다 capability가 다르므로(`supports_oauth`, `supports_multi_account`, `billing_type`), 인터페이스에 capability flag를 포함하여 런타임에 적절한 동작을 선택한다.
+> **확장성 설계 원칙**: 플러그인 기반 인증 아키텍처를 채택한다. 각 프로바이더의 인증 로직(OAuth 플로우, 토큰 갱신, 요청 변환)을 독립 플러그인 모듈로 분리하여, 새 프로바이더 추가 시 `AuthPlugin`을 구현하고 레지스트리에 등록하는 것만으로 지원이 가능하다 (OpenCode의 플러그인 아키텍처 참조). LLMProvider 인터페이스는 특정 벤더에 종속되지 않는 범용 계약(`send prompt → receive structured response`)으로 정의한다. 크롤링/스캐닝 로직은 Provider에 무관하게 동일하게 동작한다.
 
-> **참고**: OAuth Provider(Gemini, Antigravity, Codex)는 각 서비스의 비공식 내부 엔드포인트를 사용하며, 서비스 제공자가 엔드포인트를 변경하면 영향받을 수 있다. Anthropic은 2026년 1월 서드파티 OAuth 접근을 차단하여 Claude는 API 키 방식만 가능하다. Provider 추상화로 이러한 변경에 빠르게 대응할 수 있도록 설계한다.
+> **참고**: OAuth Provider(Gemini, Antigravity, Codex, Claude)는 각 서비스의 비공식 내부 엔드포인트를 사용하며, 서비스 제공자가 엔드포인트를 변경하면 영향받을 수 있다. Anthropic의 서드파티 OAuth 접근은 초기에 차단되었으나 다른 프로바이더들의 개방 흐름에 따라 제재가 완화되고 있어 향후 Claude Code OAuth Provider 구현을 계획한다. Provider 추상화와 플러그인 구조로 이러한 변경에 빠르게 대응할 수 있도록 설계한다.
 
 ---
 
