@@ -7,6 +7,14 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 
+class LLMError(Exception):
+    """Base exception for LLM provider errors."""
+
+
+class RateLimitError(LLMError):
+    """Raised when a provider returns HTTP 429."""
+
+
 class LLMResponse(BaseModel):
     """Response from an LLM provider.
 
@@ -79,3 +87,25 @@ class AuthEntry(BaseModel):
     type: Literal["oauth", "api"]
     oauth: OAuthTokens | None = None
     api: ApiKeyEntry | None = None
+
+
+class OAuthConfig(BaseModel):
+    """OAuth 2.0 configuration for a provider.
+
+    Attributes:
+        client_id: OAuth application client ID.
+        client_secret: OAuth application client secret.
+        auth_url: Authorization endpoint URL.
+        token_url: Token exchange endpoint URL.
+        scopes: List of OAuth scopes to request.
+        redirect_uri: Local callback URI for code receipt.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    client_id: str
+    client_secret: str
+    auth_url: str
+    token_url: str
+    scopes: tuple[str, ...]
+    redirect_uri: str = "http://localhost:0"
