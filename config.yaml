@@ -1,0 +1,12 @@
+llm:
+  default_model: "anthropic/claude-sonnet-4-20250514"
+  temperature: 0.1
+  api_keys:
+    anthropic: "${ANTHROPIC_API_KEY}"
+    openai: "${OPENAI_API_KEY}"
+    google: "${GOOGLE_API_KEY}"
+  local:
+    base_url: "http://localhost:11434"
+
+workspaces:
+  base_dir: "workspaces"
