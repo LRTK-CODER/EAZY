@@ -1,0 +1,26 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: .venv/bin/mypy src/ --strict
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: pytest
+        name: pytest
+        entry: bash -c '.venv/bin/pytest tests/ -x -q; ret=$?; [ $ret -eq 5 ] && exit 0 || exit $ret'
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: gitleaks
+        name: gitleaks
+        entry: gitleaks protect --staged
+        language: system
+        pass_filenames: false
