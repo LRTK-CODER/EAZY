@@ -187,3 +187,8 @@ Spec의 각 컴포넌트가 디렉토리에 1:1 매핑된다:
 - `.env` 파일
 - `config.yaml`의 프로덕션 설정
 - Skill 파일 (`skills/static/`) — 보안 전문가만 수정
+
+## 제약 사항
+- `pip install` 절대 사용 금지 → 패키지 추가는 반드시 `uv add <패키지>` 또는 `uv add --dev <패키지>`
+- `pip` 자체가 .venv에 존재하지 않음 — uv가 패키지 관리를 전담
+- Python 실행은 `uv run python`, `uv run pytest`, `uv run mypy` 사용
