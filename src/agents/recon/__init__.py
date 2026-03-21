@@ -6,6 +6,12 @@ from src.agents.recon.auth_flow_mapper import (
     AuthFlowResult,
     Credentials,
 )
+from src.agents.recon.crawler import (
+    ApiCallRelation,
+    AuthenticatedCrawler,
+    CrawlResult,
+    DataFlowPath,
+)
 from src.agents.recon.kg_models import (
     BusinessFlow,
     DataPath,
@@ -23,10 +29,14 @@ from src.agents.recon.scan_interpreter import (
 )
 
 __all__ = [
+    "ApiCallRelation",
     "AuthFlowMapper",
     "AuthFlowResult",
+    "AuthenticatedCrawler",
     "AttackSurface",
+    "CrawlResult",
     "Credentials",
+    "DataFlowPath",
     "BusinessFlow",
     "DataPath",
     "Finding",
