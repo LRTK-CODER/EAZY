@@ -23,6 +23,11 @@ from src.agents.recon.kg_models import (
     KnowledgeGraphData,
 )
 from src.agents.recon.knowledge_graph import KnowledgeGraph
+from src.agents.recon.orchestrator import (
+    Stage1Orchestrator,
+    Stage1Result,
+    SubPhaseStatus,
+)
 from src.agents.recon.scan_interpreter import (
     Finding,
     ScanInterpreter,
@@ -50,5 +55,8 @@ __all__ = [
     "KnowledgeGraphData",
     "ScanInterpreter",
     "ScanInterpreterResult",
+    "Stage1Orchestrator",
+    "Stage1Result",
+    "SubPhaseStatus",
     "extract_from_kg",
 ]
