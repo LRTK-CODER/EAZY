@@ -1,6 +1,11 @@
 """Recon pipeline — Stage 1."""
 
 from src.agents.recon.attack_surface import AttackSurface, extract_from_kg
+from src.agents.recon.auth_flow_mapper import (
+    AuthFlowMapper,
+    AuthFlowResult,
+    Credentials,
+)
 from src.agents.recon.kg_models import (
     BusinessFlow,
     DataPath,
@@ -18,7 +23,10 @@ from src.agents.recon.scan_interpreter import (
 )
 
 __all__ = [
+    "AuthFlowMapper",
+    "AuthFlowResult",
     "AttackSurface",
+    "Credentials",
     "BusinessFlow",
     "DataPath",
     "Finding",
