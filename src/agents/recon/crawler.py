@@ -6,6 +6,7 @@ import contextlib
 import json
 import re
 from collections import deque
+from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import parse_qs, urljoin, urlparse
 
@@ -56,6 +57,18 @@ class CrawlResult(BaseModel):
     error: str | None = None
 
 
+@dataclass
+class _CrawlState:
+    """BFS 크롤링 중 누적되는 내부 상태."""
+
+    endpoints: list[Endpoint] = field(default_factory=list)
+    api_calls: list[ApiCallRelation] = field(default_factory=list)
+    crypto_contexts: list[CryptoContext] = field(default_factory=list)
+    pages_visited: list[str] = field(default_factory=list)
+    raw_responses: list[dict[str, Any]] = field(default_factory=list)
+    param_registry: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
+
+
 class AuthenticatedCrawler:
     """인증된 세션으로 타겟 웹 앱을 크롤링.
 
@@ -79,82 +92,68 @@ class AuthenticatedCrawler:
         """BFS 기반 인증 크롤링. LLM이 탐색 우선순위 결정."""
         queue: deque[tuple[str, int]] = deque([(start_url, 0)])
         visited: set[str] = set()
-
-        all_endpoints: list[Endpoint] = []
-        all_api_calls: list[ApiCallRelation] = []
-        all_crypto: list[CryptoContext] = []
-        pages_visited: list[str] = []
-        raw_responses: list[dict[str, Any]] = []
-        # Track params per URL for data flow analysis
-        param_registry: dict[str, list[tuple[str, str]]] = {}
+        state = _CrawlState()
 
         try:
             while queue:
                 url, depth = queue.popleft()
                 normalized = _normalize_url(url)
 
-                if normalized in visited:
-                    continue
-                if depth > max_depth:
+                if normalized in visited or depth > max_depth:
                     continue
                 if not self._session.scope.is_in_scope(url):
                     continue
 
                 visited.add(normalized)
-                response = await self._session.request("GET", url)
-                body = response.text
-                pages_visited.append(url)
-                raw_responses.append(_serialize_response(response, url))
+                new_urls = await self._process_page(url, state)
 
-                # Extract endpoints from HTML
-                endpoints = _extract_endpoints_from_html(body, url)
-                all_endpoints.extend(endpoints)
-
-                # Extract API call relations from JS
-                api_calls = _extract_api_calls_from_body(body, url)
-                all_api_calls.extend(api_calls)
-
-                # Extract crypto contexts from JS
-                crypto = _extract_crypto_from_js(body)
-                all_crypto.extend(crypto)
-
-                # Track parameters for data flow
-                _register_params(param_registry, url, body)
-
-                # Collect new URLs to visit
-                new_urls = [
-                    ep.url
-                    for ep in endpoints
-                    if ep.method == "GET"
-                    and _normalize_url(ep.url) not in visited
-                    and self._session.scope.is_in_scope(ep.url)
+                # Filter and prioritize new URLs
+                candidates = [
+                    u
+                    for u in new_urls
+                    if _normalize_url(u) not in visited
+                    and self._session.scope.is_in_scope(u)
                 ]
-
-                if new_urls:
-                    prioritized = await self._ask_llm_priority(new_urls)
+                if candidates:
+                    prioritized = await self._ask_llm_priority(candidates)
                     queue.extend((u, depth + 1) for u in prioritized)
 
-            # Build data flows from param registry
-            data_flows = _extract_data_flows(param_registry)
+            data_flows = _extract_data_flows(state.param_registry)
 
             return CrawlResult(
-                discovered_endpoints=all_endpoints,
-                api_calls=all_api_calls,
+                discovered_endpoints=state.endpoints,
+                api_calls=state.api_calls,
                 data_flows=data_flows,
-                crypto_contexts=all_crypto,
-                pages_visited=pages_visited,
-                raw_responses=raw_responses,
+                crypto_contexts=state.crypto_contexts,
+                pages_visited=state.pages_visited,
+                raw_responses=state.raw_responses,
             )
         except Exception:  # noqa: BLE001
             return CrawlResult(
-                discovered_endpoints=all_endpoints,
-                api_calls=all_api_calls,
-                crypto_contexts=all_crypto,
-                pages_visited=pages_visited,
-                raw_responses=raw_responses,
+                discovered_endpoints=state.endpoints,
+                api_calls=state.api_calls,
+                crypto_contexts=state.crypto_contexts,
+                pages_visited=state.pages_visited,
+                raw_responses=state.raw_responses,
                 is_fallback=True,
                 error="Crawl failed — partial results attached",
             )
+
+    async def _process_page(self, url: str, state: _CrawlState) -> list[str]:
+        """단일 페이지를 처리하고 발견된 새 GET URL 목록을 반환."""
+        response = await self._session.request("GET", url)
+        body: str = response.text
+        state.pages_visited.append(url)
+        state.raw_responses.append(_serialize_response(response, url))
+
+        endpoints = _extract_endpoints_from_html(body, url)
+        state.endpoints.extend(endpoints)
+
+        state.api_calls.extend(_extract_api_calls_from_body(body, url))
+        state.crypto_contexts.extend(_extract_crypto_from_js(body))
+        _register_params(state.param_registry, url, body)
+
+        return [ep.url for ep in endpoints if ep.method == "GET"]
 
     async def _ask_llm_priority(self, urls: list[str]) -> list[str]:
         """Ask LLM to prioritize URLs for crawling."""
