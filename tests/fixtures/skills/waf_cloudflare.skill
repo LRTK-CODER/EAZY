@@ -1,0 +1,18 @@
+# Cloudflare WAF Bypass
+
+Techniques for bypassing Cloudflare Web Application Firewall.
+
+## Description
+
+Cloudflare WAF uses signature-based and behavioral analysis to block
+malicious requests. These techniques focus on payload obfuscation.
+
+## Techniques
+
+- Unicode normalization bypass
+- Chunked transfer encoding
+- Header manipulation
+
+## Indicators
+
+Cloudflare returns specific headers: `cf-ray`, `server: cloudflare`.

@@ -1,0 +1,11 @@
+# Generic Attack Template
+
+A generic attack template for common web application vulnerabilities.
+
+## Description
+
+Template for structuring attack payloads against common vulnerability classes.
+
+## Usage
+
+Use as a base template and customize payloads for the specific target.

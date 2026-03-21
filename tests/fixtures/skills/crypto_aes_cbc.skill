@@ -1,0 +1,21 @@
+# AES-CBC Padding Oracle
+
+Padding oracle attack against AES-CBC encrypted tokens.
+
+## Description
+
+Exploits improper error handling in AES-CBC decryption to recover
+plaintext one byte at a time through padding validation oracles.
+
+## Prerequisites
+
+- Target uses AES-CBC encryption
+- Different error messages for valid/invalid padding
+- Attacker can modify ciphertext blocks
+
+## Steps
+
+1. Identify padding oracle endpoint
+2. Capture valid ciphertext
+3. Modify last block byte-by-byte
+4. Infer intermediate values from padding errors

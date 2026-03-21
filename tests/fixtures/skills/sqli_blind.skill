@@ -1,0 +1,19 @@
+# Blind SQL Injection
+
+Blind SQL injection technique using boolean-based and time-based inference.
+
+## Description
+
+This technique exploits SQL injection vulnerabilities where the application
+does not return query results directly but reveals information through
+boolean conditions or time delays.
+
+## Payloads
+
+- `' OR 1=1--`
+- `' OR SLEEP(5)--`
+- `' AND SUBSTRING(@@version,1,1)='5'--`
+
+## Detection
+
+Monitor response time differences and boolean condition changes in output.
