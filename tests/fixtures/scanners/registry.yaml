@@ -1,0 +1,35 @@
+plugins:
+  - name: js_beautifier
+    category: js_analysis
+    module_path: src.agents.scanners.plugins.js_beautifier
+    enabled: true
+    config:
+      timeout: 30
+
+  - name: whois_lookup
+    category: osint
+    module_path: src.agents.scanners.plugins.whois_lookup
+    enabled: true
+
+  - name: dirsearch
+    category: directory
+    module_path: src.agents.scanners.plugins.dirsearch
+    enabled: true
+    config:
+      wordlist: common.txt
+      threads: 10
+
+  - name: waf_detector
+    category: waf_fingerprint
+    module_path: src.agents.scanners.plugins.waf_detector
+    enabled: false
+
+  - name: wappalyzer
+    category: tech_stack
+    module_path: src.agents.scanners.plugins.wappalyzer
+    enabled: true
+
+  - name: error_page_analyzer
+    category: error_pattern
+    module_path: src.agents.scanners.plugins.error_page_analyzer
+    enabled: true
