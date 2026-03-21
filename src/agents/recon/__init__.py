@@ -9,6 +9,7 @@ from src.agents.recon.kg_models import (
     GraphNode,
     KnowledgeGraphData,
 )
+from src.agents.recon.knowledge_graph import KnowledgeGraph
 
 __all__ = [
     "BusinessFlow",
@@ -17,5 +18,6 @@ __all__ = [
     "GraphEdge",
     "GraphMetadata",
     "GraphNode",
+    "KnowledgeGraph",
     "KnowledgeGraphData",
 ]
