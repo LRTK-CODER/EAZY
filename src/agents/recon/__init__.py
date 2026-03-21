@@ -1,5 +1,6 @@
 """Recon pipeline — Stage 1."""
 
+from src.agents.recon.attack_surface import AttackSurface, extract_from_kg
 from src.agents.recon.kg_models import (
     BusinessFlow,
     DataPath,
@@ -12,6 +13,7 @@ from src.agents.recon.kg_models import (
 from src.agents.recon.knowledge_graph import KnowledgeGraph
 
 __all__ = [
+    "AttackSurface",
     "BusinessFlow",
     "DataPath",
     "FlowStep",
@@ -20,4 +22,5 @@ __all__ = [
     "GraphNode",
     "KnowledgeGraph",
     "KnowledgeGraphData",
+    "extract_from_kg",
 ]
