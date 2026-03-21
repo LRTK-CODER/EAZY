@@ -1,0 +1,6 @@
+[extend]
+# Use default gitleaks rules as base
+
+[allowlist]
+description = "Test files with mock/fake tokens"
+paths = ['tests/']
