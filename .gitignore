@@ -1,3 +1,6 @@
+# Workspaces (session data)
+workspaces/
+
 # Cluade File
 .claude/
 .omc/
