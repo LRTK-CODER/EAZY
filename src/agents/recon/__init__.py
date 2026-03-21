@@ -11,16 +11,24 @@ from src.agents.recon.kg_models import (
     KnowledgeGraphData,
 )
 from src.agents.recon.knowledge_graph import KnowledgeGraph
+from src.agents.recon.scan_interpreter import (
+    Finding,
+    ScanInterpreter,
+    ScanInterpreterResult,
+)
 
 __all__ = [
     "AttackSurface",
     "BusinessFlow",
     "DataPath",
+    "Finding",
     "FlowStep",
     "GraphEdge",
     "GraphMetadata",
     "GraphNode",
     "KnowledgeGraph",
     "KnowledgeGraphData",
+    "ScanInterpreter",
+    "ScanInterpreterResult",
     "extract_from_kg",
 ]
