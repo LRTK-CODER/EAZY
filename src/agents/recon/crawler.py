@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import json
 import re
+from collections import deque
 from typing import Any
 from urllib.parse import parse_qs, urljoin, urlparse
 
@@ -76,7 +77,7 @@ class AuthenticatedCrawler:
         max_depth: int = 3,
     ) -> CrawlResult:
         """BFS 기반 인증 크롤링. LLM이 탐색 우선순위 결정."""
-        queue: list[tuple[str, int]] = [(start_url, 0)]
+        queue: deque[tuple[str, int]] = deque([(start_url, 0)])
         visited: set[str] = set()
 
         all_endpoints: list[Endpoint] = []
@@ -89,7 +90,7 @@ class AuthenticatedCrawler:
 
         try:
             while queue:
-                url, depth = queue.pop(0)
+                url, depth = queue.popleft()
                 normalized = _normalize_url(url)
 
                 if normalized in visited:
