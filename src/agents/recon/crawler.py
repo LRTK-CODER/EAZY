@@ -13,6 +13,16 @@ from pydantic import BaseModel, Field
 from src.agents.core.models import CryptoContext, Endpoint
 from src.agents.recon.scan_interpreter import LLMClient
 
+VALID_HTTP_METHODS: frozenset[str] = frozenset(
+    {"GET", "POST", "PUT", "DELETE", "PATCH"},
+)
+
+
+def _validate_http_method(method: str, *, default: str = "GET") -> str:
+    """Validate and normalize an HTTP method string."""
+    upper = method.upper()
+    return upper if upper in VALID_HTTP_METHODS else default
+
 
 class ApiCallRelation(BaseModel):
     """API call relationship between pages."""
@@ -181,9 +191,7 @@ def _extract_endpoints_from_html(body: str, base_url: str) -> list[Endpoint]:
         re.IGNORECASE,
     ):
         action = match.group(1)
-        method_str = (match.group(2) or "GET").upper()
-        if method_str not in {"GET", "POST", "PUT", "DELETE", "PATCH"}:
-            method_str = "POST"
+        method_str = _validate_http_method(match.group(2) or "GET", default="POST")
         full_url = urljoin(base_url, action)
         endpoints.append(
             Endpoint(url=full_url, method=method_str)  # type: ignore[arg-type]
@@ -202,9 +210,7 @@ def _extract_api_calls_from_body(body: str, current_url: str) -> list[ApiCallRel
         body,
     ):
         target = match.group(1)
-        method = (match.group(2) or "GET").upper()
-        if method not in {"GET", "POST", "PUT", "DELETE", "PATCH"}:
-            method = "GET"
+        method = _validate_http_method(match.group(2) or "GET")
         full_target = urljoin(current_url, target)
         relations.append(
             ApiCallRelation(
@@ -220,10 +226,8 @@ def _extract_api_calls_from_body(body: str, current_url: str) -> list[ApiCallRel
         r'\.open\(["\'](\w+)["\'],\s*["\']([^"\']+)["\']',
         body,
     ):
-        method = match.group(1).upper()
+        method = _validate_http_method(match.group(1))
         target = match.group(2)
-        if method not in {"GET", "POST", "PUT", "DELETE", "PATCH"}:
-            method = "GET"
         full_target = urljoin(current_url, target)
         relations.append(
             ApiCallRelation(
