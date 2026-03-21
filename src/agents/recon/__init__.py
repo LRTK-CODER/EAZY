@@ -12,6 +12,7 @@ from src.agents.recon.crawler import (
     CrawlResult,
     DataFlowPath,
 )
+from src.agents.recon.kg_builder import KGBuilder
 from src.agents.recon.kg_models import (
     BusinessFlow,
     DataPath,
@@ -37,6 +38,7 @@ __all__ = [
     "CrawlResult",
     "Credentials",
     "DataFlowPath",
+    "KGBuilder",
     "BusinessFlow",
     "DataPath",
     "Finding",
