@@ -1,2 +1,36 @@
 #Claude File
 .omc/
+.claude/*
+!.claude/CLAUDE.md
+!.claude/rules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker 빌드 캐시
+dockers/*.tar
+
+# IDE
+.vscode/
+.idea/
+
+# 세션 데이터 (민감 정보 — 크레덴셜, 취약점 증거)
+workspaces/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# 환경 변수 (API 키)
+.env
+.env.local
+
+# 테스트/품질
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
