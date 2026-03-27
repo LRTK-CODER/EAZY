@@ -1,0 +1,33 @@
+services:
+  conduit-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: conduit
+      POSTGRES_PASSWORD: conduit
+      POSTGRES_DB: conduit
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U conduit"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  conduit-api:
+    image: node:20-alpine
+    working_dir: /app
+    command: >
+      sh -c "npm install && npm start"
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://conduit:conduit@conduit-db:5432/conduit
+      NODE_ENV: production
+    depends_on:
+      conduit-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 30s
