@@ -28,6 +28,57 @@ class MetricsResult(BaseModel):
     )
 
 
+def _validate_types(predicted: list[T], ground_truth: list[T]) -> None:
+    """predicted와 ground_truth의 요소 타입이 일치하는지 검사한다."""
+    if predicted and ground_truth:
+        pred_type = type(predicted[0])
+        gt_type = type(ground_truth[0])
+        if pred_type != gt_type:
+            raise TypeError(
+                f"predicted와 ground_truth의 타입이 불일치: "
+                f"{pred_type.__name__} vs {gt_type.__name__}"
+            )
+
+
+def _count_tp(
+    predicted: list[T],
+    ground_truth: list[T],
+    match_fn: Callable[[T, T], bool],
+) -> int:
+    """매칭 함수로 True Positives 수를 산출한다."""
+    if match_fn is operator.eq:
+        pred_counter: Counter[T] = Counter(predicted)
+        gt_counter: Counter[T] = Counter(ground_truth)
+        return sum((pred_counter & gt_counter).values())
+
+    gt_matched = [False] * len(ground_truth)
+    tp = 0
+    for p in predicted:
+        for j, g in enumerate(ground_truth):
+            if not gt_matched[j] and match_fn(p, g):
+                tp += 1
+                gt_matched[j] = True
+                break
+    return tp
+
+
+def _compute_f1(precision: float, recall: float) -> float:
+    """Precision과 Recall로 F1을 산출한다."""
+    total = precision + recall
+    if total > 0:
+        return 2 * precision * recall / total
+    return 0.0
+
+
+def _compute_youdens_index(recall: float, tn: int, fp: int) -> float | None:
+    """Youden's Index를 산출한다. TN+FP가 0이면 None."""
+    denominator = tn + fp
+    if denominator == 0:
+        return None
+    specificity = tn / denominator
+    return recall + specificity - 1.0
+
+
 def compute_metrics(
     predicted: list[T],
     ground_truth: list[T],
@@ -48,17 +99,8 @@ def compute_metrics(
     Raises:
         TypeError: predicted와 ground_truth의 요소 타입이 불일치하면 발생.
     """
-    # 타입 불일치 검사
-    if predicted and ground_truth:
-        pred_type = type(predicted[0])
-        gt_type = type(ground_truth[0])
-        if pred_type != gt_type:
-            raise TypeError(
-                f"predicted와 ground_truth의 타입이 불일치: "
-                f"{pred_type.__name__} vs {gt_type.__name__}"
-            )
+    _validate_types(predicted, ground_truth)
 
-    # ground_truth 빈 리스트 → 평가 불가
     if not ground_truth:
         return MetricsResult(
             true_positives=0,
@@ -70,7 +112,6 @@ def compute_metrics(
             true_negatives=tn,
         )
 
-    # predicted 빈 리스트
     if not predicted:
         return MetricsResult(
             true_positives=0,
@@ -82,40 +123,15 @@ def compute_metrics(
             true_negatives=tn,
         )
 
-    # TP 산출
-    if match_fn is operator.eq:
-        # Counter 기반 최적화: O(n + m)
-        pred_counter: Counter[T] = Counter(predicted)
-        gt_counter: Counter[T] = Counter(ground_truth)
-        tp = sum((pred_counter & gt_counter).values())
-    else:
-        # 커스텀 match_fn: greedy 매칭 O(n * m)
-        gt_matched = [False] * len(ground_truth)
-        tp = 0
-        for p in predicted:
-            for j, g in enumerate(ground_truth):
-                if not gt_matched[j] and match_fn(p, g):
-                    tp += 1
-                    gt_matched[j] = True
-                    break
-
+    tp = _count_tp(predicted, ground_truth, match_fn)
     fp = len(predicted) - tp
     fn = len(ground_truth) - tp
 
     precision = tp / len(predicted)
     recall = tp / len(ground_truth)
+    f1 = _compute_f1(precision, recall)
 
-    if (precision + recall) > 0:
-        f1 = 2 * precision * recall / (precision + recall)
-    else:
-        f1 = 0.0
-
-    # Youden's Index: J = Sensitivity + Specificity - 1
-    youdens_index: float | None = None
-    if tn is not None:
-        specificity = tn / (tn + fp) if (tn + fp) > 0 else None
-        if specificity is not None:
-            youdens_index = recall + specificity - 1.0
+    youdens_index = _compute_youdens_index(recall, tn, fp) if tn is not None else None
 
     return MetricsResult(
         true_positives=tp,
