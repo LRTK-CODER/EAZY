@@ -145,6 +145,8 @@ def test_compute_metrics_10k_items_under_100ms() -> None:
         ([1, 2, 3], [], None, None, None, None, None),
         ([4, 5, 6], [1, 2, 3], None, 0.0, 0.0, 0.0, None),
         ([1, 2, 4], [1, 2, 3], None, 2 / 3, 2 / 3, 2 / 3, None),
+        ([], [], None, None, None, None, None),
+        ([1, 1, 2], [1, 2, 2], None, 2 / 3, 2 / 3, 2 / 3, None),
     ],
     ids=[
         "perfect_match",
@@ -153,6 +155,8 @@ def test_compute_metrics_10k_items_under_100ms() -> None:
         "empty_ground_truth",
         "all_fp",
         "partial_match",
+        "both_empty",
+        "duplicate_elements",
     ],
 )
 def test_parametrized_metrics(
