@@ -1,0 +1,11 @@
+services:
+  owasp-benchmark:
+    image: owasp/benchmark:latest
+    ports:
+      - "8443:8443"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-k", "https://localhost:8443/benchmark/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s

@@ -49,7 +49,7 @@ TASK-003.md     → 이 문서: 벤치마크 환경 TDD 계획
 | 단계 | 상태 |
 |------|------|
 | 🔴 RED | [x] done |
-| 🟢 GREEN | [ ] pending |
+| 🟢 GREEN | [x] done |
 | 🔵 REFACTOR | [ ] pending |
 
 ---
@@ -97,14 +97,14 @@ TASK-003.md     → 이 문서: 벤치마크 환경 TDD 계획
 - [x] `uv run pytest tests/benchmarks/test_benchmark_env.py -v -k "not slow and not docker"` exit non-zero
 - [x] 모든 실패가 `AssertionError`
 - [x] 구현 파일 생성/수정 없음
-- [ ] `git add tests/ && git commit -m "red(SPEC-000): 벤치마크 환경 실패 테스트"`
+- [x] `git add tests/ && git commit -m "red(SPEC-000): 벤치마크 환경 실패 테스트"` → cbe437b
 
 ---
 
 ### Task 3.2 🟢 GREEN — 벤치마크 환경 구축
 
 **세션**: 격리됨 — 테스트 파일 읽기만, 수정 금지
-**상태**: [ ] pending
+**상태**: [x] done
 **의존성**: Task 3.1 ✅
 
 **입력**: `tests/benchmarks/test_benchmark_env.py`
@@ -128,9 +128,9 @@ TASK-003.md     → 이 문서: 벤치마크 환경 TDD 계획
 - `tests/benchmarks/test_benchmark_env.py`
 
 **단계 게이트 ✓**:
-- [ ] `uv run pytest tests/benchmarks/test_benchmark_env.py -v -k "not slow"` exit 0 (docker compose up 제외)
-- [ ] 각 L2 디렉토리에서 `docker compose config` 통과
-- [ ] 테스트 파일 변경 없음
+- [x] `uv run pytest tests/benchmarks/test_benchmark_env.py -v -k "not slow"` exit 0 (docker compose up 제외)
+- [x] 각 L2 디렉토리에서 `docker compose config` 통과
+- [x] 테스트 파일 변경 없음
 - [ ] `git commit -m "green(SPEC-000): 벤치마크 환경 디렉토리 + Docker Compose"`
 
 ---

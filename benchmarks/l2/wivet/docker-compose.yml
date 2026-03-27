@@ -1,0 +1,11 @@
+services:
+  wivet:
+    image: andresriancho/wivet
+    ports:
+      - "8080:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
