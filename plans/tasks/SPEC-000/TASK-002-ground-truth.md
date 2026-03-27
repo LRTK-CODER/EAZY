@@ -51,16 +51,16 @@ TASK-002.md     → 이 문서: Ground Truth 스키마 TDD 계획
 
 | 단계 | 상태 |
 |------|------|
-| 🔴 RED | [ ] pending |
-| 🟢 GREEN | [ ] pending |
-| 🔵 REFACTOR | [ ] pending |
+| 🔴 RED | [x] done |
+| 🟢 GREEN | [x] done |
+| 🔵 REFACTOR | [x] done |
 
 ---
 
 ### Task 2.1 🔴 RED — 실패하는 테스트 작성
 
 **세션**: 격리됨 — 구현 컨텍스트 없음
-**상태**: [ ] pending
+**상태**: [x] done
 
 **동작 명세**:
 - `GroundTruth` 모델이 `app_id`, `endpoints`, `vulnerabilities`, `kg_snapshot`, `chains` 필드를 가진다
@@ -94,19 +94,19 @@ TASK-002.md     → 이 문서: Ground Truth 스키마 TDD 계획
 **예상 실패**: `ModuleNotFoundError` (모듈 미존재)
 
 **단계 게이트 ✓**:
-- [ ] `uv run pytest tests/helpers/test_ground_truth.py -v` exit non-zero
-- [ ] 모든 실패가 `ImportError`/`ModuleNotFoundError` 또는 `AssertionError`
-- [ ] 테스트가 public API만 사용
-- [ ] SPEC의 모든 PASS 기준에 대응하는 테스트 존재
-- [ ] 구현 파일 생성/수정 없음
-- [ ] `git add tests/ && git commit -m "red(SPEC-000): Ground Truth 스키마 실패 테스트"`
+- [x] `uv run pytest tests/helpers/test_ground_truth.py -v` exit non-zero
+- [x] 모든 실패가 `ImportError`/`ModuleNotFoundError` 또는 `AssertionError`
+- [x] 테스트가 public API만 사용
+- [x] SPEC의 모든 PASS 기준에 대응하는 테스트 존재
+- [x] 구현 파일 생성/수정 없음
+- [x] `git add tests/ && git commit -m "red(SPEC-000): Ground Truth 스키마 실패 테스트"`
 
 ---
 
 ### Task 2.2 🟢 GREEN — 테스트 통과를 위한 최소 코드 구현
 
 **세션**: 격리됨 — 테스트 파일 읽기만, 수정 금지
-**상태**: [ ] pending
+**상태**: [x] done
 **의존성**: Task 2.1 ✅
 
 **입력**: `tests/helpers/test_ground_truth.py`
@@ -130,34 +130,34 @@ TASK-002.md     → 이 문서: Ground Truth 스키마 TDD 계획
 - `tests/helpers/test_ground_truth.py`
 
 **단계 게이트 ✓**:
-- [ ] `uv run pytest tests/helpers/test_ground_truth.py -v` exit 0
-- [ ] `uv run pytest` exit 0 (전체 스위트 — 리그레션 없음)
-- [ ] 테스트 파일 변경 없음
-- [ ] `uv run mypy tests/helpers/ground_truth.py` 에러 0개
-- [ ] `uv run mypy src/models/` 에러 0개
-- [ ] GroundTruth 모델이 SPEC 인터페이스 계약과 일치
-- [ ] `git commit -m "green(SPEC-000): Ground Truth 스키마 + src/models 스텁 구현"`
+- [x] `uv run pytest tests/helpers/test_ground_truth.py -v` exit 0
+- [x] `uv run pytest` exit 0 (전체 스위트 — 리그레션 없음)
+- [x] 테스트 파일 변경 없음
+- [x] `uv run mypy tests/helpers/ground_truth.py` 에러 0개
+- [x] `uv run mypy src/models/` 에러 0개
+- [x] GroundTruth 모델이 SPEC 인터페이스 계약과 일치
+- [x] `git commit -m "green(SPEC-000): Ground Truth 스키마 + src/models 스텁 구현"`
 
 ---
 
 ### Task 2.3 🔵 REFACTOR — 코드 품질 개선
 
 **세션**: 격리됨
-**상태**: [ ] pending
+**상태**: [x] done
 **의존성**: Task 2.2 ✅
 
 **평가 체크리스트**:
-- [ ] Pydantic 모델 필드에 `Field(description=...)` 적용
-- [ ] 모델 간 의존 관계 명확
-- [ ] docstring 완비 (Google 스타일)
-- [ ] import 정리
-- [ ] `src/models/` 스텁이 ARCHITECTURE 3절과 일관성 유지
+- [x] Pydantic 모델 필드에 `Field(description=...)` 적용
+- [x] 모델 간 의존 관계 명확
+- [x] docstring 완비 (Google 스타일)
+- [x] import 정리
+- [x] `src/models/` 스텁이 ARCHITECTURE 3절과 일관성 유지
 
-**결정**: [ ] 리팩토링 수행 / [ ] 건너뛰기
+**결정**: [x] 리팩토링 수행 / [ ] 건너뛰기
 
 **단계 게이트 ✓**:
-- [ ] 전체 테스트 스위트 통과
-- [ ] `git commit -m "refactor(SPEC-000): Ground Truth 스키마 [개선 내용]"`
+- [x] 전체 테스트 스위트 통과
+- [x] `git commit -m "refactor(SPEC-000): Ground Truth 스키마 [개선 내용]"`
 
 ---
 
@@ -165,9 +165,9 @@ TASK-002.md     → 이 문서: Ground Truth 스키마 TDD 계획
 
 | SPEC 검증 기준 | 테스트 통과 | 비고 |
 |---------------|-----------|------|
-| `PASS: GroundTruth 필드 존재` | [ ] | test_ground_truth_has_required_fields |
-| `PASS: JSON 로드 유효` | [ ] | test_ground_truth_loads_from_json |
-| `PASS: 필수 필드 누락 ValidationError` | [ ] | test_ground_truth_missing_app_id_raises_validation_error |
-| `PASS: kg_snapshot KG 호환` | [ ] | test_kg_snapshot_compatible_with_architecture |
-| `PASS: chains steps+impact` | [ ] | test_chain_has_steps_and_impact |
-| `PASS: extra 필드 허용` | [ ] | test_ground_truth_allows_extra_fields |
+| `PASS: GroundTruth 필드 존재` | [x] | test_ground_truth_has_required_fields |
+| `PASS: JSON 로드 유효` | [x] | test_ground_truth_loads_from_json |
+| `PASS: 필수 필드 누락 ValidationError` | [x] | test_ground_truth_missing_app_id_raises_validation_error |
+| `PASS: kg_snapshot KG 호환` | [x] | test_kg_snapshot_compatible_with_architecture |
+| `PASS: chains steps+impact` | [x] | test_chain_has_steps_and_impact |
+| `PASS: extra 필드 허용` | [x] | test_ground_truth_allows_extra_fields |
