@@ -48,7 +48,7 @@ TASK-003.md     → 이 문서: 벤치마크 환경 TDD 계획
 
 | 단계 | 상태 |
 |------|------|
-| 🔴 RED | [ ] pending |
+| 🔴 RED | [x] done |
 | 🟢 GREEN | [ ] pending |
 | 🔵 REFACTOR | [ ] pending |
 
@@ -57,7 +57,7 @@ TASK-003.md     → 이 문서: 벤치마크 환경 TDD 계획
 ### Task 3.1 🔴 RED — 실패하는 테스트 작성
 
 **세션**: 격리됨 — 구현 컨텍스트 없음
-**상태**: [ ] pending
+**상태**: [x] done
 
 **동작 명세**:
 - `benchmarks/` 아래 `l1/`, `l2/owasp-benchmark/`, `l2/wivet/`, `l2/conduit/` 디렉토리가 존재한다
@@ -94,9 +94,9 @@ TASK-003.md     → 이 문서: 벤치마크 환경 TDD 계획
 **예상 실패**: `AssertionError` (디렉토리/파일 미존재)
 
 **단계 게이트 ✓**:
-- [ ] `uv run pytest tests/benchmarks/test_benchmark_env.py -v -k "not slow and not docker"` exit non-zero
-- [ ] 모든 실패가 `AssertionError`
-- [ ] 구현 파일 생성/수정 없음
+- [x] `uv run pytest tests/benchmarks/test_benchmark_env.py -v -k "not slow and not docker"` exit non-zero
+- [x] 모든 실패가 `AssertionError`
+- [x] 구현 파일 생성/수정 없음
 - [ ] `git add tests/ && git commit -m "red(SPEC-000): 벤치마크 환경 실패 테스트"`
 
 ---

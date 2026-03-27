@@ -20,6 +20,10 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "slow: Docker 기동이 필요한 느린 테스트",
+    "docker: Docker CLI가 필요한 테스트",
+]
 
 [tool.mypy]
 python_version = "3.11"
